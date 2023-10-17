@@ -26,4 +26,3 @@ seaborn~=0.11.1
 setproctitle~=1.2.2
 filterpy~=1.4.5
 NicePrinter
-```
