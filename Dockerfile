@@ -8,8 +8,9 @@ RUN cd /root/ \
 
 WORKDIR /root
 
+RUN pip install --upgrade pip
+
 RUN cd /root/SCoBots \
-&& pip install --upgrade pip \
 && pip install -r requirements.txt
 
 # TODO: install OC_Atari
