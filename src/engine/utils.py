@@ -70,9 +70,9 @@ def get_config():
     arch_type = '' if args.arch_type == "baseline" else args.arch_type
     cfg.arch_type = args.arch_type
 
-    if args.resume_ckpt == '':
-        cfg.resume_ckpt = f"../trained_models/{cfg.exp_name}_space{arch_type}_seed{cfg.seed}.pth"
-        print(f"Using checkpoint from {cfg.resume_ckpt}")
+    #if args.resume_ckpt == '':
+    #    cfg.resume_ckpt = f"../trained_models/{cfg.exp_name}_space{arch_type}_seed{cfg.seed}.pth"
+    #    print(f"Using checkpoint from {cfg.resume_ckpt}")
 
     import torch
     torch.manual_seed(cfg.seed)

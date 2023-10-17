@@ -40,11 +40,15 @@ class Space(nn.Module):
         bg_likelihood, bg, kl_bg, log_bg = self.bg_module(x, global_step)
 
         if motion is None:
-            motion = torch.zeros(x.shape[0], 1, x.shape[2], x.shape[3]).cuda()
+            motion = torch.zeros(x.shape[0], 1, x.shape[2], x.shape[3])#.cuda()
         if motion_z_pres is None:
-            motion_z_pres = torch.zeros(x.shape[0], arch.G * arch.G, 1).cuda()
+            motion_z_pres = torch.zeros(x.shape[0], arch.G * arch.G, 1)#.cuda()
         if motion_z_where is None:
-            motion_z_where = torch.zeros(x.shape[0], arch.G * arch.G, 4).cuda()
+            motion_z_where = torch.zeros(x.shape[0], arch.G * arch.G, 4)#.cuda()
+        if "cuda" in str(next(self.parameters()).device):
+            motion = motion.cuda()
+            motion_z_pres = motion_z_pres.cuda()
+            motion_z_where = motion_z_where.cuda()
         # Foreground extraction
         fg_likelihood, fg, alpha_map, kl_fg, log_fg = self.fg_module(x, motion, motion_z_pres,
                                                                      motion_z_where, global_step)

@@ -326,7 +326,8 @@ class BoundingBoxes(ProcessingVisualization):
         objects = objects[:, [2, 0, 3, 1]]
         bb_img = draw_bb(torch_img, objects, colors=['red'] * len(objects), labels=labels)
         result = Image.fromarray(ndimage.zoom(bb_img.permute(1, 2, 0).numpy(), (3, 3, 1), order=1))
-        result.save(f'{self.vis_path}/{self.vis_counter:04}.png')
+        #result.save(f'{self.vis_path}/{self.vis_counter:04}.png')
+        result.save(f'{self.vis_path}/{self.motion_type}/{self.vis_counter:04}.png')
 
 
 class ZWhereZPres(ProcessingVisualization):

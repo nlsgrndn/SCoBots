@@ -1,7 +1,6 @@
 from mushroom_rl.utils.dataset import compute_metrics, compute_J
 from os import listdir, makedirs, remove
 from os.path import isfile, join
-from activations.torch import Rational
 import torch
 import numpy as np
 import re

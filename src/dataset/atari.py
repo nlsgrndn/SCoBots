@@ -33,9 +33,13 @@ class Atari(Dataset):
         self.valid_flow_threshold = 20
         if len(cfg.gamelist) > 1:
             print(f"Evaluation currently only supported for exactly one game not {cfg.gamelist}")
-        image_fn = [os.path.join(fn, mode, img) for fn in os.listdir(self.image_path)
-                    if cfg.gamelist is None or fn in cfg.gamelist
-                    for img in os.listdir(os.path.join(self.image_path, fn, mode)) if img.endswith(".png")]
+        #print("image_path", self.image_path)
+        #print([os.path.join(fn, mode, img) for fn in os.listdir(self.image_path) for img in os.listdir(os.path.join(self.image_path, fn, mode)) if img.endswith(".png")])
+        #image_fn = [os.path.join(fn, mode, img) for fn in os.listdir(self.image_path)
+        #            if cfg.gamelist is None or fn in cfg.gamelist
+        #            for img in os.listdir(os.path.join(self.image_path, fn, mode)) if img.endswith(".png")]
+        image_fn = [os.path.join(mode, img) for img in os.listdir(os.path.join(self.image_path, mode)) if img.endswith(".png")]
+        #print(f"Found {len(image_fn)} images for game {cfg.gamelist}")
         self.image_fn = image_fn
 
     def __getitem__(self, stack_idx):

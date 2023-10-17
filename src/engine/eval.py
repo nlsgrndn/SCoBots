@@ -1,5 +1,5 @@
 from model import get_model
-from eval import get_evaluator
+from eval import get_evaluator #comes from __init__.py
 from dataset import get_dataset, get_dataloader
 from utils import Checkpointer
 import os
@@ -11,9 +11,9 @@ from torch.utils.tensorboard import SummaryWriter
 def eval(cfg):
     assert cfg.eval.checkpoint in ['best', 'last']
     assert cfg.eval.metric in ['ap_dot5', 'ap_avg']
-    if True:
-        cfg.device = 'cuda:0'
-        cfg.device_ids = [0]
+    #if True:
+    #    cfg.device = 'cuda:0'
+    #    cfg.device_ids = [0]
 
     print('Experiment name:', cfg.exp_name)
     print('Dataset:', cfg.dataset)

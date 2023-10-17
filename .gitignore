@@ -163,3 +163,7 @@ src/ql_checkpoints/
 
 src/rl_checkpoints/
 src/rl_logs/
+
+ROMS
+HC ROMS
+my_data

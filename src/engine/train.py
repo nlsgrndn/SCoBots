@@ -17,7 +17,7 @@ import shutil
 from torch.utils.data import Subset, DataLoader
 
 
-def train(cfg, rtpt_active=True):
+def print_train_info(cfg):
     print('Experiment name:', cfg.exp_name)
     print('Dataset:', cfg.dataset)
     print('Model name:', cfg.model)
@@ -30,19 +30,7 @@ def train(cfg, rtpt_active=True):
     if cfg.parallel:
         print('Device ids:', cfg.device_ids)
 
-    print('Loading data')
-    if rtpt_active:
-        rtpt = RTPT(name_initials='TRo', experiment_name='SPACE-Time', max_iterations=cfg.train.max_epochs)
-        rtpt.start()
-    dataset = get_dataset(cfg, 'train')
-    trainloader = get_dataloader(cfg, 'train')
-    if cfg.train.eval_on:
-        valset = get_dataset(cfg, 'val')
-        # valloader = get_dataloader(cfg, 'val')
-        evaluator = get_evaluator(cfg)
-    model = get_model(cfg)
-    model = model.to(cfg.device)
-
+def print_training_games_info(cfg):
     if len(cfg.gamelist) >= 10:
         print("Training on every game")
         suffix = 'all'
@@ -55,15 +43,34 @@ def train(cfg, rtpt_active=True):
     else:
         print("Can't train")
         exit(1)
+    return suffix # Remark: suffix was not used anywhere in original code, but I added as a return value just in case.
+
+def train(cfg, rtpt_active=True):
+    print_train_info(cfg)
+    print_training_games_info(cfg)
+
+    if rtpt_active: # RTPT: Remaining Time to Process (library by AIML Lab used to rename your processes giving information on who is launching the process, and the remaining time for it)
+        rtpt = RTPT(name_initials='TRo', experiment_name='SPACE-Time', max_iterations=cfg.train.max_epochs)
+        rtpt.start()
+
+    # data loading
+    dataset = get_dataset(cfg, 'train')
+    trainloader = get_dataloader(cfg, 'train')
+    if cfg.train.eval_on:
+        valset = get_dataset(cfg, 'val')
+        # valloader = get_dataloader(cfg, 'val')
+        evaluator = get_evaluator(cfg)
+    
+    # model loading
+    model = get_model(cfg)
+    model = model.to(cfg.device)
+    model.train() # set model to train mode
+    optimizer_fg, optimizer_bg = get_optimizers(cfg, model)
     checkpointer = Checkpointer(osp.join(cfg.checkpointdir, cfg.exp_name), max_num=cfg.train.max_ckpt,
                                 load_time_consistency=cfg.load_time_consistency, add_flow=cfg.add_flow)
-    model.train()
-
-    optimizer_fg, optimizer_bg = get_optimizers(cfg, model)
-
     start_epoch = 0
     global_step = 0
-    if cfg.resume:
+    if cfg.resume: # whether to resume training from a checkpoint
         checkpoint = checkpointer.load_last(cfg.resume_ckpt, model, optimizer_fg, optimizer_bg, cfg.device)
         if checkpoint:
             start_epoch = checkpoint['epoch']
@@ -71,29 +78,34 @@ def train(cfg, rtpt_active=True):
     if cfg.parallel:
         model = nn.DataParallel(model, device_ids=cfg.device_ids)
 
+
+    # prepare logging of training process
     log_path = os.path.join(cfg.logdir, cfg.exp_name)
     if os.path.exists(log_path) and len(log_path) > 15 and cfg.logdir and cfg.exp_name and str(cfg.seed):
         shutil.rmtree(log_path)
-
     writer = SummaryWriter(log_dir=log_path, flush_secs=30,
                            purge_step=global_step)
     vis_logger = get_vislogger(cfg)
     metric_logger = MetricLogger()
+    
+    # initialize variables for training loop
     never_evaluated = True
     print(f'Start training, Global Step: {global_step}, Start Epoch: {start_epoch} Max: {cfg.train.max_steps}')
     end_flag = False
     start_log = global_step + 1
     base_global_step = global_step
-
     for epoch in range(start_epoch, cfg.train.max_epochs):
+        print ('Epoch: ', epoch)
         pbar = tqdm(total=len(trainloader))
         if end_flag:
             break
-        start = time.perf_counter()
 
+        start = time.perf_counter()
         for (img_stacks, motion, motion_z_pres, motion_z_where) in trainloader:
             end = time.perf_counter()
             data_time = end - start
+
+            # eval on validation set
             if (global_step % cfg.train.eval_every == 0 or never_evaluated) and cfg.train.eval_on:
                 never_evaluated = False
                 print('Validating...')
@@ -102,6 +114,8 @@ def train(cfg, rtpt_active=True):
                 evaluator.train_eval(model, valset, valset.bb_path, writer, global_step, cfg.device, eval_checkpoint,
                                      checkpointer, cfg)
                 print('Validation takes {:.4f}s.'.format(time.perf_counter() - start))
+            
+            # main training
             start = time.perf_counter()
             model.train()
             img_stacks = img_stacks.to(cfg.device)
@@ -109,14 +123,11 @@ def train(cfg, rtpt_active=True):
             motion_z_pres = motion_z_pres.to(cfg.device)
             motion_z_where = motion_z_where.to(cfg.device)
             loss, log = model(img_stacks, motion, motion_z_pres, motion_z_where, global_step)
-            # In case of using DataParallel
-            loss = loss.mean()
+            loss = loss.mean() # In case of using DataParallel
             optimizer_fg.zero_grad(set_to_none=True)
             optimizer_bg.zero_grad(set_to_none=True)
-
             end = time.perf_counter()
             batch_time = end - start
-
             metric_logger.update(data_time=data_time)
             metric_logger.update(batch_time=batch_time)
             metric_logger.update(loss=loss.item())
@@ -126,16 +137,17 @@ def train(cfg, rtpt_active=True):
             optimizer_fg.step()
             optimizer_bg.step()
 
+            # logging
             if global_step == start_log:
-                start_log = int((start_log - base_global_step) * 1.2) + 1 + base_global_step
+                start_log = int((start_log - base_global_step) * 1.2) + 1 + base_global_step #WTF is this? Why 1.2?
                 log_state(cfg, epoch, global_step, log, metric_logger)
-
             if global_step % cfg.train.print_every == 0 or never_evaluated:
                 log.update({
                     'loss': metric_logger['loss'].median,
                 })
                 vis_logger.train_vis(model, writer, log, global_step, 'train', cfg, dataset)
 
+            # checkpointing
             if global_step % cfg.train.save_every == 0:
                 start = time.perf_counter()
                 checkpointer.save_last(model, optimizer_fg, optimizer_bg, epoch, global_step)
@@ -149,8 +161,10 @@ def train(cfg, rtpt_active=True):
                 break
         if rtpt_active:
             rtpt.step()
-    if True:
-        print('Final evaluation on test set...')
+
+    # final evaluation on validation set
+    if cfg.train.eval_on:
+        print('Final evaluation on validation set...')
         start = time.perf_counter()
         eval_checkpoint = [model, optimizer_fg, optimizer_bg, epoch, global_step]
         evaluator.validation_eval(model, valset, valset.bb_path, writer, global_step,
