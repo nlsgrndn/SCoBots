@@ -2,7 +2,7 @@ attrdict==2.0.1
 imageio==2.6.1
 matplotlib~=3.5.0
 numpy~=1.21.4
-Pillow
+Pillow~=9.5.0 #must be lower than 10.0.0 to still work with ANTIALIAS
 scikit-image~=0.16.2
 scipy~=1.7.3
 tqdm~=4.42.1
