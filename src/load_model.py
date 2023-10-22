@@ -1,7 +1,12 @@
+"""
+File to load a model and test it on a game
+"""
+
 import joblib
 import os.path as osp
 from engine.utils import get_config
 from model import get_model
+from spacetime_rl_algorithms.rl_utils import SceneCleaner, load_space
 from utils import Checkpointer
 from solver import get_optimizers
 # from utils_rl import Atari
@@ -26,69 +31,20 @@ def sprint(scene):
 def show_scene(image, scene):
     filled_image = fill_image_with_scene(image, scene)
     plt.imshow(np.moveaxis(np.array(filled_image.cpu().detach()), (0, 1, 2), (2, 0, 1)))
+    # also save image
+    import os
+    if not osp.exists("images"):
+        os.makedirs("images")
+    plt.imsave(f"images/{i}.png", np.moveaxis(np.array(filled_image.cpu().detach()), (0, 1, 2), (2, 0, 1)))
     plt.show()
 
 
-relevant_labels_per_game = {"pong": [1, 2, 3], "boxing": [1, 4]}
-
-
-class SceneCleaner():
-    def __init__(self, game):
-        self.game = game
-        self.relevant_labels = relevant_labels_per_game[game]
-        self.last_known = [[0, 0] for _ in self.relevant_labels]
-
-    def clean_scene(self, scene):
-        empty_keys = []
-        for key, val in scene.items():
-            for i, z_where in reversed(list(enumerate(val))):
-                if z_where[3] < -0.75:
-                    scene[key].pop(i)
-            if len(val) == 0:
-                empty_keys.append(key)
-        for key in empty_keys:
-            scene.pop(key)
-        for i, el in enumerate(self.relevant_labels):
-            if el in scene: #object found
-                self.last_known[i] = scene[el][0][2:]
-        return self.last_known
-
-
-model = get_model(cfg)
 use_cuda = 'cuda' in cfg.device
-if use_cuda:
-    model = model.to('cuda:0')
-model.eval()
-# state_dicts = torch.load(cfg.resume_ckpt, map_location="cuda:0")
-#
-# model.space.load_state_dict(state_dicts['model'])
-
-cfg.device_ids = [0]
-
-checkpointer = Checkpointer(osp.join(cfg.checkpointdir, cfg.exp_name), max_num=cfg.train.max_ckpt,
-                            load_time_consistency=cfg.load_time_consistency, add_flow=cfg.add_flow)
-optimizer_fg, optimizer_bg = get_optimizers(cfg, model)
-
-if cfg.resume:
-    checkpoint = checkpointer.load_last(cfg.resume_ckpt, model, optimizer_fg, optimizer_bg, cfg.device)
-    if checkpoint:
-        start_epoch = checkpoint['epoch']
-        global_step = checkpoint['global_step'] + 1
-
-
-
-space = model.space
-z_classifier_path = f"classifiers/{cfg.exp_name}_space{cfg.arch_type_desc}_seed{cfg.seed}_z_what_classifier.joblib.pkl"
-z_classifier = joblib.load(z_classifier_path)
-# x is the image on device as a Tensor, z_classifier accepts the latents,
-# only_z_what control if only the z_what latent should be used (see docstring)
-
-transformation = transforms.ToTensor()
-import matplotlib; matplotlib.use("Tkagg")
-
-env_name = cfg.gamelist[0]
-sc = SceneCleaner(cfg.exp_name)
+space, transformation, sc, z_classifier = load_space(cfg, z_classifier_path="classifiers/pong_z_what_classifier.joblib.pkl")
+#import matplotlib; matplotlib.use("Tkagg")
 # env = Atari(env_name)
+cfg.device_ids = [0]
+env_name = cfg.gamelist[0]
 env = gym.make(env_name)
 env.reset()
 nb_action = env.action_space.n

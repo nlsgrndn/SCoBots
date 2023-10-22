@@ -1,17 +1,7 @@
-import gym
 from PIL import Image
-from time import sleep
 import argparse
 import os
-from pprint import pprint
-from augmentation import augment_dict, draw_names, show_image, load_agent, \
-    dict_to_serie, put_lives, set_plot_bb, image_offset
-from glob import glob
-from utils_rl import Atari
-import json
-from collections import namedtuple
 from utils_rl import make_deterministic
-import pandas as pd
 import numpy as np
 from tqdm import tqdm
 import random
@@ -22,7 +12,6 @@ from src.motion import mode
 from src.motion.motion_processing import ProcessingVisualization, BoundingBoxes, \
     ClosingMeanThreshold, IteratedCentroidSelection, Skeletonize, Identity, FlowBoundingBox, ZWhereZPres, \
     set_color_hist, set_special_color_weight
-import contextlib
 from src.niceprint import pprint as print
 
 
@@ -226,7 +215,7 @@ def main():
             resize_stack = []
             for i, (frame, img_info) in enumerate(zip(consecutive_images[-4:], consecutive_images_info[-4:])):
                 space_stack.append(frame)
-                frame_space = Image.fromarray(frame[:, :, ::-1], 'RGB').resize((128, 128), Image.LANCZOS) # changed to LANCZOS from ANTIALIAS because ANITALIAS is deprecated
+                frame_space = Image.fromarray(frame[:, :, ::-1], 'RGB').resize((128, 128), Image.ANTIALIAS)
                 resize_stack.append(np.array(frame_space))
                 frame_space.save(f'{bgr_folder}/{image_count:05}_{i}.png')
                 img = Image.fromarray(frame, 'RGB')

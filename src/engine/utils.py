@@ -66,7 +66,9 @@ def get_config():
     elif args.arch_type == "moc": #
         cfg.model = 'TcSpace'
         cfg.arch.area_object_weight = 10.0
-    cfg.resume_ckpt = args.resume_ckpt
+
+    if args.resume_ckpt != '':
+        cfg.resume_ckpt = args.resume_ckpt
     arch_type = '' if args.arch_type == "baseline" else args.arch_type
     cfg.arch_type = args.arch_type
 

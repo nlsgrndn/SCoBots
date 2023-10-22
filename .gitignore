@@ -167,3 +167,6 @@ src/rl_logs/
 ROMS
 HC ROMS
 my_data
+my_scripts/flow_visualization
+.python-version
+Roms.rar

@@ -5,7 +5,7 @@ import math
 import random
 import pickle
 import bz2
-import rl_utils
+import spacetime_rl_algorithms.rl_utils as rl_utils
 
 from atariari.benchmark.wrapper import AtariARIWrapper
 from rtpt import RTPT

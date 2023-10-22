@@ -3,7 +3,7 @@ import gym
 import os
 
 import torch
-import rl_utils
+import spacetime_rl_algorithms.rl_utils as rl_utils
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
