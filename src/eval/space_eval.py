@@ -94,7 +94,7 @@ class SpaceEval:
         losses, logs = self.apply_model(valset, device, model, global_step)
         with open(self.eval_file_path, "a") as self.eval_file:
             self.write_metric(None, None, global_step, global_step, use_writer=False)
-            if 'cluster' in eval_cfg.train.metrics:
+            if 'cluster' in eval_cfg.train.metrics: # CODE IS BUGGY HERE
                 results = self.train_eval_clustering(logs, valset, writer, global_step, cfg)
                 if cfg.train.log:
                     pp = pprint.PrettyPrinter(depth=2)
@@ -130,11 +130,11 @@ class SpaceEval:
         """
         # make checkpoint test dir
         chpt_dir_save = checkpointer.checkpointdir
-        checkpointer.checkpointdir = chpt_dir_save.replace("/eval/", "/test_eval/") + f"_{model.module.arch_type}"
+        checkpointer.checkpointdir = chpt_dir_save.replace("/eval/", "/test_eval/") + f"_{model.arch_type}"
         os.makedirs(checkpointer.checkpointdir, exist_ok=True)
         efp_save = self.eval_file_path
         rohp_save = self.relevant_object_hover_path
-        self.eval_file_path = f'../final_test_results/{cfg.exp_name}_{model.module.arch_type}_seed{cfg.seed}_metrics.csv'
+        self.eval_file_path = f'../final_test_results/{cfg.exp_name}_{model.arch_type}_seed{cfg.seed}_metrics.csv'
         self.relevant_object_hover_path = f'../final_test_results/{cfg.exp_name}/hover'
         if os.path.exists(self.eval_file_path):
             os.remove(self.eval_file_path)
@@ -179,10 +179,10 @@ class SpaceEval:
         print('Applying the model for evaluation...')
         model.eval()
         if eval_cfg.train.num_samples:
-            num_samples = max(eval_cfg.train.num_samples.values())
+            num_samples = min(len(dataset),max(eval_cfg.train.num_samples.values()))
         else:
             num_samples = len(dataset)
-        eval_cfg.train.batch_size = 4
+        # eval_cfg.train.batch_size = 4 Why was this manually overwritten to 4 here?
         batch_size = eval_cfg.train.batch_size
         num_workers = eval_cfg.train.num_workers
         data_subset = Subset(dataset, indices=range(num_samples))
@@ -253,7 +253,7 @@ class SpaceEval:
         print('Computing MSE...')
         num_batches = eval_cfg.train.num_samples.mse // eval_cfg.train.batch_size
         metric_logger = MetricLogger()
-        for loss, log in zip(losses[:num_batches], logs):
+        for _, log in zip(losses[:num_batches], logs):
             metric_logger.update(mse=torch.mean(log['mse']))
         mse = metric_logger['mse'].global_avg
         self.write_metric(writer, f'all/mse', mse, global_step=global_step)
@@ -390,7 +390,7 @@ class SpaceEval:
         :return ap: a list of average precisions, corresponding to each iou_thresholds
         """
         batch_size = eval_cfg.train.batch_size
-        num_samples = eval_cfg.train.num_samples.ap
+        num_samples = min(len(dataset), eval_cfg.train.num_samples.ap)
         print('Computing error rates, counts and APs...')
         if iou_thresholds is None:
             iou_thresholds = np.linspace(0.1, 0.9, 9)
@@ -402,7 +402,7 @@ class SpaceEval:
 
         rgb_folder_src = f"../aiml_atari_data_mid/rgb/Pong-v0/validation"
         rgb_folder = f"../aiml_atari_data2/with_bounding_boxes/Pong-v0/sample"
-        num_batches = eval_cfg.train.num_samples.cluster // eval_cfg.train.batch_size
+        num_batches = min(len(dataset), eval_cfg.train.num_samples.cluster) // batch_size #eval_cfg.train.num_samples.cluster // eval_cfg.train.batch_size
 
         for img in logs[:num_batches]:
             z_where, z_pres_prob, z_what = img['z_where'], img['z_pres_prob'], img['z_what']
