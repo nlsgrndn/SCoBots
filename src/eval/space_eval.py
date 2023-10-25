@@ -130,11 +130,12 @@ class SpaceEval:
         """
         # make checkpoint test dir
         chpt_dir_save = checkpointer.checkpointdir
-        checkpointer.checkpointdir = chpt_dir_save.replace("/eval/", "/test_eval/") + f"_{model.arch_type}"
+        model_str = model.arch_type if hasattr(model, "arch_type") else model.module.arch_type # cpu else gpu
+        checkpointer.checkpointdir = chpt_dir_save.replace("/eval/", "/test_eval/") + f"_{model_str}"
         os.makedirs(checkpointer.checkpointdir, exist_ok=True)
         efp_save = self.eval_file_path
         rohp_save = self.relevant_object_hover_path
-        self.eval_file_path = f'../final_test_results/{cfg.exp_name}_{model.arch_type}_seed{cfg.seed}_metrics.csv'
+        self.eval_file_path = f'../final_test_results/{cfg.exp_name}_{model_str}_seed{cfg.seed}_metrics.csv'
         self.relevant_object_hover_path = f'../final_test_results/{cfg.exp_name}/hover'
         if os.path.exists(self.eval_file_path):
             os.remove(self.eval_file_path)
