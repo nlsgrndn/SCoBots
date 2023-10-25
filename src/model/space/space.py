@@ -45,7 +45,7 @@ class Space(nn.Module):
             motion_z_pres = torch.zeros(x.shape[0], arch.G * arch.G, 1)#.cuda()
         if motion_z_where is None:
             motion_z_where = torch.zeros(x.shape[0], arch.G * arch.G, 4)#.cuda()
-        if "cuda" in str(next(self.parameters()).device):
+        if "cuda" in x.device.type:
             motion = motion.cuda()
             motion_z_pres = motion_z_pres.cuda()
             motion_z_where = motion_z_where.cuda()
@@ -104,7 +104,7 @@ class Space(nn.Module):
         z_where, z_pres_prob, z_what, z_depth = log['z_where'], log['z_pres_prob'], log['z_what'], log['z_depth']
         z_where, z_what, z_depth = z_where.squeeze().detach().cpu(), z_what.squeeze().detach().cpu(), z_depth.squeeze().detach().cpu()
         z_pres_prob = z_pres_prob.squeeze().detach().cpu()
-        z_pres = z_pres_prob > 0.5
+        z_pres = z_pres_prob > 0.5 # TODO: fix code for case when z_pres_prob <= 0.5 everywhere
         if size:
             pos = z_where[z_pres]
         else:
