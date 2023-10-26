@@ -4,41 +4,35 @@ This repository contains the code for MOC. Here you can train discovery models t
 ![moc](figures/moc.svg)
 
 
-If you are interested in an Object-Centric Atari environments, to train your models or to train object-centric RL agents, please check [our OC_Atari github repo](https://github.com/k4ntz/OC_Atari)
+**Sections**
+- Installation
+- Object Detection and Representation Model:
+	- Loading the model
+	- Training
+	- Evaluation
+- RL Agents:
+	- Loading the model
+	- Training
+	- Evaluation
+
+**Installation**
+- linux is recommended
+- use python 3.8.12 or similar
+- install requirements.txt
+- for installation with cuda usage on remote cluster of tu darmstadt:pip3 install torch==1.10.0+cu113 torchvision==0.11.1+cu113  -f  https://download.pytorch.org/whl/cu113/torch_stable.html
+- when running eval.py protobuf issue, the solution is to downgrade to 3.20
 
 **Dataset Creation**
 
-We heavily modified the create_dataset.py described below for SPACE-Time:
-
-It tries to use an Agent from folder `agents` also in root directory'
-`python3 create_dataset.py -f train -g Pong` would create a dataset based on the trail images
-
-Important new options are:
-
-* `--plot_bb` adds bounding boxes to the generated images! (helps debug)
-* `--root` use the global mode image instead of the mode of the trail
-* `--root-median` computes the mode and median images from all of those already generated.
-
-If one wants to create a SpaceTime dataset, use:
-`python3 create_dataset.py -f train -g Pong` for 100 e.g images
-then
-`python3 create_dataset.py -f train -g Pong --rootmedian` > generate root.png
-Check if the median is proper or redo with more images.
-`python3 create_dataset.py -f train -g Pong --root`.
-
-Some other frequently changed things are currently not settings yet, but set in the code...
-One such thing is the visualization; in `motion_processing.py` we define the class ProcessingVisualization
-and implementations, that take in the frames and motion and visualize sth. for every `self.every_n` up to `self.max_vis`
-times.
-
-The settings for the visualization are defined (grouped by motion type and one for the ground truth labels)
-inside the main function.
-E.g `ZWhereZPres` does show most of the steps used when going from binary motion yes/no to z_where and z_pres latents.
+Example:
+`python3 create_dataset_using_OCAtari.py -f train -g Pong --compute_root_images`
 
 **Loading the model**
 
-The model SPACE-Time is loaded with `Checkpointer` in `src/utils.py`, while the config in `src/configs`
-(e.g. `atari_mspacman.yaml`) control which model is loaded. Usage can be seen in `train.py`:
+Like all methods from files within src, the code should be executed while being in the src directory and via the main file.
+
+The model is loaded with `Checkpointer` in `src/utils.py`, while the config in `src/configs`
+(e.g. `atari_mspacman.yaml`) control which model is loaded. Also, get_config() must be executed. Usage can be seen in `train.py`:
 
 ```python
 model = get_model(cfg)
