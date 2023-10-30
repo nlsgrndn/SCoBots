@@ -89,19 +89,17 @@ def train(cfg, rtpt_active=True):
     metric_logger = MetricLogger()
     
     # initialize variables for training loop
-    never_evaluated = True
     print(f'Start training, Global Step: {global_step}, Start Epoch: {start_epoch} Max: {cfg.train.max_steps}')
+    never_evaluated = True
     end_flag = False
     start_log = global_step + 1
     base_global_step = global_step
     for epoch in range(start_epoch, cfg.train.max_epochs):
-        print ('Epoch: ', epoch)
-        pbar = tqdm(total=len(trainloader))
         if end_flag:
             break
 
         start = time.perf_counter()
-        for (img_stacks, motion, motion_z_pres, motion_z_where) in trainloader:
+        for (img_stacks, motion, motion_z_pres, motion_z_where) in trainloader: #tqdm(trainloader, desc=f"Epoch {epoch}"):
             end = time.perf_counter()
             data_time = end - start
 
@@ -138,38 +136,41 @@ def train(cfg, rtpt_active=True):
             optimizer_bg.step()
 
             # logging
-            if global_step == start_log:
+            if global_step == start_log: # print in console
                 start_log = int((start_log - base_global_step) * 1.2) + 1 + base_global_step #WTF is this? Why 1.2?
-                log_state(cfg, epoch, global_step, log, metric_logger)
-            if global_step % cfg.train.print_every == 0 or never_evaluated:
+                log_state(cfg, epoch, global_step, log, metric_logger) 
+            if global_step % cfg.train.print_every == 0 or never_evaluated: # log in tensorboard
                 log.update({
                     'loss': metric_logger['loss'].median,
                 })
-                vis_logger.train_vis(model, writer, log, global_step, 'train', cfg, dataset)
+                vis_logger.train_vis(model, writer, log, global_step, 'train', cfg, dataset) 
 
             # checkpointing
-            if global_step % cfg.train.save_every == 0:
+            if global_step % cfg.train.save_every == 0: # save checkpoint
                 start = time.perf_counter()
                 checkpointer.save_last(model, optimizer_fg, optimizer_bg, epoch, global_step)
                 print('Saving checkpoint takes {:.4f}s.'.format(time.perf_counter() - start))
 
-            pbar.update(1)
             start = time.perf_counter()
             global_step += 1
             if global_step > cfg.train.max_steps:
                 end_flag = True
+
+                # final evaluation on validation set
+                if cfg.train.eval_on:
+                    print('Final evaluation on validation set...')
+                    start = time.perf_counter()
+                    eval_checkpoint = [model, optimizer_fg, optimizer_bg, epoch, global_step]
+                    evaluator.train_eval(model, valset, valset.bb_path, writer, global_step, # was non-existent method validation_eval before, changed to train_eval but maybe test_eval is better?
+                                              cfg.device, eval_checkpoint, checkpointer, cfg)
+                    print('Validation takes {:.4f}s.'.format(time.perf_counter() - start))
+                
                 break
+
         if rtpt_active:
             rtpt.step()
 
-    # final evaluation on validation set
-    if cfg.train.eval_on:
-        print('Final evaluation on validation set...')
-        start = time.perf_counter()
-        eval_checkpoint = [model, optimizer_fg, optimizer_bg, epoch, global_step]
-        evaluator.validation_eval(model, valset, valset.bb_path, writer, global_step,
-                                  cfg.device, eval_checkpoint, checkpointer, cfg)
-        print('Validation takes {:.4f}s.'.format(time.perf_counter() - start))
+    
 
 
 def log_state(cfg, epoch, global_step, log, metric_logger):
