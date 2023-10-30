@@ -138,12 +138,13 @@ def train(cfg, rtpt_active=True):
             # logging
             if global_step == start_log: # print in console
                 start_log = int((start_log - base_global_step) * 1.2) + 1 + base_global_step #WTF is this? Why 1.2?
-                log_state(cfg, epoch, global_step, log, metric_logger) 
+                if (epoch-start_epoch)%20 == 0:
+                    log_state(cfg, epoch, global_step, log, metric_logger) 
             if global_step % cfg.train.print_every == 0 or never_evaluated: # log in tensorboard
                 log.update({
                     'loss': metric_logger['loss'].median,
                 })
-                vis_logger.train_vis(model, writer, log, global_step, 'train', cfg, dataset) 
+                vis_logger.train_vis(model, writer, log, global_step, 'train', cfg, dataset)
 
             # checkpointing
             if global_step % cfg.train.save_every == 0: # save checkpoint
