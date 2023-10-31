@@ -22,12 +22,11 @@ def get_dataset(cfg, mode):
 
 def get_dataloader(cfg, mode):
     assert mode in ['train', 'val', 'test']
-    dataset_size = 5 # TODO:specifiy number somewhere else (was set to 3000)
     batch_size = getattr(cfg, mode).batch_size
     shuffle = True if mode == 'train' else False
     num_workers = getattr(cfg, mode).num_workers
     dataset = get_dataset(cfg, mode)
-    dataset = data_utils.Subset(dataset, torch.arange(dataset_size))
+    #dataset = data_utils.Subset(dataset, torch.arange(dataset_size)) #TODO: check why this line was here
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
 
 

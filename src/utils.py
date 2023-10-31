@@ -130,7 +130,7 @@ class Checkpointer:
             optimizer_fg.load_state_dict(checkpoint.pop('optimizer_fg'))
         if optimizer_bg and not self.add_flow:
             optimizer_bg.load_state_dict(checkpoint.pop('optimizer_bg'))
-        print('blue', 'Checkpoint loaded.')
+        print('blue', f'Checkpoint "{path}" loaded.')
         return checkpoint
 
     def load_last(self, path, model, optimizer_fg=None, optimizer_bg=None, device=None):

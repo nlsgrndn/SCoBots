@@ -130,7 +130,7 @@ class SpaceEval:
         """
         # make checkpoint test dir
         chpt_dir_save = checkpointer.checkpointdir
-        model_str = model.arch_type if hasattr(model, "arch_type") else model.module.arch_type # cpu else gpu
+        model_str = model.arch_type if hasattr(model, "arch_type") else model.module.arch_type # access string for cpu else for gpu
         checkpointer.checkpointdir = chpt_dir_save.replace("/eval/", "/test_eval/") + f"_{model_str}"
         os.makedirs(checkpointer.checkpointdir, exist_ok=True)
         efp_save = self.eval_file_path

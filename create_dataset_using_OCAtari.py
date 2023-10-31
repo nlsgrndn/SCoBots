@@ -197,7 +197,7 @@ def main():
     enemy_scored = False
     while True:
         obs, reward, done, truncated, info = take_action(agent)
-        game_objects = [(go.y, go.x, go.h, go.w, "S" if go.hud else "M", go.category) for go in sorted(agent.env.objects, key=lambda o: str(o))] # TODO check whether 5th parameter "s" is correct
+        game_objects = [(go.y, go.x, go.h, go.w, "S" if go.hud else "M", go.category) for go in sorted(agent.env.objects, key=lambda o: str(o))]
         info["bbs"] = game_objects
 
         if (obs==0).all(): # black screen
@@ -255,7 +255,7 @@ def main():
     print(f"Dataset Generation is completed. Everything is saved in {data_base_folder}.")
 
 
-def configure(args): #TODO OCAtari
+def configure(args):
     global env
     # env = AtariARIWrapper(gym.make(f'{arguments.game}Deterministic-v4'))
     #with open(f'configs/{args.game.lower()}_config.json', 'r') as f:
@@ -273,7 +273,7 @@ def configure(args): #TODO OCAtari
     #agent = load_agent(args, env)
     #return agent, augmented, state
     print(f"Playing {args.game}...")
-    env = OCAtari(args.game, mode = "vision", hud=True, render_mode="rgb_array")
+    env = OCAtari(args.game, mode = "revised", hud=True, render_mode="rgb_array") # revised(=ram) mode should be used
     observation, info = env.reset()
     make_deterministic(0 if args.folder == "train" else 1 if args.folder == "validation" else 2, env)
     agent = RandomAgent(env)

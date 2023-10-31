@@ -5,7 +5,7 @@ import numpy as np
 def test_flow(cfg):
     # The video feed is read in as
     # a VideoCapture object
-    cap = cv.VideoCapture("Pong-v0_ep000000.mp4")
+    cap = cv.VideoCapture("videos/Pong-v0_ep000000.mp4")
 
     # ret = a boolean return value from
     # getting the frame, first_frame = the

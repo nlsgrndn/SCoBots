@@ -6,6 +6,7 @@ from rtpt import RTPT
 import matplotlib.pyplot as plt
 from gym.wrappers.monitoring.video_recorder import VideoRecorder
 import multiprocessing as mp
+import os
 
 episode_count = 1000
 # Create RTPT object
@@ -19,6 +20,10 @@ class GymRenderer:
     def __init__(self, env, title="video"):
         self.env = env
         self.video_rec = VideoRecorder(env, path=f"videos/{title}.mp4")
+        # create videos directory if it does not exist
+        if not os.path.exists("videos"):
+            os.makedirs("videos")
+        print("Videos will be stored in videos directory.")
 
     def render(self):
         self.video_rec.capture_frame()
@@ -39,7 +44,7 @@ class RandomAgent(object):
 
 
 def gather_agent(cfg, agent_id):
-    args_env_id = 'SpaceInvaders-v0'
+    args_env_id = 'Pong-v0' #'SpaceInvaders-v0'
     env = gym.make(args_env_id)
 
     agent = RandomAgent(env.action_space)

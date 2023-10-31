@@ -30,13 +30,13 @@ def sprint(scene):
 
 def show_scene(image, scene):
     filled_image = fill_image_with_scene(image, scene)
-    plt.imshow(np.moveaxis(np.array(filled_image.cpu().detach()), (0, 1, 2), (2, 0, 1)))
+    #plt.imshow(np.moveaxis(np.array(filled_image.cpu().detach()), (0, 1, 2), (2, 0, 1)))
     # also save image
     import os
     if not osp.exists("images"):
         os.makedirs("images")
     plt.imsave(f"images/{i}.png", np.moveaxis(np.array(filled_image.cpu().detach()), (0, 1, 2), (2, 0, 1)))
-    plt.show()
+    #plt.show()
 
 
 use_cuda = 'cuda' in cfg.device
@@ -48,7 +48,7 @@ env_name = cfg.gamelist[0]
 env = gym.make(env_name)
 env.reset()
 nb_action = env.action_space.n
-for i in range(5000):
+for i in range(201):
     observation, reward, done, info = env.step(np.random.randint(nb_action))
     if i % 50 == 0:
         img = Image.fromarray(observation[:, :, ::-1], 'RGB').resize((128, 128), Image.ANTIALIAS)
@@ -56,15 +56,30 @@ for i in range(5000):
         x = transformation(img)
         if use_cuda:
             x = x.cuda()
-        scene = space.scene_description(x, z_classifier=z_classifier,
-                                        only_z_what=True)  # class:[(w, h, x, y)]
-        scene_list = sc.clean_scene(scene)
-        # env.render()
-        pprint(scene)
-        sprint(scene_list)
-        for el in scene_list:
-            place_point(x, *el, size=1)
-        show_scene(x, scene)
+        
+        _, log = space.forward(x.unsqueeze(dim=0))
+        z_where, z_pres_prob, z_what, z_depth = log['z_where'], log['z_pres_prob'], log['z_what'], log['z_depth']
+        z_where, z_what, z_depth = z_where.squeeze().detach().cpu(), z_what.squeeze().detach().cpu(), z_depth.squeeze().detach().cpu()
+        z_pres_prob = z_pres_prob.squeeze().detach().cpu()
+        z_pres = z_pres_prob > 0.5 # TODO: fix code for case when z_pres_prob <= 0.5 everywhere
+        z_pres_prob = z_pres_prob.view(16, 16)
+        import os
+        if not osp.exists("images_z_pres_prob"):
+            os.makedirs("images_z_pres_prob")
+        plt.imsave(f"images_z_pres_prob/{i}.png", np.array(z_pres_prob))
+        plt.imsave(f"images_z_pres_prob/image_{i}.png", np.moveaxis(np.array(x.cpu().detach()), (0, 1, 2), (2, 0, 1)))
+
+
+
+        #scene = space.scene_description(x, z_classifier=z_classifier,
+        #                                only_z_what=True)  # class:[(w, h, x, y)]
+        #scene_list = sc.clean_scene(scene) # remove 
+        ## env.render()
+        #pprint(scene)
+        ##sprint(scene_list)
+        #for el in scene_list:
+        #    place_point(x, *el, size=1)
+        #show_scene(x, scene)
     if done:
         print("Done")
         env.reset()

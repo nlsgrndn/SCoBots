@@ -357,6 +357,10 @@ def line_plot_samples(experiment_groups,
             save_and_tex(translate(game), "oversamples")
     else:
         fig, axes = make_fig(experiment_groups)
+        #print(joined_df.columns)
+        columns_with_relevant_str = [c for c in joined_df.columns if "relevant" in c]
+        print (columns_with_relevant_str)
+        import ipdb; ipdb.set_trace()
         for game, ax in zip(experiment_groups, axes.flatten()):
             ax.set_ylim((-0.1, 1.1))
             ax.set_xticks([0, 1, 2, 3],
@@ -477,6 +481,7 @@ def pr_plot(experiment_groups, joined_df):
                          kind="Quiver")
     else:
         dth = 0.1
+        print([c for c in joined_df.columns if "recall" in c])
         fig, axes = make_fig(experiment_groups)
         for game, ax in zip(experiment_groups, axes.flatten()):
             ax.set_ylim((-0.02, 1.02))
@@ -499,15 +504,27 @@ def pr_plot(experiment_groups, joined_df):
                         .to_numpy() for idx in range(5)
                     ])
                 else:
+                    # same as below but without seed idx
+                    spaceandmoc, metrics = expis.split("_")
                     x = np.concatenate([
-                        joined_df[f'{game}_seed{idx}_{expis}_relevant_recall'].
-                        to_numpy() for idx in range(5)
+                        joined_df[f'{game}_{spaceandmoc}_seed{idx}_{metrics}_relevant_recall'].
+                        to_numpy() for idx in range(1, 2)
                     ])
                     y = np.concatenate([
                         joined_df[
-                            f'{game}_seed{idx}_{expis}_relevant_precision'].
-                        to_numpy() for idx in range(5)
+                            f'{game}_{spaceandmoc}_seed{idx}_{metrics}_relevant_precision'].
+                        to_numpy() for idx in range(1, 2)
                     ])
+
+                    #x = np.concatenate([
+                    #    joined_df[f'{game}_seed{idx}_{expis}_relevant_recall'].
+                    #    to_numpy() for idx in range(5)
+                    #])
+                    #y = np.concatenate([
+                    #    joined_df[
+                    #        f'{game}_seed{idx}_{expis}_relevant_precision'].
+                    #    to_numpy() for idx in range(5)
+                    #])
                 high = np.array(mcolors.to_rgb(c))
                 red = my_cmap((high * 0.5, high))
                 colors = red(
@@ -518,12 +535,12 @@ def pr_plot(experiment_groups, joined_df):
                 ])
                 bounds_ind = np.argsort(bounds[:, 0])
                 bounds = bounds[bounds_ind]
-                ax.scatter(x, y, alpha=0.5, c=colors, s=35, marker='x')
+                ax.scatter(x, y, alpha=0.5, s= 35, marker = 'x')#c=colors, s=35, marker='x')
                 bounds = np.insert(bounds, 0, [0.0, bounds[0, 1]], axis=0)
                 bounds = np.append(bounds, [[bounds[-1, 0], 0.0]], axis=0)
                 ax.plot(bounds[:, 0],
                         bounds[:, 1],
-                        linestyle='dotted',
+                        linestyle='dashdot',
                         c=c,
                         zorder=5,
                         label=translate(expis),
@@ -613,6 +630,11 @@ def bf(name):
 
 
 def table_entry(joined_df, idx, game, c, metric, variants, tex=True):
+    # print columns of joined_df
+    #print(joined_df.columns)
+    columns = list(joined_df.columns)
+    columns_with_relevant_str = [c for c in columns if "relevant" in c]
+    #print (columns_with_relevant_str)
     all_mean = [
         joined_df.loc[joined_df["global_step"] == idx][game + "_" + v + "_" +
                                                        metric +
@@ -926,6 +948,7 @@ def main():
     os.makedirs(result_path, exist_ok=True)
     os.makedirs(os.path.join(result_path, "img"), exist_ok=True)
     files = os.listdir(data_path)
+    files = [f for f in files if f.endswith(".csv")]
     experiments = group_by(
         files, lambda f: f.split("_seed")[0] +
         ("_" if f.split("_seed")[1][2:] else "") + f.split("_seed")[1][2:])
@@ -938,14 +961,15 @@ def main():
     #                        "relevant_few_shot_accuracy_cluster_nn"]
     #
     # mutual_info_columns += [column.replace("relevant", "all") for column in mutual_info_columns]
-    mutual_info_columns = [
-        "relevant_adjusted_mutual_info_score", "relevant_bayes_accuracy",
-        "all_f_score", "all_adjusted_mutual_info_score", "relevant_f_score",
-        "relevant_few_shot_accuracy_with_1",
-        "relevant_few_shot_accuracy_with_4",
-        "relevant_few_shot_accuracy_with_16",
-        "relevant_few_shot_accuracy_with_64"
-    ]
+    mutual_info_columns = ["relevant_f_score", "all_f_score"]
+    #mutual_info_columns = [
+    #    "relevant_adjusted_mutual_info_score", "relevant_bayes_accuracy",
+    #    "all_f_score", "all_adjusted_mutual_info_score", "relevant_f_score",
+    #    "relevant_few_shot_accuracy_with_1",
+    #    "relevant_few_shot_accuracy_with_4",
+    #    "relevant_few_shot_accuracy_with_16",
+    #    "relevant_few_shot_accuracy_with_64"
+    #]
     desired_experiment_order = [
         'air_raid', 'boxing', 'carnival', 'mspacman', 'pong', 'riverraid',
         'space_invaders', 'tennis'
@@ -957,20 +981,18 @@ def main():
         for k in desired_experiment_order if k in experiment_groups
     }
     # bar_plot(experiment_groups, "relevant_few_shot_accuracy_with_4", joined_df)
-    table_by_metric(experiment_groups, mutual_info_columns, joined_df)
-    exit()
+    table_by_metric(experiment_groups, mutual_info_columns, joined_df, group_key="pong")
     # line_plot(experiments, "relevant_ap_avg", joined_df)
-    if not args.final_test:
+    if args.final_test:
         line_plot(experiment_groups, "relevant_f_score", joined_df)
         # line_plot(experiment_groups, "relevant_few_shot_accuracy_with_1", joined_df)
-        line_plot_samples(experiment_groups,
-                          "relevant_few_shot_accuracy_with_", joined_df)
+        # line_plot_samples(experiment_groups, "relevant_few_shot_accuracy_with_", joined_df)
         # line_plot(experiment_groups, "relevant_few_shot_accuracy_with_4", joined_df)
         # line_plot(experiment_groups, "relevant_few_shot_accuracy_with_16", joined_df)
         # line_plot(experiment_groups, "relevant_few_shot_accuracy_with_64", joined_df)
         # line_plot(experiment_groups, "relevant_few_shot_accuracy_cluster_nn", joined_df)
         # line_plot(experiment_groups, "relevant_adjusted_mutual_info_score", joined_df)
-        line_plot(experiment_groups, "adjusted_mutual_info_score", joined_df)
+        # line_plot(experiment_groups, "adjusted_mutual_info_score", joined_df)
         pr_plot(experiment_groups, joined_df)
     # generate_object_tables(desired_experiment_order)
     # qualitative_appendix(files)

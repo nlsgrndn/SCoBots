@@ -236,6 +236,9 @@ class SpaceFg(nn.Module):
             'alpha_map_pure': alpha_map_pure,
             'importance_map_full_res_norm': importance_map_full_res_norm,
 
+            'z_scale': z_scale,
+            'z_shift': z_shift,
+
             'kl_z_what': kl_z_what,
             'kl_z_pres': kl_z_pres,
             'kl_z_scale': kl_z_scale,

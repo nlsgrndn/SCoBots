@@ -46,7 +46,6 @@ class SpaceVis:
     def train_vis(self, model, writer: SummaryWriter, log, global_step, mode, cfg, dataset, num_batch=8):
         """
         """
-        print("Visualizing...")
         writer.add_scalar(f'{mode}/z_what_delta', torch.sum(log['z_what_loss']).item(), global_step=global_step)
         writer.add_scalar(f'{mode}/z_what_loss_pool', torch.sum(log['z_what_loss_pool']).item(),
                           global_step=global_step)
@@ -145,8 +144,9 @@ class SpaceVis:
         dataset = Subset(dataset, indices)
         dataloader = DataLoader(dataset, batch_size=len(indices), shuffle=False)
         data = next(iter(dataloader))
-        data = data.to(device)
-        loss, log = model(data, 100000000)
+        for i in range(len(data)): #TODO: check if this is necessary
+            data[i] = data[i].to(device)
+        loss, log = model(*data, 100000000)
         for key, value in log.items():
             if isinstance(value, torch.Tensor):
                 log[key] = value.detach().cpu()
