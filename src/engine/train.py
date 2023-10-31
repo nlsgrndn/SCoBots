@@ -15,6 +15,8 @@ from rtpt import RTPT
 from tqdm import tqdm
 import shutil
 from torch.utils.data import Subset, DataLoader
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def print_train_info(cfg):
@@ -99,7 +101,16 @@ def train(cfg, rtpt_active=True):
             break
 
         start = time.perf_counter()
-        for (img_stacks, motion, motion_z_pres, motion_z_where) in trainloader: #tqdm(trainloader, desc=f"Epoch {epoch}"):
+        for (img_stacks, motion, motion_z_pres, motion_z_where) in tqdm(trainloader, desc=f"Epoch {epoch}"):
+            #print("img_stacks.shape", img_stacks.shape)
+            #print("motion.shape", motion.shape)
+            #print("motion_z_pres.shape", motion_z_pres.shape)
+            #plt.imsave("engine/img_stacks.png", np.moveaxis(np.array(img_stacks[0, 0, :, :, :].cpu().detach()), (0, 1, 2), (2, 0, 1)))
+            #plt.imsave("engine/motion.png", motion[0, 0, :, :], cmap="gray")
+            #plt.imsave("engine/motion_z_pres.png", motion_z_pres[0, 0, :, :].view(16, 16), cmap="gray")
+            #exit()
+
+
             end = time.perf_counter()
             data_time = end - start
 
@@ -136,10 +147,9 @@ def train(cfg, rtpt_active=True):
             optimizer_bg.step()
 
             # logging
-            if global_step == start_log: # print in console
-                start_log = int((start_log - base_global_step) * 1.2) + 1 + base_global_step #WTF is this? Why 1.2?
-                if (epoch-start_epoch)%20 == 0:
-                    log_state(cfg, epoch, global_step, log, metric_logger) 
+            if global_step%20 == 0: # print in console # global_step == start_log
+                #start_log = int((start_log - base_global_step) * 1.2) + 1 + base_global_step #WTF is this? Why 1.2?
+                log_state(cfg, epoch, global_step, log, metric_logger) 
             if global_step % cfg.train.print_every == 0 or never_evaluated: # log in tensorboard
                 log.update({
                     'loss': metric_logger['loss'].median,
@@ -170,9 +180,6 @@ def train(cfg, rtpt_active=True):
 
         if rtpt_active:
             rtpt.step()
-
-    
-
 
 def log_state(cfg, epoch, global_step, log, metric_logger):
     print()
