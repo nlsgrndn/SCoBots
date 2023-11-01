@@ -6,8 +6,13 @@ This repository contains the code for MOC. Here you can train discovery models t
 
 **Sections**
 - Installation
+- Dataset Creation
 - Object Detection and Representation Model:
 	- Loading the model
+	- Training
+	- Evaluation
+- Few Shot Object Classification:
+  	- Loading the model
 	- Training
 	- Evaluation
 - RL Agents:
