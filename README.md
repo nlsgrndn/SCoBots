@@ -11,17 +11,17 @@ This repository contains the code for MOC. Here you can train discovery models t
 	- Loading the model
 	- Training
 	- Evaluation
-  - Usage
+  	- Usage
 - Few Shot Object Classification:
-  - Loading the model
+  	- Loading the model
 	- Training
 	- Evaluation
-  - Usage
+  	- Usage
 - RL Agents:
 	- Loading the model
 	- Training
 	- Evaluation
-  - Usage
+  	- Usage
 
 **Installation**
 - linux is recommended
@@ -32,9 +32,12 @@ This repository contains the code for MOC. Here you can train discovery models t
 
 **Dataset Creation**
 
-Example:
-`python3 create_dataset_using_OCAtari.py -f train -g Pong --compute_root_images`
-
+First root_images have to be created.
+`python3 create_dataset_using_OCAtari.py -f train -g Pong --compute_root_images` # -f parameter is irrelevant when --compute_root_images is set
+Then a dataset for each dataset_mode can be created.
+`python3 create_dataset_using_OCAtari.py -f train -g Pong`
+`python3 create_dataset_using_OCAtari.py -f validation -g Pong`
+`python3 create_dataset_using_OCAtari.py -f test -g Pong`
 
 **Object Detection and Representation Model**
 
