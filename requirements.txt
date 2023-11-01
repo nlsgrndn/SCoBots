@@ -3,6 +3,7 @@ imageio==2.6.1
 matplotlib~=3.5.0
 numpy~=1.21.4
 Pillow~=9.5.0 #must be lower than 10.0.0 to still work with ANTIALIAS
+protobuf~=3.20.0
 scikit-image~=0.16.2
 scipy~=1.7.3
 tqdm~=4.42.1
@@ -26,3 +27,5 @@ seaborn~=0.11.1
 setproctitle~=1.2.2
 filterpy~=1.4.5
 NicePrinter
+ocatari
+gymnasium[atari, accept-rom-license]
