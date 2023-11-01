@@ -11,14 +11,17 @@ This repository contains the code for MOC. Here you can train discovery models t
 	- Loading the model
 	- Training
 	- Evaluation
+  - Usage
 - Few Shot Object Classification:
-  	- Loading the model
+  - Loading the model
 	- Training
 	- Evaluation
+  - Usage
 - RL Agents:
 	- Loading the model
 	- Training
 	- Evaluation
+  - Usage
 
 **Installation**
 - linux is recommended
@@ -32,12 +35,42 @@ This repository contains the code for MOC. Here you can train discovery models t
 Example:
 `python3 create_dataset_using_OCAtari.py -f train -g Pong --compute_root_images`
 
+
+**Object Detection and Representation Model**
+
+Configs: most important parameters
+```
+
+model: 'tcspace'
+resume: true
+resume_ckpt: 'path/to/model_weights' # use '' to use last checkpoint as stored in model_list.pkl in checkpointdir
+
+train:
+  max_epochs: 1000
+  max_steps: 10000
+  # whichever is reached first
+
+arch:
+  motion_input: false
+  motion: true
+  motion_kind: 'mode' # choose between 'mode', 'flow' and 'median'
+
+
+eval: # For engine/eval.py
+  checkpoint: 'last'
+  metric: ap_avg
+
+gamelist: [
+    'Pong-v0',
+    ]
+```
+
 **Loading the model**
 
 Like all methods from files within src, the code should be executed while being in the src directory and via the main file.
 
 The model is loaded with `Checkpointer` in `src/utils.py`, while the config in `src/configs`
-(e.g. `atari_mspacman.yaml`) control which model is loaded. Also, get_config() must be executed. Usage can be seen in `train.py`:
+(e.g. `atari_mspacman.yaml`) control which model is loaded. Usage can be seen in `train.py`. However, note that get_config() must before somewhere:
 
 ```python
 model = get_model(cfg)
@@ -87,9 +120,14 @@ joblib.load(filename)
 
 **Training the model**
 
-Commonly I train the model using:
+Training a single model can be done with `train.py`:
 
-`python main.py --task multi_train --config configs/atari_riverraid.yaml`
+`python main.py --task train --config configs/atari_riverraid.yaml --arch-type +moc`
+
+
+Training multiple models (with different seeds/parameters) can be done with `multi_train.py`:
+
+`python main.py --task multi_train --config configs/atari_riverraid.yaml --arch-type +moc`
 
 `multi_train` refers to `src/engine/multi_train.py` that enables running multiple trainings/experiments sequentially.
 There (following the many commented-out examples) configs that should be altered (relative to the `.yaml`) can be noted.
