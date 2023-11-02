@@ -17,14 +17,14 @@ from torchvision.utils import draw_bounding_boxes as draw_bb
 
 
 class Atari(Dataset):
-    def __init__(self, cfg, mode):
-        assert mode in ['train', 'val', 'test'], f'Invalid dataset mode "{mode}"'
-        mode = 'validation' if mode == 'val' else mode
+    def __init__(self, cfg, dataset_mode):
+        assert dataset_mode in ['train', 'val', 'test'], f'Invalid dataset mode "{dataset_mode}"'
+        dataset_mode = 'validation' if dataset_mode == 'val' else dataset_mode
         img_folder = "space_like"
         self.image_path = osp.join(cfg.dataset_roots.ATARI, cfg.gamelist[0], img_folder)
         self.motion_path = self.image_path.replace(img_folder, cfg.arch.motion_kind)
         self.bb_base_path = self.image_path.replace(img_folder, 'bb')
-        self.mode = mode
+        self.dataset_mode = dataset_mode
         self.game = cfg.gamelist[0]
         self.arch = cfg.arch
         self.transform = transforms.ToTensor()
@@ -33,39 +33,31 @@ class Atari(Dataset):
         self.valid_flow_threshold = 20
         if len(cfg.gamelist) > 1:
             print(f"Evaluation currently only supported for exactly one game not {cfg.gamelist}")
-        #print("image_path", self.image_path)
-        #print([os.path.join(fn, mode, img) for fn in os.listdir(self.image_path) for img in os.listdir(os.path.join(self.image_path, fn, mode)) if img.endswith(".png")])
-        #image_fn = [os.path.join(fn, mode, img) for fn in os.listdir(self.image_path)
-        #            if cfg.gamelist is None or fn in cfg.gamelist
-        #            for img in os.listdir(os.path.join(self.image_path, fn, mode)) if img.endswith(".png")]
-        image_fn = [os.path.join(mode, img) for img in os.listdir(os.path.join(self.image_path, mode)) if img.endswith(".png")]
-        #print(f"Found {len(image_fn)} images for game {cfg.gamelist}")
-        self.image_fn = image_fn
+        self.image_fn_count = len([True for img in os.listdir(os.path.join(self.image_path, dataset_mode)) if img.endswith(".png")])
 
     def __getitem__(self, stack_idx):
         imgs = torch.stack([self.transform(self.read_img(stack_idx, i)) for i in range(4)])
-        # fn = self.image_fn[index:index + 4]
         motion = torch.stack([self.read_tensor(stack_idx, i, postfix=f'{self.arch.img_shape[0]}') for i in range(4)])
         motion_z_pres = torch.stack([self.read_tensor(stack_idx, i, postfix="z_pres") for i in range(4)])
         motion_z_where = torch.stack([self.read_tensor(stack_idx, i, postfix="z_where") for i in range(4)])
         return imgs, (motion > motion.mean() * 0.1).float(), motion_z_pres, motion_z_where
 
     def __len__(self):
-        return len(self.image_fn) // 4
+        return self.image_fn_count // 4 # divide by 4 because we have 4 images per stack
 
     def read_img(self, stack_idx, i):
-        path = os.path.join(self.image_path, self.mode, f'{stack_idx:05}_{i}.png')
+        path = os.path.join(self.image_path, self.dataset_mode, f'{stack_idx:05}_{i}.png')
         return np.array(Image.open(path).convert('RGB'))
 
     def read_tensor(self, stack_idx, i, postfix=None):
-        path = os.path.join(self.motion_path, self.mode,
+        path = os.path.join(self.motion_path, self.dataset_mode,
                             f'{stack_idx:05}_{i}_{postfix}.pt'
                             if postfix else f'{stack_idx:05}_{i}.pt')
         return torch.load(path)
 
     @property
     def bb_path(self):
-        path = osp.join(self.bb_base_path, self.mode)
+        path = osp.join(self.bb_base_path, self.dataset_mode)
         assert osp.exists(path), f'Bounding box path {path} does not exist.'
         return path
 

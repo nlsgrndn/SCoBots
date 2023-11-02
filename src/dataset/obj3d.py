@@ -11,16 +11,16 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class Obj3D(Dataset):
-    def __init__(self, root, mode):
+    def __init__(self, root, dataset_mode):
         # checkpointdir = os.checkpointdir.join(root, mode)
-        assert mode in ['train', 'val', 'test']
+        assert dataset_mode in ['train', 'val', 'test']
         self.root = root
-        self.mode = mode
+        self.dataset_mode = dataset_mode
         assert os.path.exists(root), 'Path {} does not exist'.format(root)
         
         
         self.img_paths = []
-        img_dir = os.path.join(self.root, mode)
+        img_dir = os.path.join(self.root, dataset_mode)
         for file in os.scandir(img_dir):
             img_path = file.path
             if 'png' in img_path or 'jpg' in img_path:
@@ -31,7 +31,7 @@ class Obj3D(Dataset):
         
     @property
     def bb_path(self):
-        path = osp.join(self.root, self.mode, 'bb')
+        path = osp.join(self.root, self.dataset_mode, 'bb')
         assert osp.exists(path), f'Bounding box path {path} does not exist.'
         return path
     

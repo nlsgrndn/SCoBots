@@ -161,6 +161,7 @@ def main():
                 for _ in range(100):
                     obs, reward, done, truncated, info = take_action(agent)
         compute_root_images(imgs, data_base_folder, args.game)
+        exit(0)
 
     image_count = 0
     consecutive_images = []

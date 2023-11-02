@@ -307,7 +307,7 @@ class SpaceEval:
         all_labels_moving = []
         image_refs = []
         batch_size = eval_cfg.train.batch_size
-        img_path = os.path.join(dataset.image_path, dataset.game, dataset.mode)
+        img_path = os.path.join(dataset.image_path, dataset.game, dataset.dataset_mode)
         for i, img in enumerate(logs):
             z_where, z_pres_prob, z_what = img['z_where'], img['z_pres_prob'], img['z_what']
             z_pres_prob = z_pres_prob.squeeze()

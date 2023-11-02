@@ -10,22 +10,22 @@ import torch
 __all__ = ['get_dataset', 'get_dataloader', 'get_label_list']
 
 
-def get_dataset(cfg, mode):
-    assert mode in ['train', 'val', 'test']
+def get_dataset(cfg, dataset_mode):
+    assert dataset_mode in ['train', 'val', 'test']
     if cfg.dataset == 'ATARI':
-        return Atari(cfg, mode)
+        return Atari(cfg, dataset_mode)
     elif cfg.dataset == 'OBJ3D_SMALL':
-        return Obj3D(cfg.dataset_roots.OBJ3D_SMALL, mode)
+        return Obj3D(cfg.dataset_roots.OBJ3D_SMALL, dataset_mode)
     elif cfg.dataset == 'OBJ3D_LARGE':
-        return Obj3D(cfg.dataset_roots.OBJ3D_LARGE, mode)
+        return Obj3D(cfg.dataset_roots.OBJ3D_LARGE, dataset_mode)
 
 
-def get_dataloader(cfg, mode):
-    assert mode in ['train', 'val', 'test']
-    batch_size = getattr(cfg, mode).batch_size
-    shuffle = True if mode == 'train' else False
-    num_workers = getattr(cfg, mode).num_workers
-    dataset = get_dataset(cfg, mode)
+def get_dataloader(cfg, dataset_mode):
+    assert dataset_mode in ['train', 'val', 'test']
+    batch_size = getattr(cfg, dataset_mode).batch_size
+    shuffle = True if dataset_mode == 'train' else False
+    num_workers = getattr(cfg, dataset_mode).num_workers
+    dataset = get_dataset(cfg, dataset_mode)
     #dataset = data_utils.Subset(dataset, torch.arange(dataset_size)) #TODO: check why this line was here
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
 
