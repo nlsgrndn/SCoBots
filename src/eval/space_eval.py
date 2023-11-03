@@ -91,41 +91,18 @@ class SpaceEval:
             os.makedirs(self.relevant_object_hover_path + "Img", exist_ok=True)
             self.write_header()
 
-        losses, logs = self.apply_model(valset, device, model, global_step)
-        with open(self.eval_file_path, "a") as self.eval_file:
-            self.write_metric(None, None, global_step, global_step, use_writer=False)
-            if 'cluster' in eval_cfg.train.metrics: # CODE IS BUGGY HERE
-                results = self.train_eval_clustering(logs, valset, writer, global_step, cfg)
-                if cfg.train.log:
-                    pp = pprint.PrettyPrinter(depth=2)
-                    for res in results:
-                        print("Cluster Result:")
-                        pp.pprint(results[res])
-                checkpointer.save_best('rand_score_relevant',
-                                       results['relevant'][0]['adjusted_rand_score'],
-                                       checkpoint, min_is_better=False)
-            if 'mse' in eval_cfg.train.metrics:
-                mse = self.train_eval_mse(logs, losses, writer, global_step)
-                print("MSE result: ", mse)
-            if 'ap' in eval_cfg.train.metrics:
-                results = self.train_eval_ap_and_acc(logs, valset, bb_path, writer, global_step)
-                checkpointer.save_best('accuracy', results['accuracy_relevant'], checkpoint, min_is_better=False)
-                if cfg.train.log:
-                    results = {k2: v2[len(v2) // 4] if isinstance(v2, list) or isinstance(v2, np.ndarray) else v2 for
-                               k2, v2, in
-                               results.items()}
-                    pp = pprint.PrettyPrinter(depth=2)
-                    print("AP Result:")
-                    pp.pprint({k: v for k, v in results.items() if "iou" not in k})
-            self.eval_file.write("\n")
+        _, logs = self.apply_model(valset, device, model, global_step)
+        self.core_eval_code(valset, bb_path, writer, global_step, checkpoint, checkpointer, cfg, logs, save_best = True)
+
+
 
     @torch.no_grad()
     def test_eval(self, model, testset, bb_path, writer, global_step, device, checkpoint, checkpointer, cfg):
         """
-        Evaluation during training. This includes:
-            - mse evaluated on validation set
-            - ap and accuracy evaluated on validation set
-            - cluster metrics evaluated on validation set
+        Evaluation during testing. This includes:
+            - mse evaluated on test set
+            - ap and accuracy evaluated on test set
+            - cluster metrics evaluated on test set
         :return:
         """
         # make checkpoint test dir
@@ -133,6 +110,8 @@ class SpaceEval:
         model_str = model.arch_type if hasattr(model, "arch_type") else model.module.arch_type # access string for cpu else for gpu
         checkpointer.checkpointdir = chpt_dir_save.replace("/eval/", "/test_eval/") + f"_{model_str}"
         os.makedirs(checkpointer.checkpointdir, exist_ok=True)
+
+        # path and file handling
         efp_save = self.eval_file_path
         rohp_save = self.relevant_object_hover_path
         self.eval_file_path = f'../final_test_results/{cfg.exp_name}_{model_str}_seed{cfg.seed}_metrics.csv'
@@ -142,26 +121,44 @@ class SpaceEval:
         os.makedirs(self.relevant_object_hover_path, exist_ok=True)
         os.makedirs(f'../final_test_results/{cfg.exp_name}/hover', exist_ok=True)
         os.makedirs(os.path.join(self.relevant_object_hover_path, "img"), exist_ok=True)
+
+        # write header to csv file
         self.write_header()
-        losses, logs = self.apply_model(testset, device, model, global_step)
+
+        # apply model to test set and logs
+        _, logs = self.apply_model(testset, device, model, global_step)
+
+        # evaluate test set using core evaluation code
+        self.core_eval_code(testset, bb_path, writer, global_step, checkpoint, checkpointer, cfg, logs, save_best = False)
+        print(f"Saved results in {self.eval_file_path}")
+
+        # reset paths to original values
+        self.eval_file_path = efp_save
+        self.relevant_object_hover_path = rohp_save
+        checkpointer.checkpointdir = chpt_dir_save
+
+
+    def core_eval_code(self, valset, bb_path, writer, global_step, checkpoint, checkpointer, cfg, logs, save_best):
         with open(self.eval_file_path, "a") as self.eval_file:
             self.write_metric(None, None, global_step, global_step, use_writer=False)
             if 'cluster' in eval_cfg.train.metrics:
-                results = self.train_eval_clustering(logs, testset, writer, global_step, cfg)
+                results = self.train_eval_clustering(logs, valset, writer, global_step, cfg)
                 if cfg.train.log:
                     pp = pprint.PrettyPrinter(depth=2)
                     for res in results:
                         print("Cluster Result:")
                         pp.pprint(results[res])
-                # checkpointer.save_best('rand_score_relevant',
-                #                        results['relevant'][0]['adjusted_rand_score'],
-                #                        checkpoint, min_is_better=False)
+                if save_best:
+                    checkpointer.save_best('rand_score_relevant',
+                                       results['relevant'][0]['adjusted_rand_score'],
+                                       checkpoint, min_is_better=False)
             if 'mse' in eval_cfg.train.metrics:
-                mse = self.train_eval_mse(logs, losses, writer, global_step)
+                mse = self.train_eval_mse(logs, writer, global_step)
                 print("MSE result: ", mse)
             if 'ap' in eval_cfg.train.metrics:
-                results = self.train_eval_ap_and_acc(logs, testset, bb_path, writer, global_step)
-                # checkpointer.save_best('accuracy', results['accuracy_relevant'], checkpoint, min_is_better=False)
+                results = self.train_eval_ap_and_acc(logs, valset, bb_path, writer, global_step)
+                if save_best:
+                    checkpointer.save_best('accuracy', results['accuracy_relevant'], checkpoint, min_is_better=False)
                 if cfg.train.log:
                     results = {k2: v2[len(v2) // 4] if isinstance(v2, list) or isinstance(v2, np.ndarray) else v2 for
                                k2, v2, in
@@ -170,10 +167,6 @@ class SpaceEval:
                     print("AP Result:")
                     pp.pprint({k: v for k, v in results.items() if "iou" not in k})
             self.eval_file.write("\n")
-        print(f"Saved results in {self.eval_file_path}")
-        self.eval_file_path = efp_save
-        self.relevant_object_hover_path = rohp_save
-        checkpointer.checkpointdir = chpt_dir_save
 
     @torch.no_grad()
     def apply_model(self, dataset, device, model, global_step, use_global_step=False):
@@ -247,14 +240,14 @@ class SpaceEval:
         return result_dict
 
     @torch.no_grad()
-    def train_eval_mse(self, logs, losses, writer, global_step):
+    def train_eval_mse(self, logs, writer, global_step):
         """
         Evaluate MSE during training
         """
         print('Computing MSE...')
         num_batches = eval_cfg.train.num_samples.mse // eval_cfg.train.batch_size
         metric_logger = MetricLogger()
-        for _, log in zip(losses[:num_batches], logs):
+        for log in logs[:num_batches]:
             metric_logger.update(mse=torch.mean(log['mse']))
         mse = metric_logger['mse'].global_avg
         self.write_metric(writer, f'all/mse', mse, global_step=global_step)
@@ -463,63 +456,63 @@ class SpaceEval:
             result[f'recall_{gt_name}'] = recall
         return result
 
-    def save_to_json(self, result_dict, json_path, info):
-        """
-        Save evaluation results to json file
+    #def save_to_json(self, result_dict, json_path, info):
+    #    """
+    #    Save evaluation results to json file
+    #
+    #    :param result_dict: a dictionary
+    #    :param json_path: checkpointdir
+    #    :param info: any other thing you want to save
+    #    :return:
+    #    """
+    #    from collections import OrderedDict
+    #    import json
+    #    from datetime import datetime
+    #    tosave = OrderedDict([
+    #        ('date', datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+    #        ('info', info),
+    #    ])
+    #    for metric in ['APs', 'accuracy', 'error_rate', 'iou_thresholds', 'overcount', 'perfect', 'precision', 'recall', 'undercount']:
+    #        if hasattr(result_dict[f'{metric}_all'], '__iter__'):
+    #            tosave[metric] = list(result_dict[f'{metric}_all'])
+    #            tosave[f'{metric}_avg'] = np.mean(result_dict[f'{metric}_all'])
+    #            tosave[f'{metric}_relevant'] = list(result_dict[f'{metric}_relevant'])
+    #            tosave[f'{metric}_relevant_avg'] = np.mean(result_dict[f'{metric}_relevant'])
+    #            tosave[f'{metric}_moving'] = list(result_dict[f'{metric}_moving'])
+    #            tosave[f'{metric}_moving_avg'] = np.mean(result_dict[f'{metric}_moving'])
+    #        else:
+    #            tosave[metric] = result_dict[f'{metric}_all']
+    #            tosave[f'{metric}_relevant'] = result_dict[f'{metric}_relevant']
+    #            tosave[f'{metric}_moving'] = result_dict[f'{metric}_moving']
+    #    with open(json_path, 'w') as f:
+    #        json.dump(tosave, f, indent=2)
+    #
+    #    print(f'Results have been saved to {json_path}.')
 
-        :param result_dict: a dictionary
-        :param json_path: checkpointdir
-        :param info: any other thing you want to save
-        :return:
-        """
-        from collections import OrderedDict
-        import json
-        from datetime import datetime
-        tosave = OrderedDict([
-            ('date', datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-            ('info', info),
-        ])
-        for metric in ['APs', 'accuracy', 'error_rate', 'iou_thresholds', 'overcount', 'perfect', 'precision', 'recall', 'undercount']:
-            if hasattr(result_dict[f'{metric}_all'], '__iter__'):
-                tosave[metric] = list(result_dict[f'{metric}_all'])
-                tosave[f'{metric}_avg'] = np.mean(result_dict[f'{metric}_all'])
-                tosave[f'{metric}_relevant'] = list(result_dict[f'{metric}_relevant'])
-                tosave[f'{metric}_relevant_avg'] = np.mean(result_dict[f'{metric}_relevant'])
-                tosave[f'{metric}_moving'] = list(result_dict[f'{metric}_moving'])
-                tosave[f'{metric}_moving_avg'] = np.mean(result_dict[f'{metric}_moving'])
-            else:
-                tosave[metric] = result_dict[f'{metric}_all']
-                tosave[f'{metric}_relevant'] = result_dict[f'{metric}_relevant']
-                tosave[f'{metric}_moving'] = result_dict[f'{metric}_moving']
-        with open(json_path, 'w') as f:
-            json.dump(tosave, f, indent=2)
-
-        print(f'Results have been saved to {json_path}.')
-
-    def print_result(self, result_dict, files):
-        for suffix in ['all', 'relevant', 'moving']:
-            APs = result_dict[f'APs_{suffix}']
-            iou_thresholds = result_dict[f'iou_thresholds_{suffix}']
-            accuracy = result_dict[f'accuracy_{suffix}']
-            perfect = result_dict[f'perfect_{suffix}']
-            overcount = result_dict[f'overcount_{suffix}']
-            undercount = result_dict[f'undercount_{suffix}']
-            error_rate = result_dict[f'error_rate_{suffix}']
-            for file in files:
-                print('\n' + '-' * 10 + f'metrics on {suffix} data points' + '-' * 10, file=file)
-                print('{:^15} {:^15}'.format('IoU threshold', 'AP'), file=file)
-                print('{:15} {:15}'.format('-' * 15, '-' * 15), file=file)
-                for thres, ap in zip(iou_thresholds, APs):
-                    print('{:<15.2} {:<15.4}'.format(thres, ap), file=file)
-                print('{:15} {:<15.4}'.format('Average:', np.mean(APs)), file=file)
-                print('{:15} {:15}'.format('-' * 15, '-' * 15), file=file)
-
-                print('{:15} {:<15}'.format('Perfect:', perfect), file=file)
-                print('{:15} {:<15}'.format('Overcount:', overcount), file=file)
-                print('{:15} {:<15}'.format('Undercount:', undercount), file=file)
-                print('{:15} {:<15.4}'.format('Accuracy:', accuracy), file=file)
-                print('{:15} {:<15.4}'.format('Error rate:', error_rate), file=file)
-                print('{:15} {:15}'.format('-' * 15, '-' * 15), file=file)
+    #def print_result(self, result_dict, files):
+    #    for suffix in ['all', 'relevant', 'moving']:
+    #        APs = result_dict[f'APs_{suffix}']
+    #        iou_thresholds = result_dict[f'iou_thresholds_{suffix}']
+    #        accuracy = result_dict[f'accuracy_{suffix}']
+    #        perfect = result_dict[f'perfect_{suffix}']
+    #        overcount = result_dict[f'overcount_{suffix}']
+    #        undercount = result_dict[f'undercount_{suffix}']
+    #        error_rate = result_dict[f'error_rate_{suffix}']
+    #        for file in files:
+    #            print('\n' + '-' * 10 + f'metrics on {suffix} data points' + '-' * 10, file=file)
+    #            print('{:^15} {:^15}'.format('IoU threshold', 'AP'), file=file)
+    #            print('{:15} {:15}'.format('-' * 15, '-' * 15), file=file)
+    #            for thres, ap in zip(iou_thresholds, APs):
+    #                print('{:<15.2} {:<15.4}'.format(thres, ap), file=file)
+    #            print('{:15} {:<15.4}'.format('Average:', np.mean(APs)), file=file)
+    #            print('{:15} {:15}'.format('-' * 15, '-' * 15), file=file)
+    #
+    #            print('{:15} {:<15}'.format('Perfect:', perfect), file=file)
+    #            print('{:15} {:<15}'.format('Overcount:', overcount), file=file)
+    #            print('{:15} {:<15}'.format('Undercount:', undercount), file=file)
+    #            print('{:15} {:<15.4}'.format('Accuracy:', accuracy), file=file)
+    #            print('{:15} {:<15.4}'.format('Error rate:', error_rate), file=file)
+    #            print('{:15} {:15}'.format('-' * 15, '-' * 15), file=file)
 
     # def save_best(self, evaldir, metric_name, value, checkpoint, checkpointer, min_is_better):
     #     metric_file = os.path.join(evaldir, f'best_{metric_name}.json')
