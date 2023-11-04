@@ -110,6 +110,8 @@ def main():
     parser.add_argument('-f', '--folder', type=str, choices=["train", "test", "validation"],
                         required=True,
                         help='folder to write to: train, test or validation')
+    parser.add_argument('--vis', default=False, action="store_true",
+                        help='creates folder vis with visualizations which can be used for debugging')
     args = parser.parse_args()
 
     # initialize
@@ -121,21 +123,21 @@ def main():
     REQ_CONSECUTIVE_IMAGE = 20
     create_folders(args, data_base_folder)
 
-    # for visualization to preliminarily check correctness
+    # for optional visualization
     visualizations_flow = [
         Identity(vis_folder, "Flow", max_vis=50, every_n=1),
-    ]
+    ] if args.vis else []
     visualizations_median = [ # was empty before #TODO check if this is correct
         Identity(vis_folder, "Median", max_vis=50, every_n=1),
         ZWhereZPres(vis_folder, "Median", max_vis=20, every_n=2),
-    ]
+    ] if args.vis else []
     visualizations_mode = [
         Identity(vis_folder, "Mode", max_vis=50, every_n=1),
         ZWhereZPres(vis_folder, "Mode", max_vis=20, every_n=2),
-    ]
+    ] if args.vis else []
     visualizations_bb = [
         BoundingBoxes(vis_folder, 'BoundingBox', max_vis=20, every_n=1) # '' instead of 'BoundingBox' before
-    ]
+    ] if args.vis else []
 
 
     agent, observation, info = configure(args)
@@ -295,18 +297,20 @@ def create_folders(args, data_base_folder):
     bb_folder = f"{data_base_folder}/{args.game}-v0/bb/{args.folder}" # gt information based on extraction from internals of the game. is used for evaluation
     flow_folder = f"{data_base_folder}/{args.game}-v0/flow/{args.folder}" # information based on optical flow. is used for training
     median_folder = f"{data_base_folder}/{args.game}-v0/median/{args.folder}"
-    mode_folder = f"{data_base_folder}/{args.game}-v0/mode/{args.folder}" 
-    vis_folder = f"{data_base_folder}/{args.game}-v0/vis/{args.folder}"
+    mode_folder = f"{data_base_folder}/{args.game}-v0/mode/{args.folder}"
+    if args.vis:
+        vis_folder = f"{data_base_folder}/{args.game}-v0/vis/{args.folder}"
     os.makedirs(bgr_folder, exist_ok=True)
     os.makedirs(rgb_folder, exist_ok=True)
     os.makedirs(flow_folder, exist_ok=True)
     os.makedirs(median_folder, exist_ok=True)
     os.makedirs(mode_folder, exist_ok=True)
     os.makedirs(bb_folder, exist_ok=True)
-    os.makedirs(vis_folder + "/BoundingBox", exist_ok=True)
-    os.makedirs(vis_folder + "/Median", exist_ok=True)
-    os.makedirs(vis_folder + "/Flow", exist_ok=True)
-    os.makedirs(vis_folder + "/Mode", exist_ok=True)
+    if args.vis:
+        os.makedirs(vis_folder + "/BoundingBox", exist_ok=True)
+        os.makedirs(vis_folder + "/Median", exist_ok=True)
+        os.makedirs(vis_folder + "/Flow", exist_ok=True)
+        os.makedirs(vis_folder + "/Mode", exist_ok=True)
 
 
 if __name__ == '__main__':
