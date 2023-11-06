@@ -13,24 +13,43 @@ relevant_labels_per_game = {"pong": [1, 2, 3], "boxing": [1, 4]}
 # helper class to clean scene from space scene representation
 class SceneCleaner():
     def __init__(self, game):
+        # initialize SceneCleaner with the game name and relevant labels for the game
         self.game = game
         self.relevant_labels = relevant_labels_per_game[game]
+        # initialize last_known with zeros for each relevant label
         self.last_known = [[0, 0] for _ in self.relevant_labels]
 
     def clean_scene(self, scene):
-        empty_keys = []
-        for key, val in scene.items():
-            for i, z_where in reversed(list(enumerate(val))):
-                if z_where[3] < -0.75:
-                    scene[key].pop(i)
-            if len(val) == 0:
-                empty_keys.append(key)
-        for key in empty_keys:
-            scene.pop(key)
-        for i, el in enumerate(self.relevant_labels):
-            if el in scene: #object found
-                self.last_known[i] = scene[el][0][2:]
-        return self.last_known
+            """
+            Removes objects from the scene that are below a certain threshold and updates the last known position of relevant labels.
+
+            Args:
+                scene (dict): A dictionary containing information about objects in the scene.
+
+            Returns:
+                list: A list containing the last known position of relevant labels.
+            """
+            # initialize empty_keys list to keep track of keys with empty values
+            empty_keys = []
+            # iterate over each key-value pair in the scene dictionary
+            for key, val in scene.items():
+                # iterate over each z_where value in the list of values for the current key
+                for i, z_where in reversed(list(enumerate(val))):
+                    # if the z_where value is below a certain threshold, remove it from the list
+                    if z_where[3] < -0.75:
+                        scene[key].pop(i)
+                # if the filtering step led to an empty list of values for the current key, add the key to the empty_keys list
+                if len(val) == 0:
+                    empty_keys.append(key)
+            # remove keys with empty values from the scene dictionary
+            for key in empty_keys:
+                scene.pop(key)
+            # update last_known with the position of the first instance of each relevant label in the scene dictionary
+            for i, el in enumerate(self.relevant_labels):
+                if el in scene: #object found
+                    self.last_known[i] = scene[el][0][2:]
+            # return last_known
+            return self.last_known
 
 
 def load_space(cfg, z_classifier_path=None):   

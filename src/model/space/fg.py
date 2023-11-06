@@ -6,7 +6,6 @@ from torch.distributions import Normal, kl_divergence
 from .utils import NumericalRelaxedBernoulli, kl_divergence_bern_bern, get_boundary_kernel_new, get_boundary_kernel
 from .utils import spatial_transform, linear_annealing, inverse_spatial_transform
 from .arch import arch
-from eval import convert_to_boxes
 import time
 
 

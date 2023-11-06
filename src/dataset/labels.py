@@ -2,17 +2,18 @@ import torch
 import pandas as pd
 import numpy as np
 from ocatari.ram.pong import MAX_NB_OBJECTS_HUD as MAX_NB_OBJECTS_HUD_PONG
+from ocatari.ram.boxing import MAX_NB_OBJECTS_HUD as MAX_NB_OBJECTS_HUD_BOXING
 
 label_list_pacman = ["no_label", "pacman", 'sue', 'inky', 'pinky', 'blinky', "blue_ghost", "eyes",
                      "white_ghost", "fruit", "save_fruit", "life1", "life2", "score", "corner_block"]
 
-label_list_pong = list(MAX_NB_OBJECTS_HUD_PONG.keys()) + ["no_label"]
+label_list_pong = ["no_label"] + list(MAX_NB_OBJECTS_HUD_PONG.keys()) 
 #["no_label", "player", 'enemy', 'ball', 'enemy_score', 'player_score']
 
 label_list_carnival = ["no_label", "owl", 'rabbit', 'shooter', 'refill', 'bonus', "duck",
                        "flying_duck", "score", "pipes", "eating_duck", "bullet"]
 
-label_list_boxing = ["no_label", "black", 'black_score', 'clock', 'white', 'white_score', 'logo']
+label_list_boxing = ["no_label"] + list(MAX_NB_OBJECTS_HUD_BOXING.keys())
 
 label_list_tennis = ["no_label", "player", 'enemy', 'ball', 'ball_shadow', 'net', 'logo',
                      'player_score', 'enemy_score']

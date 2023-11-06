@@ -170,3 +170,5 @@ my_data
 my_scripts/flow_visualization
 .python-version
 Roms.rar
+old_models/*
+Boxing_ROM
