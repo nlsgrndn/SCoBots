@@ -18,7 +18,6 @@ import dqn.dqn_logger as Logger
 
 import rl_utils
 
-from atariari.benchmark.wrapper import AtariARIWrapper
 from rtpt import RTPT
 from tqdm import tqdm
 from engine.utils import get_config
@@ -41,7 +40,7 @@ PATH_TO_OUTPUTS = os.getcwd() + "/rl_checkpoints/"
 model_name = lambda training_name : PATH_TO_OUTPUTS + training_name + "_seed" + str(cfg.seed) + "_dqn_model.pth"
 
 # init env stuff
-cfg.device_ids = [0]
+#cfg.device_ids = [0]
 env_name = cfg.gamelist[0]
 print("Env Name:", env_name)
 env = OCAtari(env_name, mode="revised", hud=False, render_mode="rgb_array")
@@ -234,9 +233,9 @@ if i_episode < max_episode:
         s_state = torch.tensor(s_state, dtype=torch.float) 
         # state stacking to have current and previous state at once
         state = torch.cat((s_state, s_state), 0)
+        state = state.to(device)
         for t in count():
             # Select and perform an action
-            state.to(device)
             action = select_action(state)
             #observation, reward, done, info = env.step(action.item())
             observation, reward, done, truncated, info = env.step(action.item())
