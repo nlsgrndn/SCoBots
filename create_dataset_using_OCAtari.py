@@ -260,21 +260,6 @@ def main():
 
 def configure(args):
     global env
-    # env = AtariARIWrapper(gym.make(f'{arguments.game}Deterministic-v4'))
-    #with open(f'configs/{args.game.lower()}_config.json', 'r') as f:
-    #    data = f'{json.load(f)}'.replace("'", '"')
-    #    config = json.loads(data, object_hook=lambda d: namedtuple('X', d.keys())(*d.values()))
-    #if "Augmented" not in config.game_name:
-    #    print("blue", "box", "You are not using an Augmented environment")
-    #augmented = "Augmented" in config.game_name
-    #print(f"Playing {config.game_name}...")
-    #env = Atari(config.game_name, config.width, config.height, ends_at_life=True,
-    #            history_length=config.history_length, max_no_op_actions=3)
-    #env.augmented = True
-    #state = env.reset()
-    #make_deterministic(0 if args.folder == "train" else 1 if args.folder == "validation" else 2, env)
-    #agent = load_agent(args, env)
-    #return agent, augmented, state
     print(f"Playing {args.game}...")
     env = OCAtari(args.game, mode = "revised", hud=True, render_mode="rgb_array") # revised(=ram) mode should be used
     observation, info = env.reset()
