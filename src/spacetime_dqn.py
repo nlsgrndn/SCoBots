@@ -187,10 +187,10 @@ def optimize_model():
     # to Transition of batch-arrays.
     batch = Transition(*zip(*transitions))
 
-    state_batch = torch.stack(batch.state)
-    next_state_batch = torch.stack(batch.next_state)
-    action_batch = torch.stack(batch.action)
-    reward_batch = torch.stack(batch.reward)
+    state_batch = torch.stack(batch.state).to(device)
+    next_state_batch = torch.stack(batch.next_state).to(device)
+    action_batch = torch.stack(batch.action).to(device)
+    reward_batch = torch.stack(batch.reward).to(device)
     done_batch = torch.tensor(batch.done, device=device).float()
 
     # Make predictions
@@ -233,8 +233,9 @@ if i_episode < max_episode:
         s_state = torch.tensor(s_state, dtype=torch.float) 
         # state stacking to have current and previous state at once
         state = torch.cat((s_state, s_state), 0)
-        state = state.to(device)
+
         for t in count():
+            state = state.to(device)
             # Select and perform an action
             action = select_action(state)
             #observation, reward, done, info = env.step(action.item())
