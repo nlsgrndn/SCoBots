@@ -63,7 +63,6 @@ if 'cuda' in cfg.device:
     device = "cuda:0"
 #elif (torch.backends.mps.is_available() & torch.backends.mps.is_built()):
 #    device = "mps"
-device = "cpu"
 print("Device:", device)
 
 
@@ -237,6 +236,7 @@ if i_episode < max_episode:
         state = torch.cat((s_state, s_state), 0)
         for t in count():
             # Select and perform an action
+            state.to(device)
             action = select_action(state)
             #observation, reward, done, info = env.step(action.item())
             observation, reward, done, truncated, info = env.step(action.item())
