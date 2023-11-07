@@ -16,7 +16,7 @@ import torch.nn.functional as F
 import torchvision.transforms as T
 import dqn.dqn_logger as Logger
 
-import spacetime_rl_algorithms.rl_utils as rl_utils
+import rl_utils
 
 from atariari.benchmark.wrapper import AtariARIWrapper
 from rtpt import RTPT
