@@ -131,3 +131,15 @@ def convert_to_state(cfg, env_info):
         scene_list.append(labels[label_desc + "_x"])
         scene_list.append(labels[label_desc + "_y"])
     return scene_list
+
+def convert_to_stateOCAtari(cfg, env):
+    #create dict with go.category as key and (go.y, go.x, go.h, go.w, "S" if go.hud else "M", go.category) as label
+    labels = {go.category: (go.y, go.x, go.h, go.w, "S" if go.hud else "M", go.category) for go in sorted(env.objects, key=lambda o: str(o))}
+    scene_list = []
+    scene_list.append(labels["Player"][1])
+    scene_list.append(labels["Player"][0])
+    scene_list.append(labels["Enemy"][1])
+    scene_list.append(labels["Enemy"][0])
+    scene_list.append(labels["Ball"][1])
+    scene_list.append(labels["Ball"][0])
+    return scene_list

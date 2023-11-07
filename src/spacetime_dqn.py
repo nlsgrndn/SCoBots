@@ -24,6 +24,7 @@ from tqdm import tqdm
 from engine.utils import get_config
 from PIL import Image
 from tqdm import tqdm
+from ocatari.core import OCAtari
 
 
 # load config
@@ -32,7 +33,7 @@ use_cuda = 'cuda' in cfg.device
 torch.manual_seed(cfg.seed)
 print('Seed:', torch.initial_seed())
 
-USE_ATARIARI = (cfg.device == "cpu")
+USE_ATARIARI = (cfg.device == "cpu") #TODO remove all ATARIARI stuff
 print("Using AtariAri:", USE_ATARIARI)
 
 # lambda for loading and saving qtable
@@ -43,10 +44,12 @@ model_name = lambda training_name : PATH_TO_OUTPUTS + training_name + "_seed" + 
 cfg.device_ids = [0]
 env_name = cfg.gamelist[0]
 print("Env Name:", env_name)
-env = gym.make(env_name)
-env = AtariARIWrapper(env)
+env = OCAtari(env_name, mode="revised", hud=False, render_mode="rgb_array")
+#env = gym.make(env_name)
+#env = AtariARIWrapper(env)
 observation = env.reset()
-observation, reward, done, info = env.step(1)
+#observation, reward, done, info = env.step(1)
+observation, reward, done, truncated, info = env.step(2)
 n_actions = env.action_space.n
 #Getting the state space
 print("Action Space {}".format(env.action_space))
@@ -109,7 +112,7 @@ MEM_MIN_SIZE = 10000
 MEM_MAX_SIZE = 50000
 
 i_episode = 0
-features = rl_utils.convert_to_state(cfg, info)
+features = rl_utils.convert_to_stateOCAtari(cfg, env)
 policy_net = DQN(len(features) * 2, n_actions).to(device)
 target_net = DQN(len(features) * 2, n_actions).to(device)
 target_net.load_state_dict(policy_net.state_dict())
@@ -228,18 +231,19 @@ if i_episode < max_episode:
         # Initialize the environment and state
         env.reset()
         ep_reward = 0
-        s_state = rl_utils.convert_to_state(cfg, info)
+        s_state = rl_utils.convert_to_stateOCAtari(cfg, env)
         s_state = torch.tensor(s_state, dtype=torch.float) 
         # state stacking to have current and previous state at once
         state = torch.cat((s_state, s_state), 0)
         for t in count():
             # Select and perform an action
             action = select_action(state)
-            observation, reward, done, info = env.step(action.item())
+            #observation, reward, done, info = env.step(action.item())
+            observation, reward, done, truncated, info = env.step(action.item())
             ep_reward += reward
             reward = torch.tensor([reward], device=device)
             # Observe new state
-            s_next_state = rl_utils.convert_to_state(cfg, info)
+            s_next_state = rl_utils.convert_to_stateOCAtari(cfg, env)
             # convert next state to torch
             s_next_state = torch.tensor(s_next_state, dtype=torch.float)
             # concat to stacking tensor
@@ -284,7 +288,7 @@ else:
     for run in tqdm(range(runs)):
         _, ep_reward = env.reset(), 0
         action = np.random.randint(n_actions)
-        s_state = rl_utils.convert_to_state(cfg, info)
+        s_state = rl_utils.convert_to_stateOCAtari(cfg, env)
         s_state = torch.tensor(s_state, dtype=torch.float) 
         # state stacking to have current and previous state at once
         state = torch.cat((s_state, s_state), 0)
@@ -293,11 +297,12 @@ else:
             # select action
             action = select_action(state, eval=True)
             # do action and observe
-            observation, reward, done, info = env.step(action)
+            #observation, reward, done, info = env.step(action)
+            observation, reward, done, truncated, info = env.step(action.item())
             ep_reward += reward
             # when atariari
             if USE_ATARIARI:
-                s_next_state = rl_utils.convert_to_state(cfg, info)
+                s_next_state = rl_utils.convert_to_stateOCAtari(cfg, env)
                 #if t % 50 == 0:
                 #    _, state2 = rl_utils.get_scene(cfg, observation, space, z_classifier, sc, transformation, use_cuda)
                 #    print(s_next_state, state2)
