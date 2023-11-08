@@ -97,7 +97,7 @@ def get_scene(cfg, observation, space, z_classifier, sc, transformation, use_cud
     scene_list = sc.clean_scene(scene)
     converted_scene_list = []
     for el in scene_list:
-        x, y = convert_spacetime_values(cfg, t_img, *el)
+        x, y = convert_spacetime_valuesOCAtari(cfg, t_img, *el)
         converted_scene_list.append(x)
         converted_scene_list.append(y) 
     if cfg.exp_name == "pong":
@@ -120,6 +120,12 @@ def convert_spacetime_values(cfg, image_array, x, y):
         x, y = int(1.36 * x - (50/3)), int(1.692 * y - 63.54) #TODO: check formula
     #print("Placing point at ", x, y)
     return x, y
+
+def convert_spacetime_valuesOCAtari(cfg, image_array, x, y):
+    x = int(x* 80.36620634 + 78.73039392) #values come from LinearRegression on training data
+    y = int(y* 105.19131803 + 100.58979739)#values come from LinearRegression on training data
+    return x, y
+
 
 
 # helper function to convert env info into custom list
