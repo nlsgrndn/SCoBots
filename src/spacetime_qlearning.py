@@ -5,20 +5,19 @@ import math
 import random
 import pickle
 import bz2
-import spacetime_rl_algorithms.rl_utils as rl_utils
+import rl_utils as rl_utils
 
-from atariari.benchmark.wrapper import AtariARIWrapper
 from rtpt import RTPT
 from engine.utils import get_config
 from tqdm import tqdm
+from ocatari.core import OCAtari
 
 # load config
 cfg, task = get_config()
 use_cuda = 'cuda' in cfg.device
 
-USE_ATARIARI = (cfg.device == "cpu")
-print("Using AtariAri:", USE_ATARIARI)
-relevant_atariari_labels = {"pong": ["player", "enemy", "ball"], "boxing": ["enemy", "player"]}
+USE_GT_AS_INPUT = True
+print("Use GT as input:", USE_GT_AS_INPUT)
 
 # lambda for loading and saving qtable
 PATH_TO_OUTPUTS = os.getcwd() + "/rl_checkpoints/"
@@ -27,10 +26,9 @@ model_name = lambda training_name : PATH_TO_OUTPUTS + training_name + ".pbz2"
 # init env stuff
 cfg.device_ids = [0]
 env_name = cfg.gamelist[0]
-env = gym.make(env_name)
-env = AtariARIWrapper(env)
+env = OCAtari(env_name, mode="revised", hud=False, render_mode="rgb_array")
 obs = env.reset()
-obs, reward, done, info = env.step(1)
+observation, reward, done, truncated, info = env.step(2)
 n_actions = env.action_space.n
 #Getting the state space
 print("Action Space {}".format(env.action_space))
@@ -133,12 +131,12 @@ if i_episode < max_episode:
             # select action
             action, eps_t = select_action(state, i_episode)
             # do action and observe
-            observation, reward, done, info = env.step(action)
+            observation, reward, done, truncated, info = env.step(action)
             ep_reward += reward
             next_state = None
-            # when atariari
-            if USE_ATARIARI:
-                next_state = rl_utils.convert_to_state(cfg, info)
+
+            if USE_GT_AS_INPUT:
+                next_state = rl_utils.convert_to_stateOCAtari(cfg, env)
             # when spacetime
             else:
                 # use spacetime to get scene_list
@@ -184,11 +182,11 @@ else:
             # select action
             action, eps_t = select_action(state, i_episode)
             # do action and observe
-            observation, reward, done, info = env.step(action)
+            observation, reward, done, truncated, info = env.step(action)
             ep_reward += reward
-            # when atariari
-            if USE_ATARIARI:
-                state = rl_utils.convert_to_state(cfg, info)
+
+            if USE_GT_AS_INPUT:
+                state = rl_utils.convert_to_stateOCAtari(cfg, env)
                 #if t % 50 == 0:
                 #    _, state2 = rl_utils.get_scene(cfg, observation, space, z_classifier, sc, transformation, use_cuda)
                 #    print(state, state2)

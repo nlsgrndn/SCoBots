@@ -32,9 +32,6 @@ use_cuda = 'cuda' in cfg.device
 torch.manual_seed(cfg.seed)
 print('Seed:', torch.initial_seed())
 
-USE_ATARIARI = (cfg.device == "cpu") #TODO remove all ATARIARI stuff
-print("Using AtariAri:", USE_ATARIARI)
-
 # lambda for loading and saving qtable
 PATH_TO_OUTPUTS = os.getcwd() + "/rl_checkpoints/"
 model_name = lambda training_name : PATH_TO_OUTPUTS + training_name + "_seed" + str(cfg.seed) + "_dqn_model.pth"
@@ -44,10 +41,7 @@ model_name = lambda training_name : PATH_TO_OUTPUTS + training_name + "_seed" + 
 env_name = cfg.gamelist[0]
 print("Env Name:", env_name)
 env = OCAtari(env_name, mode="revised", hud=False, render_mode="rgb_array")
-#env = gym.make(env_name)
-#env = AtariARIWrapper(env)
 observation = env.reset()
-#observation, reward, done, info = env.step(1)
 observation, reward, done, truncated, info = env.step(2)
 n_actions = env.action_space.n
 #Getting the state space
@@ -63,6 +57,8 @@ if 'cuda' in cfg.device:
 #elif (torch.backends.mps.is_available() & torch.backends.mps.is_built()):
 #    device = "mps"
 print("Device:", device)
+USE_GT_AS_INPUT_EVAL = True
+print("Using GT as input for evaluation:", USE_GT_AS_INPUT_EVAL)
 
 
 # replay memory of dqn
@@ -300,8 +296,8 @@ else:
             #observation, reward, done, info = env.step(action)
             observation, reward, done, truncated, info = env.step(action.item())
             ep_reward += reward
-            # when atariari
-            if USE_ATARIARI:
+            
+            if USE_GT_AS_INPUT_EVAL:
                 s_next_state = rl_utils.convert_to_stateOCAtari(cfg, env)
                 #if t % 50 == 0:
                 #    _, state2 = rl_utils.get_scene(cfg, observation, space, z_classifier, sc, transformation, use_cuda)

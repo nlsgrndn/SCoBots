@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions import Categorical
-from atariari.benchmark.wrapper import AtariARIWrapper
+from ocatari.core import OCAtari
 
 from rtpt import RTPT
 from engine.utils import get_config
@@ -18,10 +18,6 @@ cfg, task = get_config()
 torch.manual_seed(cfg.seed)
 print('Seed:', torch.initial_seed())
 
-USE_ATARIARI = (cfg.device == "cpu")
-print("Using AtariAri:", USE_ATARIARI)
-relevant_atariari_labels = {"pong": ["player", "enemy", "ball"], "boxing": ["enemy", "player"]}
-
 # lambda for loading and saving qtable
 PATH_TO_OUTPUTS = os.getcwd() + "/rl_checkpoints/"
 model_name = lambda training_name : PATH_TO_OUTPUTS + training_name + "_policy_model.pth"
@@ -29,11 +25,9 @@ model_name = lambda training_name : PATH_TO_OUTPUTS + training_name + "_policy_m
 # init env stuff
 cfg.device_ids = [0]
 env_name = cfg.gamelist[0]
-env = gym.make(env_name)
-if USE_ATARIARI:
-    env = AtariARIWrapper(env)
+env = OCAtari(env_name, mode="revised", hud=False, render_mode="rgb_array")
 obs = env.reset()
-obs, reward, done, info = env.step(1)
+observation, reward, done, truncated, info = env.step(2)
 n_actions = env.action_space.n
 #Getting the state space
 print("Action Space {}".format(env.action_space))
@@ -63,7 +57,7 @@ LEARNING_RATE = 0.0001
 GAMMA = 0.97
 EPS = np.finfo(np.float32).eps.item()
 i_episode = 0
-features = rl_utils.convert_to_state(cfg, info)
+features = rl_utils.convert_to_stateOCAtari(cfg, env)
 policy = Policy(len(features), n_actions)
 optimizer = optim.Adam(policy.parameters(), lr=LEARNING_RATE)
 
@@ -121,10 +115,10 @@ if i_episode < max_episode:
         action = np.random.randint(n_actions)
         # env step loop
         for t in range(1, 10000):  # Don't infinite loop while learning
-            observation, reward, done, info = env.step(action)
+            observation, reward, done, truncated, info = env.step(action)
             ep_reward += reward
             policy.rewards.append(reward)
-            features = rl_utils.convert_to_state(cfg, info)
+            features = rl_utils.convert_to_stateOCAtari(cfg, env)
             action = select_action(np.asarray(features))
             print('Episode {}\tLast reward: {:.2f}\tRunning reward: {:.2f}\tSteps: {}       '.format(
                 i_episode, ep_reward, running_reward, t), end="\r")

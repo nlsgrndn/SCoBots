@@ -124,13 +124,13 @@ def convert_spacetime_values(cfg, image_array, x, y):
 # helper function to convert env info into custom list
 # only used for atariari
 # currently only for boxing
-def convert_to_state(cfg, env_info):
-    labels = env_info["labels"]
-    scene_list = []
-    for label_desc in relevant_atariari_labels[cfg.exp_name]:
-        scene_list.append(labels[label_desc + "_x"])
-        scene_list.append(labels[label_desc + "_y"])
-    return scene_list
+#def convert_to_state(cfg, env_info):
+#    labels = env_info["labels"]
+#    scene_list = []
+#    for label_desc in relevant_atariari_labels[cfg.exp_name]:
+#        scene_list.append(labels[label_desc + "_x"])
+#        scene_list.append(labels[label_desc + "_y"])
+#    return scene_list
 
 def convert_to_stateOCAtari(cfg, env):
     #create dict with go.category as key and (go.y, go.x, go.h, go.w, "S" if go.hud else "M", go.category) as label
