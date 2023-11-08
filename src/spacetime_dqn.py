@@ -57,8 +57,8 @@ if 'cuda' in cfg.device:
 #elif (torch.backends.mps.is_available() & torch.backends.mps.is_built()):
 #    device = "mps"
 print("Device:", device)
-USE_GT_AS_INPUT_EVAL = True
-print("Using GT as input for evaluation:", USE_GT_AS_INPUT_EVAL)
+USE_GT_AS_INPUT = False
+print("Using GT as input:", USE_GT_AS_INPUT)
 
 
 # replay memory of dqn
@@ -239,7 +239,10 @@ if i_episode < max_episode:
             ep_reward += reward
             reward = torch.tensor([reward], device=device)
             # Observe new state
-            s_next_state = rl_utils.convert_to_stateOCAtari(cfg, env)
+            if USE_GT_AS_INPUT:
+                s_next_state = rl_utils.convert_to_stateOCAtari(cfg, env)
+            else:
+                _, s_next_state = rl_utils.get_scene(cfg, observation, space, z_classifier, sc, transformation, use_cuda)
             # convert next state to torch
             s_next_state = torch.tensor(s_next_state, dtype=torch.float)
             # concat to stacking tensor
@@ -297,7 +300,7 @@ else:
             observation, reward, done, truncated, info = env.step(action.item())
             ep_reward += reward
             
-            if USE_GT_AS_INPUT_EVAL:
+            if USE_GT_AS_INPUT:
                 s_next_state = rl_utils.convert_to_stateOCAtari(cfg, env)
                 #if t % 50 == 0:
                 #    _, state2 = rl_utils.get_scene(cfg, observation, space, z_classifier, sc, transformation, use_cuda)
