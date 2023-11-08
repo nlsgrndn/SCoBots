@@ -72,7 +72,7 @@ def load_space(cfg, z_classifier_path=None):
 
     space = spacetime_model.space
     if z_classifier_path is None:
-        z_classifier_path =  'classifiers/pong_z_what_classifier.joblib.pkl'
+        z_classifier_path =  'classifiers/pong_model_000005001_z_what_classifier.joblib.pkl'
         #f"classifiers/{cfg.exp_name}_space{cfg.arch_type_desc}_seed{cfg.seed}_z_what_classifier.joblib.pkl"
     print("Loading classifier:" , z_classifier_path)
     z_classifier = joblib.load(z_classifier_path)
