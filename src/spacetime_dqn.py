@@ -46,7 +46,6 @@ observation, reward, done, truncated, info = env.step(2)
 n_actions = env.action_space.n
 #Getting the state space
 print("Action Space {}".format(env.action_space))
-print("State {}".format(info))
 
 print("Loading space...")
 space, transformation, sc, z_classifier = rl_utils.load_space(cfg)

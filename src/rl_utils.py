@@ -9,7 +9,8 @@ from PIL import Image
 from torchvision import transforms
 
 relevant_atariari_labels = {"pong": ["player", "enemy", "ball"], "boxing": ["enemy", "player"]}
-relevant_labels_per_game = {"pong": [1, 2, 3], "boxing": [1, 4]}
+#relevant_labels_per_game = {"pong": [1, 2, 3], "boxing": [1, 4]}
+relevant_labels_per_game = {"pong": [1,2,4]}
 # helper class to clean scene from space scene representation
 class SceneCleaner():
     def __init__(self, game):
@@ -99,10 +100,10 @@ def get_scene(cfg, observation, space, z_classifier, sc, transformation, use_cud
         x, y = convert_spacetime_values(cfg, t_img, *el)
         converted_scene_list.append(x)
         converted_scene_list.append(y) 
-    if cfg.exp_name == "pong" and False:
-        converted_scene_list = converted_scene_list[4:] + converted_scene_list[2:4] + converted_scene_list[:2]
-    if cfg.exp_name == "boxing" and False:
-        converted_scene_list = converted_scene_list[2:] + converted_scene_list[:2]
+    if cfg.exp_name == "pong":
+        converted_scene_list = converted_scene_list[4:] + converted_scene_list[2:4] + converted_scene_list[:2] # reorder to player, enemy, ball to match order that was used for RAM data
+    #if cfg.exp_name == "boxing":
+    #    converted_scene_list = converted_scene_list[2:] + converted_scene_list[:2]
     return scene_list, converted_scene_list
 
 
@@ -113,10 +114,10 @@ def convert_spacetime_values(cfg, image_array, x, y):
         y = int((y + 1)/2*image_array.shape[2])
     if cfg.exp_name == "pong":
         # pong formula
-        x, y = int(1.238 * x + 48.1), int(1.5625 * y + 14.125)
+        x, y = int(1.238 * x + 48.1), int(1.5625 * y + 14.125) #TODO: check formula
     elif cfg.exp_name == "boxing":
         # boxing formula
-        x, y = int(1.36 * x - (50/3)), int(1.692 * y - 63.54)
+        x, y = int(1.36 * x - (50/3)), int(1.692 * y - 63.54) #TODO: check formula
     #print("Placing point at ", x, y)
     return x, y
 
