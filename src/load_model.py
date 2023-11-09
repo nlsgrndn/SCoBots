@@ -6,10 +6,9 @@ import joblib
 import os.path as osp
 from engine.utils import get_config
 from model import get_model
-from spacetime_rl_algorithms.rl_utils import SceneCleaner, load_space
+from rl_utils import SceneCleaner, load_space
 from utils import Checkpointer
 from solver import get_optimizers
-# from utils_rl import Atari
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -40,9 +39,9 @@ def show_scene(image, scene):
 
 
 use_cuda = 'cuda' in cfg.device
-space, transformation, sc, z_classifier = load_space(cfg, z_classifier_path="classifiers/pong_z_what_classifier.joblib.pkl")
+space, transformation, sc, z_classifier = load_space(cfg, z_classifier_path= 'classifiers/pong_model_000005001_z_what_classifier.joblib.pkl')
+                                                     #"classifiers/model_000005001_z_what_classifier.joblib.pkl")
 #import matplotlib; matplotlib.use("Tkagg")
-# env = Atari(env_name)
 cfg.device_ids = [0]
 env_name = cfg.gamelist[0]
 env = gym.make(env_name)
@@ -61,8 +60,9 @@ for i in range(201):
         z_where, z_pres_prob, z_what, z_depth = log['z_where'], log['z_pres_prob'], log['z_what'], log['z_depth']
         z_where, z_what, z_depth = z_where.squeeze().detach().cpu(), z_what.squeeze().detach().cpu(), z_depth.squeeze().detach().cpu()
         z_pres_prob = z_pres_prob.squeeze().detach().cpu()
-        z_pres = z_pres_prob > 0.5 # TODO: fix code for case when z_pres_prob <= 0.5 everywhere
+        z_pres = z_pres_prob > 0.995 # TODO: fix code for case when z_pres_prob <= 0.5 everywhere
         z_pres_prob = z_pres_prob.view(16, 16)
+        #print(z_pres)
         import os
         if not osp.exists("images_z_pres_prob"):
             os.makedirs("images_z_pres_prob")
@@ -71,15 +71,14 @@ for i in range(201):
 
 
 
-        #scene = space.scene_description(x, z_classifier=z_classifier,
-        #                                only_z_what=True)  # class:[(w, h, x, y)]
-        #scene_list = sc.clean_scene(scene) # remove 
-        ## env.render()
-        #pprint(scene)
-        ##sprint(scene_list)
-        #for el in scene_list:
-        #    place_point(x, *el, size=1)
-        #show_scene(x, scene)
+        scene = space.scene_description(x, z_classifier=z_classifier,
+                                        only_z_what=True)  # class:[(w, h, x, y)]
+        scene_list = sc.clean_scene(scene) 
+        pprint(scene)
+        sprint(scene_list)
+        for el in scene_list:
+            place_point(x, *el, size=1)
+        show_scene(x, scene)
     if done:
         print("Done")
         env.reset()
