@@ -7,6 +7,7 @@ from utils import Checkpointer
 from solver import get_optimizers
 from PIL import Image
 from torchvision import transforms
+from vis.utils import fill_image_with_scene, place_point
 
 relevant_atariari_labels = {"pong": ["player", "enemy", "ball"], "boxing": ["enemy", "player"]}
 #relevant_labels_per_game = {"pong": [1, 2, 3], "boxing": [1, 4]}
@@ -86,7 +87,7 @@ def load_space(cfg, z_classifier_path=None):
 
 
 # helper function to get scene
-def get_scene(cfg, observation, space, z_classifier, sc, transformation, use_cuda=False):
+def get_scene(cfg, observation, space, z_classifier, sc, transformation, use_cuda=False, return_vis=False):
     img = Image.fromarray(observation[:, :, ::-1], 'RGB').resize((128, 128), Image.ANTIALIAS)
     #x = torch.moveaxis(torch.tensor(np.array(img)), 2, 0)
     t_img = transformation(img)
@@ -104,6 +105,12 @@ def get_scene(cfg, observation, space, z_classifier, sc, transformation, use_cud
         converted_scene_list = converted_scene_list[4:] + converted_scene_list[2:4] + converted_scene_list[:2] # reorder to player, enemy, ball to match order that was used for RAM data
     #if cfg.exp_name == "boxing":
     #    converted_scene_list = converted_scene_list[2:] + converted_scene_list[:2]
+
+    if return_vis:
+        for el in scene_list:
+            place_point(t_img, *el, size=1)
+        filled_image = fill_image_with_scene(t_img, scene)
+        return scene_list, converted_scene_list, filled_image
     return scene_list, converted_scene_list
 
 
@@ -121,9 +128,12 @@ def convert_spacetime_values(cfg, image_array, x, y):
     #print("Placing point at ", x, y)
     return x, y
 
+
 def convert_spacetime_valuesOCAtari(cfg, image_array, x, y):
-    x = int(x* 80.36620634 + 78.73039392) #values come from LinearRegression on training data
-    y = int(y* 105.19131803 + 100.58979739)#values come from LinearRegression on training data
+    #x = int(x* 80.36620634 + 78.73039392) #values come from LinearRegression on training data
+    #y = int(y* 105.19131803 + 100.58979739)#values come from LinearRegression on training data
+    x = round(x* 80 + 80)
+    y = round(y* 105 + 105)
     return x, y
 
 

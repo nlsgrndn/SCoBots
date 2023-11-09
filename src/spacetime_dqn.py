@@ -40,9 +40,8 @@ model_name = lambda training_name : PATH_TO_OUTPUTS + training_name + "_seed" + 
 #cfg.device_ids = [0]
 env_name = cfg.gamelist[0]
 print("Env Name:", env_name)
-env = OCAtari(env_name, mode="revised", hud=False, render_mode="rgb_array")
-observation = env.reset()
-observation, reward, done, truncated, info = env.step(2)
+env = OCAtari(env_name, mode="revised", hud=True, render_mode="rgb_array")
+observation, info = env.reset()
 n_actions = env.action_space.n
 #Getting the state space
 print("Action Space {}".format(env.action_space))
@@ -92,6 +91,25 @@ class DQN(nn.Module):
         x = F.relu(self.affine2(x))
         x = F.relu(self.affine3(x))
         return self.affine4(x)
+    
+class SpacetimeDQNAgent:
+    def __init__(self, n_actions, device, model_path):
+        NUM_FEATURES = 6 # derived from len(features)
+        self.n_actions = n_actions
+        self.device = device
+        self.policy_net = DQN(NUM_FEATURES * 2, n_actions).to(device)
+        self.policy_net.load_state_dict(torch.load(model_path, map_location=device)['policy'])
+
+    # function to select action by given state
+    def act(self, state):
+        with torch.no_grad():
+            #state = torch.tensor(state, dtype=torch.float, device=self.device).unsqueeze(0)
+            # change dtype to float
+            state = state.float().to(self.device).unsqueeze(0)
+            # t.max(1) will return largest column value of each row.
+            # second column on max result is index of where max element was
+            # found, so we pick action with the larger expected reward.
+            return self.policy_net(state).max(1)[1].view(1, 1)
 
 
 BATCH_SIZE = 128
@@ -136,9 +154,9 @@ def save_model(training_name, policy, target, steps, episode, optimizer):
 
 
 # load model
-def load_model(model_path, policy, target, optimizer=None):
+def load_model(model_path, policy, target, optimizer=None, device="cpu"):
     print("{} does exist, loading ... ".format(model_path))
-    checkpoint = torch.load(model_path)
+    checkpoint = torch.load(model_path, map_location=device)
     policy.load_state_dict(checkpoint['policy'])
     target.load_state_dict(checkpoint['target'])
     if optimizer is not None:
@@ -151,7 +169,7 @@ def load_model(model_path, policy, target, optimizer=None):
 # load if exists
 model_path = model_name(cfg.exp_name)
 if os.path.isfile(model_path):
-    policy_net, optimizer, target_net, steps_done, i_episode = load_model(model_path, policy_net, target_net, optimizer)
+    policy_net, optimizer, target_net, steps_done, i_episode = load_model(model_path, policy_net, target_net, optimizer, cfg.device)
 print("Current steps done:", steps_done)
 print("Current episode:", i_episode)
 
@@ -211,7 +229,47 @@ def optimize_model():
     optimizer.step()
 
 
-max_episode = 1000
+#from sklearn.linear_model import LinearRegression
+#
+##generate data for LinearRegression
+#env.reset()
+#data_x = []
+#labels_x = []
+#data_y = []
+#labels_y = []
+#for i in range(100):
+#    observation, reward, done, truncated, info = env.step(random.randint(0, n_actions - 1))
+#    state_OCAtari = rl_utils.convert_to_stateOCAtari(cfg, env)
+#    ball_and_enemy_coords = np.array(state_OCAtari[2:])
+#    if ball_and_enemy_coords[ball_and_enemy_coords == 0].shape[0] >= 1:
+#        print(ball_and_enemy_coords)
+#        continue
+#    _, state_SPACE = rl_utils.get_scene(cfg, observation, space, z_classifier, sc, transformation, use_cuda)
+#    data_x.extend([state_SPACE[0], state_SPACE[2], state_SPACE[4]])
+#    labels_x.extend([state_OCAtari[0], state_OCAtari[2], state_OCAtari[4]])
+#    data_y.extend([state_SPACE[1], state_SPACE[3], state_SPACE[5]])
+#    labels_y.extend([state_OCAtari[1], state_OCAtari[3], state_OCAtari[5]])
+#
+#print("subset of data")
+#print(data_x[:10])
+#print(labels_x[:10])
+#print(data_y[:10])
+#print(labels_y[:10])
+#
+#model_x=LinearRegression()
+#model_y=LinearRegression()
+#model_x.fit(np.array(data_x).reshape(-1, 1), np.array(labels_x).reshape(-1, 1))
+#model_y.fit(np.array(data_y).reshape(-1, 1), np.array(labels_y).reshape(-1, 1))
+#print(model_x.coef_)
+#print(model_y.coef_)
+#
+#import ipdb; ipdb.set_trace()
+
+    
+
+
+
+max_episode = 1000000
 # episode loop
 running_reward = -999
 # training loop
@@ -307,7 +365,12 @@ else:
             # when spacetime
             else:
                 # use spacetime to get scene_list
+                gt_s_next_state = rl_utils.convert_to_stateOCAtari(cfg, env)
                 _, s_next_state = rl_utils.get_scene(cfg, observation, space, z_classifier, sc, transformation, use_cuda)
+                print(np.array(s_next_state) - np.array(gt_s_next_state))
+                if np.max(np.abs(np.array(s_next_state) - np.array(gt_s_next_state))) > 15:
+                    _, s_next_state, filled_image = rl_utils.get_scene(cfg, observation, space, z_classifier, sc, transformation, use_cuda, return_vis=True)
+                    plt.imsave(f"rl_images/{t}.png", np.moveaxis(np.array(filled_image.cpu().detach()), (0, 1, 2), (2, 0, 1)))
             # convert next state to torch
             s_next_state = torch.tensor(s_next_state, dtype=torch.float)
             # concat to stacking tensor
@@ -324,4 +387,3 @@ else:
     print("Rerwards:", rewards)
     print("Std of rewards:", np.std(rewards))
     print("Mean of rewards:", np.mean(rewards))
-
