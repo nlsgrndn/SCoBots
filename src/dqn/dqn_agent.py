@@ -1,4 +1,3 @@
-import gym
 import torch
 import random
 import math

@@ -3,7 +3,7 @@
 # call with python dq_learning.py --config configs/atari_ball_joint_v1.yaml resume True device 'cpu'
 
 import sys
-import gym
+import gymnasium as gym
 import math
 import random
 import numpy as np
@@ -78,7 +78,7 @@ if cfg.resume:
 #    model = nn.DataParallel(model, device_ids=cfg.device_ids)
 
 # init env
-env = gym.make('PongDeterministic-v4')
+env = gym.make('PongDeterministic-v4', render_mode = 'rgb_array')
 env.reset()
 
 # set up matplotlib
@@ -122,7 +122,7 @@ black_bg = getattr(cfg, "train").black_background
 dilation = getattr(cfg, "train").dilation
 
 def get_screen():
-    screen = env.render(mode='rgb_array')
+    screen = env.render()
     pil_img = Image.fromarray(screen).resize((128, 128), PIL.Image.BILINEAR)
     # convert image to opencv
     opencv_img = np.asarray(pil_img).copy()
@@ -386,7 +386,7 @@ while i_episode < num_episodes:
             action = agent.select_action(state, global_step, logger)
             action_item = action.item()
         # perform action
-        _, reward, done, _ = env.step(action_item)
+        _, reward, done, _, _ = env.step(action_item)
         
         if reward > 0:
             pos_reward_count += 1

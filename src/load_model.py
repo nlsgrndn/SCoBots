@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from torchvision import transforms
 from vis.utils import fill_image_with_scene, place_point
-import gym
+import gymnasium as gym
 from pprint import pprint
 
 cfg, task = get_config()
@@ -48,7 +48,7 @@ env = gym.make(env_name)
 env.reset()
 nb_action = env.action_space.n
 for i in range(201):
-    observation, reward, done, info = env.step(np.random.randint(nb_action))
+    observation, reward, done, truncated, info = env.step(np.random.randint(nb_action))
     if i % 50 == 0:
         img = Image.fromarray(observation[:, :, ::-1], 'RGB').resize((128, 128), Image.ANTIALIAS)
         #x = torch.moveaxis(torch.tensor(np.array(img)), 2, 0)

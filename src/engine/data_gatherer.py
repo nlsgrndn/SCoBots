@@ -1,7 +1,3 @@
-import argparse
-import sys
-import gym
-from gym import wrappers, logger
 from rtpt import RTPT
 import matplotlib.pyplot as plt
 from spacetime_dqn import SpacetimeDQNAgent, model_name

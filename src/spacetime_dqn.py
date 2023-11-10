@@ -1,4 +1,3 @@
-import gym
 import os
 import math
 import random
