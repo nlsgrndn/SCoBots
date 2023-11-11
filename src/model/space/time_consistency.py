@@ -25,8 +25,11 @@ class TcSpace(nn.Module):
         self.area_object_weight = arch.area_object_weight
         if self.area_object_weight == 0.0:
             self.arch_type = "space+m"
+        elif self.area_object_weight == -10.0:
+            self.arch_type = "space"
         else:
             self.arch_type = "space+moc"
+        print(f'arch_type: {self.arch_type}')
 
     # @profile
     def forward(self, x, motion, motion_z_pres, motion_z_where, global_step):
@@ -91,6 +94,13 @@ class TcSpace(nn.Module):
         motion_loss = flow_loss * arch.motion_loss_weight_z_pres * flow_scaling \
                       + flow_loss_alpha_map * arch.motion_loss_weight_alpha * flow_scaling \
                       + flow_loss_z_where * arch.motion_loss_weight_z_where * flow_scaling
+        if not self.arch_type == "space":
+            loss = loss \
+                + z_what_loss * arch.adjacent_consistency_weight \
+                + z_pres_loss * arch.pres_inconsistency_weight \
+                + z_what_loss_pool * arch.area_pool_weight \
+                + z_what_loss_objects * area_object_scaling * arch.area_object_weight \
+                + motion_loss * arch.motion_weight
         loss = loss \
             + z_what_loss * arch.adjacent_consistency_weight \
             + z_pres_loss * arch.pres_inconsistency_weight \

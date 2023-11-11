@@ -58,7 +58,7 @@ def get_config():
     cfg.arch_type_desc = args.arch_type
     if args.arch_type is None or args.arch_type == 'baseline':
         cfg.model = 'TcSpace'
-        cfg.arch.area_object_weight = 0.0
+        cfg.arch.area_object_weight = -10.0 # TODO: check where this value is used  
         cfg.arch_type_desc = ""
     elif args.arch_type == "m": #
         cfg.model = 'TcSpace'
