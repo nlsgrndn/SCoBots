@@ -101,12 +101,6 @@ class TcSpace(nn.Module):
                 + z_what_loss_pool * arch.area_pool_weight \
                 + z_what_loss_objects * area_object_scaling * arch.area_object_weight \
                 + motion_loss * arch.motion_weight
-        loss = loss \
-            + z_what_loss * arch.adjacent_consistency_weight \
-            + z_pres_loss * arch.pres_inconsistency_weight \
-            + z_what_loss_pool * arch.area_pool_weight \
-            + z_what_loss_objects * area_object_scaling * arch.area_object_weight \
-            + motion_loss * arch.motion_weight
         return loss, responses
 
     def object_count_accurate_scaling(self, responses):
