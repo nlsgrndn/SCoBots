@@ -94,6 +94,7 @@ class TcSpace(nn.Module):
         motion_loss = flow_loss * arch.motion_loss_weight_z_pres * flow_scaling \
                       + flow_loss_alpha_map * arch.motion_loss_weight_alpha * flow_scaling \
                       + flow_loss_z_where * arch.motion_loss_weight_z_where * flow_scaling
+        print("Motion Loss: ", motion_loss.detach().item())
         if not self.arch_type == "space":
             loss = loss \
                 + z_what_loss * arch.adjacent_consistency_weight \
