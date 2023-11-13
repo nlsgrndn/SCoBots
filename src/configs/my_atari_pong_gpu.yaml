@@ -19,9 +19,9 @@ resume_ckpt: ''
 # 'result_checkpoints/base_z_what_model_000078001.pth'
 # 'output/checkpoints/atari_mspacman/model_000079001.pth'
 # '../pretrained/atari_joint.pth'
-parallel: false
-device_ids: [0]
-device: 'cpu'
+parallel: true
+device_ids: [0,1,2,3]
+device: 'cuda:0'
 
 logdir: '../output/logs/final'
 checkpointdir: '../output/checkpoints/final'
