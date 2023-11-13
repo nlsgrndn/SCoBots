@@ -257,11 +257,11 @@ def main():
 
     print(f"Dataset Generation is completed. Everything is saved in {data_base_folder}.")
 
-
+from hackatari.riverraid import ConstantBackgroundRiverraid
 def configure(args):
     global env
     print(f"Playing {args.game}...")
-    env = OCAtari(args.game, mode = "revised", hud=True, render_mode="rgb_array") # revised(=ram) mode should be used
+    env = ConstantBackgroundRiverraid(env_name="RiverraidDeterministic-v0", mode="revised", hud=True, obs_mode="dqn") #OCAtari(args.game, mode = "revised", hud=True, render_mode="rgb_array") # revised(=ram) mode should be used
     observation, info = env.reset()
     make_deterministic(0 if args.folder == "train" else 1 if args.folder == "validation" else 2, env)
     agent = RandomAgent(env)

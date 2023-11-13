@@ -174,3 +174,4 @@ old_models/*
 Boxing_ROM
 Pong_ROM
 final_test_results*
+*.png
