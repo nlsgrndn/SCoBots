@@ -43,14 +43,14 @@ class ConstantBackgroundRiverraid(OCAtari):
 import random
 from time import sleep
 from ocatari.utils import load_agent, parser, make_deterministic
-env = ConstantBackgroundRiverraid(render_mode="human")
-dqn_agent = load_agent("../OC_Atari/models/Riverraid/dqn.gz", env.action_space.n)
-env.reset()
-for i in range(10000):
-    # action = random.randint(0,5)
-    action = dqn_agent.draw_action(env.dqn_obs)
-    _, _, done1, done2, _ = env.step(action)
-    sleep(0.01)
-    # print(env.get_ram()[38:44])
-    if done1 or done2:
-        env.reset()
+#env = ConstantBackgroundRiverraid(render_mode="human")
+#dqn_agent = load_agent("../OC_Atari/models/Riverraid/dqn.gz", env.action_space.n)
+#env.reset()
+#for i in range(10000):
+#    # action = random.randint(0,5)
+#    action = dqn_agent.draw_action(env.dqn_obs)
+#    _, _, done1, done2, _ = env.step(action)
+#    sleep(0.01)
+#    # print(env.get_ram()[38:44])
+#    if done1 or done2:
+#        env.reset()

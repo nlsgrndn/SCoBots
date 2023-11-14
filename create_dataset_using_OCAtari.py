@@ -105,8 +105,8 @@ def main():
                         help='should compute median-delta instead of mode')
     parser.add_argument('--bb', default=True, action="store_false",
                         help='should compute bounding_boxes')
-    parser.add_argument('--no_flow', action="store_true",
-                        help='should not compute flow information (default False)')
+    parser.add_argument('--flow', action="store_true",
+                        help='should compute flow information (default False)')
     parser.add_argument('-f', '--folder', type=str, choices=["train", "test", "validation"],
                         required=True,
                         help='folder to write to: train, test or validation')
@@ -231,7 +231,7 @@ def main():
             space_stack = np.stack(space_stack)
 
             # save the flow
-            if not args.no_flow:
+            if args.flow:
                 flow.save(space_stack, f'{flow_folder}/{image_count:05}_{{}}.pt', visualizations_flow)
             
             # either save the median or the mode
@@ -261,7 +261,7 @@ from hackatari.riverraid import ConstantBackgroundRiverraid
 def configure(args):
     global env
     print(f"Playing {args.game}...")
-    env = ConstantBackgroundRiverraid(env_name="RiverraidDeterministic-v0", mode="revised", hud=True, obs_mode="dqn") #OCAtari(args.game, mode = "revised", hud=True, render_mode="rgb_array") # revised(=ram) mode should be used
+    env = OCAtari(args.game, mode = "revised", hud=True, render_mode="rgb_array") # revised(=ram) mode should be used # ConstantBackgroundRiverraid(env_name="RiverraidDeterministic-v0", mode="revised", hud=True, obs_mode="dqn") 
     observation, info = env.reset()
     make_deterministic(0 if args.folder == "train" else 1 if args.folder == "validation" else 2, env)
     agent = RandomAgent(env)
