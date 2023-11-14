@@ -7,6 +7,7 @@ This repository contains the code for MOC. Here you can train discovery models t
 **Sections**
 - Installation
 - Dataset Creation
+- Config Files
 - Object Detection and Representation Model:
 	- Loading the model
 	- Training
@@ -43,6 +44,21 @@ Then a dataset for each dataset_mode can be created.
 Generally, mode should be used instead of median (but this is already set as default, so this nothing to worry about).
 The parameter --vis optionally creates also visualizations that can help to understand whether the data generation was successful.
 The folders median, flow, rgb and vis are not required tor the training or evaluation. The sizes of train, validation and test set are specified in the python file but can easily be modified.
+
+**Config Files**
+Files used for config:
+- args (passed via execution command)
+- atari_<gamename>.yaml in src/configs 
+- src/model/space/arch.py
+- src/config.py: includes arch.py but specifies additional values
+
+Handled via executing:
+- get_config() in src/engine/utils.py:
+  - prioritisation of values: args  > config > atari_<gamename>.yaml > config.py
+
+values in <gamename>config.yaml overwrite values in the other configs when executing get_config()
+![image](https://github.com/nlsgrndn/SCoBots/assets/76959397/cb536fe9-c542-41c8-9389-20cc1d2b78d9)
+
 
 **Object Detection and Representation Model**
 
