@@ -33,11 +33,16 @@ This repository contains the code for MOC. Here you can train discovery models t
 **Dataset Creation**
 
 First root_images have to be created.
-`python3 create_dataset_using_OCAtari.py -f train -g Pong --compute_root_images` # -f parameter is irrelevant when --compute_root_images is set
+- `python3 create_dataset_using_OCAtari.py -f train -g Pong --compute_root_images` # -f parameter is irrelevant when --compute_root_images is set
+
 Then a dataset for each dataset_mode can be created.
-`python3 create_dataset_using_OCAtari.py -f train -g Pong`
-`python3 create_dataset_using_OCAtari.py -f validation -g Pong`
-`python3 create_dataset_using_OCAtari.py -f test -g Pong`
+- `python3 create_dataset_using_OCAtari.py -f train -g Pong`
+- `python3 create_dataset_using_OCAtari.py -f validation -g Pong`
+- `python3 create_dataset_using_OCAtari.py -f test -g Pong`
+
+Generally, mode should be used instead of median (but this is already set as default, so this nothing to worry about).
+The parameter --vis optionally creates also visualizations that can help to understand whether the data generation was successful.
+The folders median, flow, rgb and vis are not required tor the training or evaluation. The sizes of train, validation and test set are specified in the python file but can easily be modified.
 
 **Object Detection and Representation Model**
 
