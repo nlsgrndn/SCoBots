@@ -5,7 +5,7 @@ resume: false
 load_time_consistency: true
 add_flow: true
 
-resume_ckpt: '../pretrained/atari_joint.pth'
+resume_ckpt: '../old_models/own_trained_models/model_000001001.pth'
 # '../output/checkpoints/mspacman_atari_pretrained/model.pth'
 #
 # '../output/checkpoints/mspacman_atari+z_what_1e-2/model_000162501.pth'
@@ -14,9 +14,9 @@ resume_ckpt: '../pretrained/atari_joint.pth'
 # 'result_checkpoints/base_z_what_model_000078001.pth'
 # 'output/checkpoints/atari_mspacman/model_000079001.pth'
 # '../pretrained/atari_joint.pth'
-parallel: true
-device_ids: [0, 1, 2, 3]
-device: 'cuda:0'
+parallel: false
+device_ids: [0]
+device: 'cpu'
 
 logdir: '../output/logs/final'
 checkpointdir: '../output/checkpoints/final'
@@ -88,7 +88,7 @@ gamelist: [
     # 'DoubleDunk-v0',
     # 'Kangaroo-v0',
     # 'MontezumaRevenge-v0',
-    'Boxing-v0',
+    'BoxingDeterministic-v4',
     # 'Pooyan-v0',
     # 'Qbert-v0',
     # 'SpaceInvaders-v0',
