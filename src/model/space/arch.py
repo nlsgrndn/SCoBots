@@ -14,9 +14,9 @@ arch = CfgNode({
     'motion': True,
     'motion_kind': 'mode',
     'motion_direct_weight': 1.0,  # Unused
-    'motion_loss_weight_z_pres': 10.0,
-    'motion_loss_weight_z_where': 100.0,
-    'motion_loss_weight_alpha': 1,
+    'motion_loss_weight_z_pres': 1000.0, #10.0
+    'motion_loss_weight_z_where': 10000.0, #100.0
+    'motion_loss_weight_alpha': 100, #1
     'motion_weight': 100.0,
     'motion_sigmoid_steepen': 10000.0,  # Unused
     'motion_cooling_end_step': 3000,
@@ -25,8 +25,8 @@ arch = CfgNode({
     'agree_sim': True,
     'dynamic_steepness': 2.0,
     'use_variance': True,
-    'motion_underestimating': 2.0,
-    'motion_object_found_lambda': 0.025,
+    'motion_underestimating': 1.25, #2.0,
+    'motion_object_found_lambda': 0.1, #0.025,
     'z_where_offset': 0.1,
     'acceptable_non_moving': 8,  # Unused
     'variance_steps': 20,
@@ -41,7 +41,7 @@ arch = CfgNode({
     # Foreground configurations
     # ==== START ====
     # Foreground likelihood sigma
-    'fg_sigma': 0.15,
+    'fg_sigma': 0.2, #0.15,
     # Size of the glimpse
     'glimpse_size': 32,
     # Encoded image feature channels
@@ -56,16 +56,16 @@ arch = CfgNode({
     'z_what_dim': 32,
     
     # z_pres prior
-    'z_pres_start_step': 4000,
-    'z_pres_end_step': 10000,
+    'z_pres_start_step': 0, #4000,
+    'z_pres_end_step': 5000, #10000,
     'z_pres_start_value': 0.1,
-    'z_pres_end_value': 0.01,
+    'z_pres_end_value': 1e-10, #0.01,
     
     # z_scale prior
-    'z_scale_mean_start_step': 10000,
-    'z_scale_mean_end_step': 20000,
-    'z_scale_mean_start_value': -1.0,
-    'z_scale_mean_end_value': -2.0,
+    'z_scale_mean_start_step': 0, # 10000
+    'z_scale_mean_end_step': 5000, # 20000
+    'z_scale_mean_start_value': -2.0, # -1.0
+    'z_scale_mean_end_value': -2.5, # -2.0
     'z_scale_std_value': 0.1,
     
     # Temperature for gumbel-softmax
@@ -83,9 +83,9 @@ arch = CfgNode({
     # Background configurations
     # ==== START ====
     # Number of background components. If you set this to one, you should use a strong decoder instead.
-    'K': 5,
+    'K': 3, # 5
     # Background likelihood sigma
-    'bg_sigma': 0.15,
+    'bg_sigma': 0.1, #0.15,
     # Image encoding dimension
     'img_enc_dim_bg': 64,
     # Latent dimensions
