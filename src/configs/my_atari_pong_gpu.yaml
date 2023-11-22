@@ -40,7 +40,7 @@ train:
   max_epochs: 10000
   max_steps: 5000
   print_every: 200
-  save_every: 4
+  save_every: 100
   num_workers: 8
   clip_norm: 1.0
   max_ckpt: 4
@@ -59,11 +59,6 @@ arch:
   motion: true
   motion_kind: 'mode'
   G: 16
-
-
-
-
-
 
   fix_alpha_steps: -1
   fix_alpha_value: 0.1
