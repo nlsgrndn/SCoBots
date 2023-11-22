@@ -89,8 +89,8 @@ class TcSpace(nn.Module):
             'flow_loss_z_where': flow_loss_z_where,
             'flow_loss_alpha_map': flow_loss_alpha_map,
             'objects_detected': objects_detected,
-            'flow_scaling': torch.tensor(flow_scaling),
-            'area_object_scaling': torch.tensor(area_object_scaling),
+            'flow_scaling': torch.tensor(flow_scaling).to(loss.device),
+            'area_object_scaling': torch.tensor(area_object_scaling).to(loss.device),
         }
         responses.update(tc_log)
 
