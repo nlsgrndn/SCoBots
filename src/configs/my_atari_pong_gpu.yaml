@@ -93,5 +93,5 @@ eval:
   metric: ap_avg
 
 gamelist: [
-    'PongDeterministic-v4',
+    'Pong-v0',
     ]
