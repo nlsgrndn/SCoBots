@@ -108,6 +108,7 @@ class TcSpace(nn.Module):
                 'motion_loss': motion_loss,
                 'z_what_loss_objects': z_what_loss_objects,
             }
+            responses.update(tc_log)
         return loss, responses
 
     def object_count_accurate_scaling(self, responses):
