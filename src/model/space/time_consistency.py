@@ -88,20 +88,26 @@ class TcSpace(nn.Module):
             'flow_loss': flow_loss,
             'flow_loss_z_where': flow_loss_z_where,
             'flow_loss_alpha_map': flow_loss_alpha_map,
-            'objects_detected': objects_detected
+            'objects_detected': objects_detected,
+            'flow_scaling': flow_scaling,
+            'area_object_scaling': area_object_scaling
         }
         responses.update(tc_log)
-        motion_loss = flow_loss * arch.motion_loss_weight_z_pres * flow_scaling \
-                      + flow_loss_alpha_map * arch.motion_loss_weight_alpha * flow_scaling \
-                      + flow_loss_z_where * arch.motion_loss_weight_z_where * flow_scaling
-        print("Motion Loss: ", motion_loss.detach().item())
+
         if not self.arch_type == "space":
+            motion_loss = flow_loss * arch.motion_loss_weight_z_pres * flow_scaling \
+                + flow_loss_alpha_map * arch.motion_loss_weight_alpha * flow_scaling \
+                + flow_loss_z_where * arch.motion_loss_weight_z_where * flow_scaling    
             loss = loss \
                 + z_what_loss * arch.adjacent_consistency_weight \
                 + z_pres_loss * arch.pres_inconsistency_weight \
                 + z_what_loss_pool * arch.area_pool_weight \
                 + z_what_loss_objects * area_object_scaling * arch.area_object_weight \
                 + motion_loss * arch.motion_weight
+            tc_log = {
+                'motion_loss': motion_loss,
+                'z_what_loss_objects': z_what_loss_objects,
+            }
         return loss, responses
 
     def object_count_accurate_scaling(self, responses):

@@ -58,6 +58,13 @@ class SpaceVis:
         writer.add_scalar(f'{mode}/objects_detected', torch.sum(log['objects_detected']).item(),
                           global_step=global_step)
         writer.add_scalar(f'{mode}/total_loss', log['loss'], global_step=global_step)
+        if 'motion_loss' in log: # not true for raw SPACE
+            writer.add_scalar(f'{mode}/motion_loss', log['motion_loss'], global_step=global_step)
+        if 'z_what_loss' in log: # not true for raw SPACE
+            writer.add_scalar(f'{mode}/z_what_loss', log['z_what_loss'], global_step=global_step)
+        writer.add_scalar(f'{mode}/flow_scaling', log['flow_scaling'], global_step=global_step)
+        writer.add_scalar(f'{mode}/area_object_scaling', log['area_object_scaling'], global_step=global_step)
+
         # FYI: For visualization only use some images of each stack in the batch
         for key, value in log.items():
             if isinstance(value, torch.Tensor):
