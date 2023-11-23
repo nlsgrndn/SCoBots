@@ -141,12 +141,12 @@ class SpaceVis:
         z_pres_pure_grid = grid_mult_img(log_img.z_pres_prob_pure, log_img.imgs, motion_z_pres_shape, scaling=6)
         writer.add_image(f'{mode}/6-z_pres_pure', z_pres_pure_grid, global_step)
 
-        writer.add_image(f'{mode}/7-z_where', grid_z_where_vis(log_img.z_where, log_img.imgs, log_img.motion_z_pres),
-                         global_step)
+        #writer.add_image(f'{mode}/7-z_where', grid_z_where_vis(log_img.z_where, log_img.imgs, log_img.motion_z_pres),
+        #                 global_step)
 
-        gg_z_pres = log_img.z_pres_prob_pure.reshape(log_img.motion_z_pres.shape) > 0.5
-        writer.add_image(f'{mode}/8-z_where_pure', grid_z_where_vis(log_img.z_where_pure, log_img.imgs, gg_z_pres),
-                                                                    global_step)
+        #gg_z_pres = log_img.z_pres_prob_pure.reshape(log_img.motion_z_pres.shape) > 0.5
+        #writer.add_image(f'{mode}/8-z_where_pure', grid_z_where_vis(log_img.z_where_pure, log_img.imgs, gg_z_pres),
+        #                                                            global_step)
 
         alpha_map = make_grid(log_img.alpha_map, 4, normalize=False, pad_value=1)
         writer.add_image(f'{mode}/9-alpha_map', alpha_map, global_step)

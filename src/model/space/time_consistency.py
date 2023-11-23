@@ -54,6 +54,12 @@ class TcSpace(nn.Module):
             motion_z_pres = motion_z_pres.reshape(T * B, arch.G * arch.G, 1)
             motion_z_where = motion_z_where.reshape(T * B, arch.G * arch.G, 4)
         loss, responses = self.space(x, motion, motion_z_pres, motion_z_where, global_step)
+        tc_log = {
+            'motion': motion,
+            'motion_z_pres': motion_z_pres,
+            'motion_z_where': motion_z_where,
+        }
+        responses.update(tc_log)
         # Further losses
         if not self.training:
             return loss, responses
@@ -91,7 +97,6 @@ class TcSpace(nn.Module):
             'objects_detected': objects_detected,
             'flow_scaling': torch.tensor(flow_scaling).to(loss.device),
             'area_object_scaling': torch.tensor(area_object_scaling).to(loss.device),
-            'motion': motion,
         }
         responses.update(tc_log)
 
