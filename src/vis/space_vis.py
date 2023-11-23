@@ -114,8 +114,11 @@ class SpaceVis:
                          global_step)
         grid_image = make_grid(log_img.motion, 4, normalize=False, pad_value=1)
         writer.add_image(f'{mode}/4-1-motion_imglike', grid_image, global_step)
+        # if all entries in motion_z_pres are 0, print a warning
+        if log_img.motion_z_pres.sum() == 0:
+            print("WARNING: All entries in motion_z_pres are 0!")
         reshaped_motion = log_img.motion_z_pres.reshape(motion_z_pres_shape)
-        writer.add_image(f'{mode}/4-2-motion_z_pres', make_grid(reshaped_motion, 4, normalize=False, pad_value=1))
+        writer.add_image(f'{mode}/4-2-motion_z_pres', make_grid(reshaped_motion, 4, normalize=True, pad_value=1), global_step)
 
         count = log_img.z_pres.flatten(start_dim=1).sum(dim=1).mean(dim=0)
         loss = log['loss'].mean()
