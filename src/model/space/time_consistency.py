@@ -91,6 +91,7 @@ class TcSpace(nn.Module):
             'objects_detected': objects_detected,
             'flow_scaling': torch.tensor(flow_scaling).to(loss.device),
             'area_object_scaling': torch.tensor(area_object_scaling).to(loss.device),
+            'motion': motion,
         }
         responses.update(tc_log)
 

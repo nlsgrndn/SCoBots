@@ -112,6 +112,10 @@ class SpaceVis:
         motion_z_pres_shape = (B, 1, G, G)
         writer.add_image(f'{mode}/4-motion', grid_mult_img(log_img.motion_z_pres, log_img.imgs, motion_z_pres_shape),
                          global_step)
+        grid_image = make_grid(log_img.motion, 4, normalize=False, pad_value=1)
+        writer.add_image(f'{mode}/4-1-motion_imglike', grid_image, global_step)
+        reshaped_motion = log_img.motion_z_pres.reshape(motion_z_pres_shape)
+        writer.add_image(f'{mode}/4-2-motion_z_pres', make_grid(reshaped_motion, 4, normalize=False, pad_value=1))
 
         count = log_img.z_pres.flatten(start_dim=1).sum(dim=1).mean(dim=0)
         loss = log['loss'].mean()
