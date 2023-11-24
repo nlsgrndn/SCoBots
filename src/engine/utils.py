@@ -31,7 +31,7 @@ def get_config():
         '--arch-type',
         help='architecture type',
         choices=['baseline', '+m', '+moc'],
-        required=True
+        default= "+moc",
     )
 
     parser.add_argument(
@@ -40,6 +40,7 @@ def get_config():
         default=None,
         nargs=argparse.REMAINDER
     )
+    # example usage for opts: python main.py arch.area_object_weight 0.0 arch.motion_input False
 
     args = parser.parse_args()
     if args.config_file:
