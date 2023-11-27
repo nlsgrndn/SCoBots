@@ -53,7 +53,8 @@ class TcSpace(nn.Module):
             motion = motion.reshape(T * B, 1, H, W)
             motion_z_pres = motion_z_pres.reshape(T * B, arch.G * arch.G, 1)
             motion_z_where = motion_z_where.reshape(T * B, arch.G * arch.G, 4)
-        loss, responses = self.space(x, global_step)
+        elbo_loss, responses = self.space(x, global_step)
+        loss = elbo_loss
         tc_log = {
             'motion': motion,
             'motion_z_pres': motion_z_pres,
@@ -101,18 +102,29 @@ class TcSpace(nn.Module):
         responses.update(tc_log)
 
         if not self.arch_type == "space":
-            motion_loss = flow_loss * arch.motion_loss_weight_z_pres * flow_scaling \
+            motion_loss = (flow_loss * arch.motion_loss_weight_z_pres * flow_scaling \
                 + flow_loss_alpha_map * arch.motion_loss_weight_alpha * flow_scaling \
-                + flow_loss_z_where * arch.motion_loss_weight_z_where * flow_scaling    
-            loss = loss \
-                + z_what_loss * arch.adjacent_consistency_weight \
+                + flow_loss_z_where * arch.motion_loss_weight_z_where * flow_scaling) * arch.motion_weight
+            
+            # with standard param settings only arch.area_object_weight != 0.0 and only iff MOC is used
+            combined_z_what_loss = z_what_loss * arch.adjacent_consistency_weight \
                 + z_pres_loss * arch.pres_inconsistency_weight \
                 + z_what_loss_pool * arch.area_pool_weight \
-                + z_what_loss_objects * area_object_scaling * arch.area_object_weight \
-                + motion_loss * arch.motion_weight
+                + z_what_loss_objects * area_object_scaling * arch.area_object_weight    
+         
+            loss += motion_loss + combined_z_what_loss  
+            
             tc_log = {
+                'total_loss': loss,
                 'motion_loss': motion_loss,
-                'z_what_loss_objects': z_what_loss_objects,
+                'combined_z_what_loss': combined_z_what_loss,
+                'scaled_flow_loss': flow_loss * arch.motion_loss_weight_z_pres * flow_scaling * arch.motion_weight,
+                'scaled_flow_loss_z_where': flow_loss_z_where * arch.motion_loss_weight_z_where * flow_scaling * arch.motion_weight,
+                'scaled_flow_loss_alpha_map': flow_loss_alpha_map * arch.motion_loss_weight_alpha * flow_scaling * arch.motion_weight,
+                'scaled_z_what_loss': z_what_loss * arch.adjacent_consistency_weight,
+                'scaled_z_pres_loss': z_pres_loss * arch.pres_inconsistency_weight,
+                'scaled_z_what_loss_pool': z_what_loss_pool * arch.area_pool_weight,
+                'scaled_z_what_loss_objects': z_what_loss_objects * area_object_scaling * arch.area_object_weight,
             }
             responses.update(tc_log)
         return loss, responses

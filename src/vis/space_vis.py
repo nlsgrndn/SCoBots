@@ -57,14 +57,35 @@ class SpaceVis:
                           global_step=global_step)
         writer.add_scalar(f'{mode}/objects_detected', torch.sum(log['objects_detected']).item(),
                           global_step=global_step)
-        writer.add_scalar(f'{mode}/elbo_loss', log['elbo_loss'], global_step=global_step)
+        writer.add_scalar(f'{mode}/elbo_loss', torch.sum(log['elbo_loss']).item(), global_step=global_step)
         if 'motion_loss' in log: # not true for raw SPACE
             writer.add_scalar(f'{mode}/motion_loss', torch.sum(log['motion_loss']).item(), global_step=global_step)
-        if 'z_what_loss' in log: # not true for raw SPACE
             writer.add_scalar(f'{mode}/z_what_loss', torch.sum(log['z_what_loss']).item(), global_step=global_step)
         
         writer.add_scalar(f'{mode}/flow_scaling', log['flow_scaling'].mean().item(), global_step=global_step)
         writer.add_scalar(f'{mode}/area_object_scaling', log['area_object_scaling'].mean().item(), global_step=global_step)
+        
+        #log all losses for debugging
+        writer.add_scalar(f'losses/total_loss', torch.sum(log['total_loss']).item(), global_step=global_step)
+        writer.add_scalar(f'losses/elbo_loss', torch.sum(log['elbo_loss']).item(), global_step=global_step)
+        writer.add_scalar(f'losses/motion_loss', torch.sum(log['motion_loss']).item(), global_step=global_step)
+        writer.add_scalar(f'losses/combined_z_what_loss', torch.sum(log['combined_z_what_loss']).item(), global_step=global_step)
+        writer.add_scalar(f'losses/z_what_loss', torch.sum(log['z_what_loss']).item(), global_step=global_step)
+        writer.add_scalar(f'losses/z_what_loss_pool', torch.sum(log['z_what_loss_pool']).item(), global_step=global_step)
+        writer.add_scalar(f'losses/z_what_loss_objects', torch.sum(log['z_what_loss_objects']).item(), global_step=global_step)
+        writer.add_scalar(f'losses/z_pres_loss', torch.sum(log['z_pres_loss']).item(), global_step=global_step)
+        writer.add_scalar(f'losses/flow_loss', torch.sum(log['flow_loss']).item(), global_step=global_step)
+        writer.add_scalar(f'losses/flow_loss_z_where', torch.sum(log['flow_loss_z_where']).item(), global_step=global_step)
+        writer.add_scalar(f'losses/flow_loss_alpha_map', torch.sum(log['flow_loss_alpha_map']).item(), global_step=global_step)
+
+        #scaled losses
+        writer.add_scalar(f'losses/scaled_z_what_loss', torch.sum(log['scaled_z_what_loss']).item(), global_step=global_step)
+        writer.add_scalar(f'losses/scaled_z_what_loss_pool', torch.sum(log['scaled_z_what_loss_pool']).item(), global_step=global_step)
+        writer.add_scalar(f'losses/scaled_z_what_loss_objects', torch.sum(log['scaled_z_what_loss_objects']).item(), global_step=global_step)
+        writer.add_scalar(f'losses/scaled_z_pres_loss', torch.sum(log['scaled_z_pres_loss']).item(), global_step=global_step)
+        writer.add_scalar(f'losses/scaled_flow_loss', torch.sum(log['scaled_flow_loss']).item(), global_step=global_step)
+        writer.add_scalar(f'losses/scaled_flow_loss_z_where', torch.sum(log['scaled_flow_loss_z_where']).item(), global_step=global_step)
+        writer.add_scalar(f'losses/scaled_flow_loss_alpha_map', torch.sum(log['scaled_flow_loss_alpha_map']).item(), global_step=global_step)
 
         # FYI: For visualization only use some images of each stack in the batch
         for key, value in log.items():

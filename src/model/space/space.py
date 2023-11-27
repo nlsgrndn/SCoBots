@@ -56,7 +56,7 @@ class Space(nn.Module):
         elbo = log_like - kl_bg - kl_fg
 
         # Mean over batch
-        loss = -elbo.mean()
+        loss = -elbo
         x = x[:, :3]
         log = {
             'imgs': x,
