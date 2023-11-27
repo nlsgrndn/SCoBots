@@ -53,7 +53,7 @@ class TcSpace(nn.Module):
             motion = motion.reshape(T * B, 1, H, W)
             motion_z_pres = motion_z_pres.reshape(T * B, arch.G * arch.G, 1)
             motion_z_where = motion_z_where.reshape(T * B, arch.G * arch.G, 4)
-        loss, responses = self.space(x, motion, motion_z_pres, motion_z_where, global_step)
+        loss, responses = self.space(x, global_step)
         tc_log = {
             'motion': motion,
             'motion_z_pres': motion_z_pres,
@@ -75,14 +75,14 @@ class TcSpace(nn.Module):
         flow_loss_z_where = compute_flow_loss_z_where(
             responses) if arch.motion_loss_weight_z_where > 1e-3 else self.zero
         flow_loss_alpha_map = compute_flow_loss_alpha(
-            responses) if arch.motion_loss_weight_alpha > 1e-3 else self.zero
+            responses, motion) if arch.motion_loss_weight_alpha > 1e-3 else self.zero
 
         if arch.dynamic_scheduling:
             object_count_accurate = self.object_count_accurate_scaling(responses)
             area_object_scaling = arch.dynamic_steepness ** (-object_count_accurate)
             flow_scaling = 1 - area_object_scaling
         else:
-            flow_scaling = max(0, 1 - (global_step - arch.motion_cooling_start_step) / arch.motion_cooling_end_step / 2)
+            flow_scaling = max(0, 1 - (global_step - arch.motion_cooling_start_step) / arch.motion_cooling_end_step) # weird division by 2 removed
             area_object_scaling = 1 - flow_scaling
 
         # print(f'{z_what_loss_objects=} {area_object_scaling=} {arch.area_object_weight=} => {z_what_loss_objects * area_object_scaling * arch.area_object_weight}')
@@ -205,10 +205,10 @@ def compute_flow_loss(responses):
     return nn.functional.mse_loss(z_pres, motion_z_pres.reshape(z_pres.shape), reduction='sum')
 
 
-def compute_flow_loss_alpha(responses):
+def compute_flow_loss_alpha(responses, motion):
     alpha_map = responses['alpha_map']
-    alpha_map_pure = responses['alpha_map_pure']
-    return nn.functional.mse_loss(alpha_map, alpha_map_pure, reduction='sum')
+    alpha_map_gt = motion
+    return nn.functional.mse_loss(alpha_map, alpha_map_gt, reduction='sum')
 
 
 # Variants:

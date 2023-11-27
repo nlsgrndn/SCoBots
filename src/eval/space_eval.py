@@ -195,7 +195,7 @@ class SpaceEval:
                 # motion_z_where = motion_z_where.to(device)
                 loss, log = model(imgs, motion, motion_z_pres, motion_z_where,
                                   global_step if use_global_step else 1000000000)
-                for key in ['imgs', 'y', 'log_like', 'loss', 'fg', 'z_pres_prob_pure',
+                for key in ['imgs', 'y', 'log_like', 'elbo_loss', 'fg', 'z_pres_prob_pure',
                             'prior_z_pres_prob', 'o_att', 'alpha_att_hat', 'alpha_att', 'alpha_map', 'alpha_map_pure',
                             'importance_map_full_res_norm', 'kl_z_what', 'kl_z_pres', 'kl_z_scale', 'kl_z_shift',
                             'kl_z_depth', 'kl_z_where', 'comps', 'masks', 'bg', 'kl_bg']:

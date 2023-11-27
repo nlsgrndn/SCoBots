@@ -86,14 +86,11 @@ class SpaceFg(nn.Module):
                                     arch.tau_start_value, arch.tau_end_value)
 
     # @profile
-    def forward(self, x, motion, motion_z_pres, motion_z_where, global_step):
+    def forward(self, x, global_step):
         """
         Forward pass
 
         :param x: (B, 3, H, W)
-        :param motion: (B, 1, H, W)
-        :param motion_z_pres: z_pres hint from motion
-        :param motion_z_where: z_where hint from motion
         :param global_step: global step (training)
         :return:
             fg_likelihood: (B, 3, H, W)
@@ -110,7 +107,7 @@ class SpaceFg(nn.Module):
         # Everything is (B, G*G, D), where D varies
         z_pres, z_depth, z_scale, z_shift, z_where, z_pres_logits, z_depth_post, \
         z_scale_post, z_shift_post, z_pres_prob_pure, \
-        z_where_pure = self.img_encoder(x, motion_z_pres, motion_z_where, self.tau, global_step)
+        z_where_pure = self.img_encoder(x, self.tau, global_step)
         # print(z_where[(z_pres > 0.5).squeeze()])
 
         # (B, 3, H, W) -> (B*G*G, 3, H, W). Note we must use repeat_interleave instead of repeat
@@ -160,9 +157,8 @@ class SpaceFg(nn.Module):
                                                                                                *arch.img_shape)
         # Weighted sum, (B, 1, H, W)
         alpha_map_pure = (alpha_map_pure * importance_map_full_res_norm).sum(dim=1)
-        motion_cooling = 0 # max(0, 1 - (global_step - arch.motion_cooling_start_step) / arch.motion_cooling_end_step)
         # (B, 1, H, W)
-        alpha_map = (1 - motion_cooling) * alpha_map_pure + motion_cooling * motion  # run eval on this one
+        alpha_map = alpha_map_pure # run eval on this one
 
         # Everything is computed. Now let's compute loss
         # Compute KL divergences
@@ -223,8 +219,6 @@ class SpaceFg(nn.Module):
             'z_where_pure': z_where_pure,
             'z_pres': z_pres,
             'z_depth': z_depth,
-            #'motion_z_pres': motion_z_pres,
-            #'motion_z_where': motion_z_where,
             'z_pres_prob': torch.sigmoid(z_pres_logits),
             'z_pres_prob_pure': torch.sigmoid(8.8 * z_pres_prob_pure),
             'prior_z_pres_prob': self.prior_z_pres_prob.unsqueeze(0),
@@ -318,13 +312,11 @@ class ImgEncoderFg(nn.Module):
         # (2, G, G). I do this just to ensure that device is correct.
         self.register_buffer('offset', torch.stack((offset_x, offset_y), dim=0).float())
 
-    def forward(self, x, motion_z_pres, motion_z_where, tau, global_step):
+    def forward(self, x, tau, global_step):
         """
         Given image, infer z_pres, z_depth, z_where
 
         :param x: (B, 3, H, W)
-        :param motion_z_pres: z_pres hint from motion
-        :param motion_z_where: z_where hint from motion
         :param tau: temperature for the relaxed bernoulli
         :param global_step: step for cooling
         :return
@@ -364,11 +356,9 @@ class ImgEncoderFg(nn.Module):
             cat_enc_z_pres = torch.cat((cat_enc_z_pres, avg(x[:, 3:4])), dim=1)
         z_pres_original = self.z_pres_net(cat_enc_z_pres)
         z_pres_logits_pure = torch.tanh(z_pres_original)
-        motion_cooling_scaling = 0 # max(0, 1 - (global_step - arch.motion_cooling_start_step) / arch.motion_cooling_end_step)
-        transformed_motion_z_pres = motion_z_pres * 2 - 1
         # (B, 1, G, G) - > (B, G*G, 1)
-        z_pres_logits = (1 - motion_cooling_scaling) * reshape(
-            z_pres_logits_pure) + motion_cooling_scaling * transformed_motion_z_pres
+        z_pres_logits = reshape(
+            z_pres_logits_pure)
         # 8.8 is only here to allow sigmoid(tanh(x)) to be around zero and one
         z_pres_logits = 8.8 * z_pres_logits
         z_pres_post = NumericalRelaxedBernoulli(logits=z_pres_logits, temperature=tau)
@@ -413,7 +403,7 @@ class ImgEncoderFg(nn.Module):
 
         # (B, G*G, 4)
         z_where_pure = torch.cat((z_scale, z_shift), dim=-1)
-        z_where = (1 - motion_cooling_scaling) * z_where_pure + motion_cooling_scaling * motion_z_where
+        z_where = z_where_pure
         # Check dimensions
         assert (
                 (z_pres.size() == (B, arch.G ** 2, 1)) and

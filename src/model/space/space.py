@@ -18,40 +18,21 @@ class Space(nn.Module):
         self.arch_type = "space"
 
     # @profile
-    def forward(self, x, motion=None, motion_z_pres=None, motion_z_where=None, global_step=100000000):
+    def forward(self, x, global_step=100000000):
         """
         Inference.
         With time-dimension for consistency
         :param x: (B, 3, H, W) # being 128 x 128
-        :param motion: (B, 1, H, W)
-        :param motion_z_pres: z_pres hint from motion (B, G * G, 1)
-        :param motion_z_where: z_where hint from motion (B, G * G, 4)
         :param global_step: global training step
         :return:
             loss: a scalar. Note it will be better to return (B,)
             log: a dictionary for visualization
         """
-        if motion is not None:
-            motion = motion[0].unsqueeze(0)
-            motion_z_pres = motion_z_pres[0].unsqueeze(0)
-            motion_z_where = motion_z_where[0].unsqueeze(0)
-            motion, motion_z_pres, motion_z_where = None, None, None
 
         bg_likelihood, bg, kl_bg, log_bg = self.bg_module(x, global_step)
 
-        if motion is None:
-            motion = torch.zeros(x.shape[0], 1, x.shape[2], x.shape[3])#.cuda()
-        if motion_z_pres is None:
-            motion_z_pres = torch.zeros(x.shape[0], arch.G * arch.G, 1)#.cuda()
-        if motion_z_where is None:
-            motion_z_where = torch.zeros(x.shape[0], arch.G * arch.G, 4)#.cuda()
-        if "cuda" in x.device.type:
-            motion = motion.cuda()
-            motion_z_pres = motion_z_pres.cuda()
-            motion_z_where = motion_z_where.cuda()
         # Foreground extraction
-        fg_likelihood, fg, alpha_map, kl_fg, log_fg = self.fg_module(x, motion, motion_z_pres,
-                                                                     motion_z_where, global_step)
+        fg_likelihood, fg, alpha_map, kl_fg, log_fg = self.fg_module(x, global_step)
 
         # Fix alpha trick
         if global_step and global_step < arch.fix_alpha_steps:
@@ -83,7 +64,7 @@ class Space(nn.Module):
             # (B,)
             'mse': ((y - x) ** 2).flatten(start_dim=1).sum(dim=1),
             'log_like': log_like,
-            'loss': loss
+            'elbo_loss': loss
         }
         log.update(log_fg)
         log.update(log_bg)
