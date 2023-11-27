@@ -142,8 +142,8 @@ class SpaceVis:
         writer.add_image(f'{mode}/4-2-motion_z_pres', make_grid(reshaped_motion, 4, normalize=True, pad_value=1), global_step)
 
         count = log_img.z_pres.flatten(start_dim=1).sum(dim=1).mean(dim=0)
-        elbo_loss = log['elbo_loss'].mean()
-        writer.add_scalar(f'{mode}/elbo_loss', elbo_loss, global_step=global_step)
+        #elbo_loss = log['elbo_loss'].mean()
+        #writer.add_scalar(f'{mode}/elbo_loss', elbo_loss, global_step=global_step)
         writer.add_scalar(f'{mode}/count', count, global_step=global_step)
 
         mse = (log_img.y - log_img.imgs) ** 2

@@ -111,8 +111,7 @@ class TcSpace(nn.Module):
                 + z_pres_loss * arch.pres_inconsistency_weight \
                 + z_what_loss_pool * arch.area_pool_weight \
                 + z_what_loss_objects * area_object_scaling * arch.area_object_weight    
-         
-            loss += motion_loss + combined_z_what_loss  
+            loss = elbo_loss + motion_loss + combined_z_what_loss  
             
             tc_log = {
                 'total_loss': loss,
