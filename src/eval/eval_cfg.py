@@ -3,7 +3,7 @@ eval_cfg = CfgNode({
     # Evaluation during training
     'train': {
         # What to evaluate
-        'metrics': ['ap', 'mse',], #['ap', 'mse', 'cluster'],
+        'metrics': ['ap', 'mse', 'cluster'], #['ap', 'mse', 'cluster'],
         # Number of samples for evaluation
         'num_samples': {
             'mse': 1024,

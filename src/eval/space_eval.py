@@ -1,3 +1,5 @@
+from eval.clustering_eval import ClusteringEval
+from eval.ap_and_acc_eval import ApAndAccEval
 from utils import MetricLogger
 import numpy as np
 import torch
@@ -137,7 +139,6 @@ class SpaceEval:
         self.relevant_object_hover_path = rohp_save
         checkpointer.checkpointdir = chpt_dir_save
 
-
     def core_eval_code(self, valset, bb_path, writer, global_step, checkpoint, checkpointer, cfg, logs, save_best):
         with open(self.eval_file_path, "a") as self.eval_file:
             self.write_metric(None, None, global_step, global_step, use_writer=False)
@@ -210,7 +211,7 @@ class SpaceEval:
         Evaluate ap and accuracy during training
         :return: result_dict
         """
-        result_dict = self.eval_ap_and_acc(logs, valset, bb_path)
+        result_dict = ApAndAccEval().eval_ap_and_acc(logs, valset, bb_path)
         for class_name in ['all', 'moving', 'relevant']:
             APs = result_dict[f'APs_{class_name}']
             iou_thresholds = result_dict[f'iou_thresholds_{class_name}']
@@ -260,7 +261,7 @@ class SpaceEval:
         :return: result_dict
         """
         print('Computing clustering and few-shot linear classifiers...')
-        results = self.eval_clustering(logs, valset, global_step, cfg)
+        results = ClusteringEval(self.relevant_object_hover_path).eval_clustering(logs, valset, global_step, cfg)
         for name, (result_dict, img_path, few_shot_accuracy) in results.items():
             try:
                 writer.add_image(f'Clustering PCA {name.title()}', np.array(Image.open(img_path)), global_step,
@@ -280,181 +281,6 @@ class SpaceEval:
                 self.write_metric(writer, f'{name}/bayes_accuracy',
                                   few_shot_accuracy[f'bayes_accuracy'], global_step)
         return results
-
-    # @profile
-    @torch.no_grad()
-    def eval_clustering(self, logs, dataset, global_step, cfg):
-        """
-        Evaluate clustering metrics
-
-        :param logs: results from applying the model
-        :param dataset: dataset
-        :param cfg: config
-        :param global_step: gradient step number
-        :return metrics: for all classes of evaluation many metrics describing the clustering,
-            based on different ground truths
-        """
-        z_encs = []
-        z_whats = []
-        all_labels = []
-        all_labels_moving = []
-        image_refs = []
-        batch_size = eval_cfg.train.batch_size
-        img_path = os.path.join(dataset.image_path, dataset.game, dataset.dataset_mode)
-        for i, img in enumerate(logs):
-            z_where, z_pres_prob, z_what = img['z_where'], img['z_pres_prob'], img['z_what']
-            z_pres_prob = z_pres_prob.squeeze()
-            z_pres = z_pres_prob > 0.5
-            # print(f'{z_pres.sum() / batch_size}')
-            if not (0.05 <= z_pres.sum() / batch_size <= 60 * 4):
-                continue
-                # z_whats = None
-                # break
-            if cfg.save_relevant_objects:
-                for idx, (sel, bbs) in enumerate(tqdm(zip(z_pres, z_where), total=len(z_pres))):
-                    for obj_idx, bb in enumerate(bbs[sel]):
-                        image = Image.open(os.path.join(img_path, f'{i * batch_size + idx // 4:05}_{idx % 4}.png'))
-                        width, height, center_x, center_y = bb.tolist()
-                        center_x = (center_x + 1.0) / 2.0 * 128
-                        center_y = (center_y + 1.0) / 2.0 * 128
-                        bb = (int(center_x - width * 128),
-                              int(center_y - height * 128),
-                              int(center_x + width * 128),
-                              int(center_y + height * 128))
-                        try:
-                            cropped = image.crop(bb)
-                            cropped.save(f'{self.relevant_object_hover_path}/img/'
-                                         f'gs{global_step:06}_{i * batch_size + idx // 4:05}_{idx % 4}_obj{obj_idx}.png')
-                        except:
-                            image.save(f'{self.relevant_object_hover_path}/img/'
-                                       f'gs{global_step:06}_{i * batch_size + idx // 4:05}_{idx % 4}_obj{obj_idx}.png')
-                        new_image_path = f'gs{global_step:06}_{i * batch_size + idx // 4:05}_{idx % 4}_obj{obj_idx}.png'
-                        image_refs.append(new_image_path)
-            # (N, 32)
-            boxes_batch = convert_to_boxes(z_where, z_pres, z_pres_prob, with_conf=True)
-            z_whats.extend(z_what[z_pres])
-            for j in range(len(z_pres_prob) // 4):
-                datapoint_encs = []
-                for k in range(4):
-                    z_wr, z_pr, z_wt = z_where[j * 4 + k], z_pres_prob[j * 4 + k], z_what[j * 4 + k]
-                    z_pr = z_pr.squeeze() > 0.5
-                    datapoint_encs.append(torch.cat([z_wr[z_pr], z_wt[z_pr]], dim=1))
-                z_encs.append(datapoint_encs)
-            all_labels.extend(dataset.get_labels(i * batch_size, (i + 1) * batch_size, boxes_batch))
-            all_labels_moving.extend(
-                dataset.get_labels_moving(i * batch_size, (i + 1) * batch_size, boxes_batch))
-        args = {'type': 'classify', 'method': 'kmeans', 'indices': None, 'dim': 2, 'folder': 'validation',
-                'edgecolors': False}
-        if z_whats:
-            z_whats = torch.stack(z_whats).detach().cpu()
-            all_labels_relevant_idx, all_labels_relevant = dataset.to_relevant(all_labels_moving)
-            z_whats_relevant = z_whats[flatten(all_labels_relevant_idx)]
-            all_objects = evaluate_z_what(args, z_whats, flatten(all_labels), len(z_whats), cfg, title="all")
-            moving_objects = evaluate_z_what(args, z_whats, flatten(all_labels_moving), len(z_whats), cfg,
-                                             title="moving")
-            relevant_objects = evaluate_z_what(args, z_whats_relevant, flatten(all_labels_relevant), len(z_whats), cfg,
-                                               title="relevant")
-            z_encs_relevant = [[enc[rel_idx] for enc, rel_idx in zip(enc_seq, rel_seq)]
-                               for enc_seq, rel_seq in zip(z_encs, all_labels_relevant_idx)]
-            bayes_accuracy = classify_encodings(cfg, z_encs_relevant, all_labels_relevant)
-            relevant_objects[2]['bayes_accuracy'] = bayes_accuracy
-            if cfg.save_relevant_objects:
-                with open(f'{self.relevant_object_hover_path}/relevant_objects_{global_step:06}.pkl',
-                          'wb') as output_file:
-                    relevant_objects_data = {
-                        'z_what': z_whats_relevant,
-                        'labels': all_labels_relevant,
-                        'image_refs': [image_refs[idx] for idx, yes in enumerate(all_labels_relevant_idx) if yes]
-                    }
-                    pickle.dump(relevant_objects_data, output_file, pickle.DEFAULT_PROTOCOL)
-        else:
-            all_objects = evaluate_z_what(args, None, None, None, cfg, title="all")
-            moving_objects = evaluate_z_what(args, None, None, None, cfg, title="moving")
-            relevant_objects = evaluate_z_what(args, None, None, None, cfg, title="relevant")
-        return {'all': all_objects, 'moving': moving_objects, 'relevant': relevant_objects}
-
-    @torch.no_grad()
-    def eval_ap_and_acc(self, logs, dataset, bb_path, iou_thresholds=None):
-        """
-        Evaluate average precision and accuracy
-        :param logs: the model output
-        :param dataset: the dataset for accessing label information
-        :param bb_path: directory containing the gt bounding boxes.
-        :param iou_thresholds:
-        :return ap: a list of average precisions, corresponding to each iou_thresholds
-        """
-        batch_size = eval_cfg.train.batch_size
-        num_samples = min(len(dataset), eval_cfg.train.num_samples.ap)
-        print('Computing error rates, counts and APs...')
-        if iou_thresholds is None:
-            iou_thresholds = np.linspace(0.1, 0.9, 9)
-        boxes_gt_types = ['all', 'moving', 'relevant']
-        indices = list(range(num_samples))
-        boxes_gts = {k: v for k, v in zip(boxes_gt_types, read_boxes(bb_path, indices=indices))}
-        boxes_pred = []
-        boxes_relevant = []
-
-        rgb_folder_src = f"../aiml_atari_data_mid/rgb/Pong-v0/validation"
-        rgb_folder = f"../aiml_atari_data2/with_bounding_boxes/Pong-v0/sample"
-        num_batches = min(len(dataset), eval_cfg.train.num_samples.cluster) // batch_size #eval_cfg.train.num_samples.cluster // eval_cfg.train.batch_size
-
-        for img in logs[:num_batches]:
-            z_where, z_pres_prob, z_what = img['z_where'], img['z_pres_prob'], img['z_what']
-            z_where = z_where.detach().cpu()
-            z_pres_prob = z_pres_prob.detach().cpu().squeeze()
-            z_pres = z_pres_prob > 0.5
-            boxes_batch = convert_to_boxes(z_where, z_pres, z_pres_prob, with_conf=True)
-            boxes_relevant.extend(dataset.filter_relevant_boxes(boxes_batch, boxes_gts['all']))
-            boxes_pred.extend(boxes_batch)
-
-        # print('Drawing bounding boxes for eval...')
-        # for i in range(4):
-        #     for idx, pred, rel, gt, gt_m, gt_r in zip(indices, boxes_pred[i::4], boxes_relevant[i::4], *(gt[i::4] for gt in boxes_gts.values())):
-        #         if len(pred) == len(rel):
-        #             continue
-        #         pil_img = Image.open(f'{rgb_folder_src}/{idx:05}_{i}.png').convert('RGB')
-        #         pil_img = pil_img.resize((128, 128), PIL.Image.BILINEAR)
-        #         image = np.array(pil_img)
-        #         torch_img = torch.from_numpy(image).permute(2, 1, 0)
-        #         pred_tensor = torch.FloatTensor(pred) * 128
-        #         pred_tensor = torch.index_select(pred_tensor, 1, torch.LongTensor([0, 2, 1, 3]))
-        #         rel_tensor = torch.FloatTensor(rel) * 128
-        #         rel_tensor = torch.index_select(rel_tensor, 1, torch.LongTensor([0, 2, 1, 3]))
-        #         gt_tensor = torch.FloatTensor(gt) * 128
-        #         gt_tensor = torch.index_select(gt_tensor, 1, torch.LongTensor([0, 2, 1, 3]))
-        #         gt_m_tensor = torch.FloatTensor(gt_m) * 128
-        #         gt_m_tensor = torch.index_select(gt_m_tensor, 1, torch.LongTensor([0, 2, 1, 3]))
-        #         gt_r_tensor = torch.FloatTensor(gt_r) * 128
-        #         gt_r_tensor = torch.index_select(gt_r_tensor, 1, torch.LongTensor([0, 2, 1, 3]))
-        #         bb_img = torch_img
-        #         bb_img = draw_bb(torch_img, gt_tensor, colors=["red"] * len(gt_tensor))
-        #         # bb_img = draw_bb(bb_img, gt_m_tensor, colors=["blue"] * len(gt_m_tensor))
-        #         # bb_img = draw_bb(bb_img, gt_r_tensor, colors=["yellow"] * len(gt_r_tensor))
-        #         bb_img = draw_bb(bb_img, pred_tensor, colors=["green"] * len(pred_tensor))
-        #         # bb_img = draw_bb(bb_img, rel_tensor, colors=["white"] * len(rel_tensor))
-        #         bb_img = Image.fromarray(bb_img.permute(2, 1, 0).numpy())
-        #         bb_img.save(f'{rgb_folder}/gt_moving_p{idx:05}_{i}.png')
-        #         print(f'{rgb_folder}/gt_moving_{idx:05}.png')
-
-        result = {}
-        for gt_name, gt in boxes_gts.items():
-            # Four numbers
-            boxes = boxes_pred if gt_name != "relevant" else boxes_relevant
-            error_rate, perfect, overcount, undercount = compute_counts(boxes, gt)
-            accuracy = perfect / (perfect + overcount + undercount)
-            result[f'error_rate_{gt_name}'] = error_rate
-            result[f'perfect_{gt_name}'] = perfect
-            result[f'accuracy_{gt_name}'] = accuracy
-            result[f'overcount_{gt_name}'] = overcount
-            result[f'undercount_{gt_name}'] = undercount
-            result[f'iou_thresholds_{gt_name}'] = iou_thresholds
-            # A list of length 9 and P/R from low IOU level = 0.2
-            aps = compute_ap(boxes, gt, iou_thresholds)
-            precision, recall = compute_prec_rec(boxes, gt)
-            result[f'APs_{gt_name}'] = aps
-            result[f'precision_{gt_name}'] = precision
-            result[f'recall_{gt_name}'] = recall
-        return result
 
     #def save_to_json(self, result_dict, json_path, info):
     #    """
