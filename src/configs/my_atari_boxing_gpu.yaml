@@ -35,7 +35,7 @@ train:
   batch_size: 16
   max_epochs: 10000
   max_steps: 5000
-  print_every: 200
+  print_every: 100
   save_every: 100
   num_workers: 4
   clip_norm: 1.0

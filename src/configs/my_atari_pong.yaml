@@ -5,7 +5,7 @@ resume: false
 load_time_consistency: true
 add_flow: true
 save_relevant_objects: false
-resume_ckpt: ''
+resume_ckpt: '../output/logs/final/pong_with_moc_no_cooling/model_000002501.pth'
 #'../old_models/actually_new_model_000005041.pth'
 # ''
 # ../old_models/model_000005001.pth
@@ -39,7 +39,7 @@ train:
   batch_size: 1 #was 16
   max_epochs: 10000
   max_steps: 5000
-  print_every: 200
+  print_every: 100
   save_every: 100
   num_workers: 8
   clip_norm: 1.0
