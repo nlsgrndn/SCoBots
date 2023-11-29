@@ -27,6 +27,8 @@ class TcSpace(nn.Module):
             self.arch_type = "space+m"
         elif self.area_object_weight == -10.0:
             self.arch_type = "space"
+            self.area_object_weight = 0.0 # undo hack to identify space only
+            arch.area_object_weight = 0.0 # undo hack to identify space only
         else:
             self.arch_type = "space+moc"
         print(f'arch_type: {self.arch_type}')
@@ -101,31 +103,35 @@ class TcSpace(nn.Module):
         }
         responses.update(tc_log)
 
-        if not self.arch_type == "space":
-            motion_loss = (flow_loss * arch.motion_loss_weight_z_pres * flow_scaling \
-                + flow_loss_alpha_map * arch.motion_loss_weight_alpha * flow_scaling \
-                + flow_loss_z_where * arch.motion_loss_weight_z_where * flow_scaling) * arch.motion_weight
-            
-            # with standard param settings only arch.area_object_weight != 0.0 and only iff MOC is used
-            combined_z_what_loss = z_what_loss * arch.adjacent_consistency_weight \
-                + z_pres_loss * arch.pres_inconsistency_weight \
-                + z_what_loss_pool * arch.area_pool_weight \
-                + z_what_loss_objects * area_object_scaling * arch.area_object_weight    
-            loss = elbo_loss + motion_loss + combined_z_what_loss  
-            
-            tc_log = {
-                'total_loss': loss,
-                'motion_loss': motion_loss,
-                'combined_z_what_loss': combined_z_what_loss,
-                'scaled_flow_loss': flow_loss * arch.motion_loss_weight_z_pres * flow_scaling * arch.motion_weight,
-                'scaled_flow_loss_z_where': flow_loss_z_where * arch.motion_loss_weight_z_where * flow_scaling * arch.motion_weight,
-                'scaled_flow_loss_alpha_map': flow_loss_alpha_map * arch.motion_loss_weight_alpha * flow_scaling * arch.motion_weight,
-                'scaled_z_what_loss': z_what_loss * arch.adjacent_consistency_weight,
-                'scaled_z_pres_loss': z_pres_loss * arch.pres_inconsistency_weight,
-                'scaled_z_what_loss_pool': z_what_loss_pool * arch.area_pool_weight,
-                'scaled_z_what_loss_objects': z_what_loss_objects * area_object_scaling * arch.area_object_weight,
-            }
-            responses.update(tc_log)
+        motion_loss = (flow_loss * arch.motion_loss_weight_z_pres * flow_scaling \
+            + flow_loss_alpha_map * arch.motion_loss_weight_alpha * flow_scaling \
+            + flow_loss_z_where * arch.motion_loss_weight_z_where * flow_scaling) * arch.motion_weight
+        
+        # with standard param settings only arch.area_object_weight != 0.0 and only iff MOC is used
+        combined_z_what_loss = z_what_loss * arch.adjacent_consistency_weight \
+            + z_pres_loss * arch.pres_inconsistency_weight \
+            + z_what_loss_pool * arch.area_pool_weight \
+            + z_what_loss_objects * area_object_scaling * arch.area_object_weight
+        
+        elif self.arch_type == "space+m":
+            loss = elbo_loss + motion_loss
+        elif self.arch_type == "space+moc":
+            loss = elbo_loss + motion_loss + combined_z_what_loss
+
+        tc_log = {
+            'total_loss': loss,
+            'motion_loss': motion_loss,
+            'motion_loss_no_flow_scaling': motion_loss / flow_scaling,
+            'combined_z_what_loss': combined_z_what_loss,
+            'scaled_flow_loss': flow_loss * arch.motion_loss_weight_z_pres * flow_scaling * arch.motion_weight,
+            'scaled_flow_loss_z_where': flow_loss_z_where * arch.motion_loss_weight_z_where * flow_scaling * arch.motion_weight,
+            'scaled_flow_loss_alpha_map': flow_loss_alpha_map * arch.motion_loss_weight_alpha * flow_scaling * arch.motion_weight,
+            'scaled_z_what_loss': z_what_loss * arch.adjacent_consistency_weight,
+            'scaled_z_pres_loss': z_pres_loss * arch.pres_inconsistency_weight,
+            'scaled_z_what_loss_pool': z_what_loss_pool * arch.area_pool_weight,
+            'scaled_z_what_loss_objects': z_what_loss_objects * area_object_scaling * arch.area_object_weight,
+        }
+        responses.update(tc_log)
         return loss, responses
 
     def object_count_accurate_scaling(self, responses):
