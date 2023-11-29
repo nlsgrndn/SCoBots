@@ -39,7 +39,7 @@ def filter_relevant_boxes(game, boxes_batch, boxes_gt):
                 box_bat, box_gt in zip(boxes_batch, boxes_gt)]
     elif "Pong" in game:
         # ensure that > 21/128 and < 110/128
-        return [box_bat[(box_bat[:, 1] > 21 / 128) & (box_bat[:, 0] < 118 / 128)] for box_bat in boxes_batch]
+        return [box_bat[(box_bat[:, 1] > 21 / 128) & (box_bat[:, 0] > 4 / 128)] for box_bat in boxes_batch]
     elif "Boxing" in game:
         return [box_bat[(box_bat[:, 0] > 19 / 128) * (box_bat[:, 1] < 110 / 128)] for box_bat in boxes_batch]
     elif "Airraid" in game:
