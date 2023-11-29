@@ -10,6 +10,7 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D
 from mpl_toolkits.mplot3d import proj3d
 import argparse
 from termcolor import colored
+from dataset.labels import label_list_pacman, label_list_pong, label_list_carnival, label_list_boxing, label_list_tennis, label_list_space_invaders, label_list_riverraid, label_list_air_raid
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--save',
@@ -31,44 +32,44 @@ parser.add_argument('--final-test',
 
 args = parser.parse_args()
 
-label_list_pacman = [
-    "no_label", "pacman", 'sue', 'inky', 'pinky', 'blinky', "blue_ghost",
-    "eyes", "white_ghost", "fruit", "save_fruit", "life1", "life2", "score",
-    "corner_block"
-]
-
-label_list_pong = [
-    "no_label", "player", 'enemy', 'ball', 'enemy_score', 'player_score'
-]
-
-label_list_carnival = [
-    "no_label", "owl", 'rabbit', 'shooter', 'refill', 'bonus', "duck",
-    "flying_duck", "score", "pipes", "eating_duck", "bullet"
-]
-
-label_list_boxing = [
-    "no_label", "black", 'black_score', 'clock', 'white', 'white_score', 'logo'
-]
-
-label_list_tennis = [
-    "no_label", "player", 'enemy', 'ball', 'ball_shadow', 'net', 'logo',
-    'player_score', 'enemy_score'
-]
-
-# Maybe enemy bullets, but how should SPACE differentiate
-label_list_space_invaders = ["no_label"] + [f"{side}_score" for side in ['left', 'right']] + [f"enemy_{idx}"
-                                                                                              for idx in
-                                                                                              range(6)] \
-                            + ["space_ship", "player", "block", "bullet"]
-
-label_list_riverraid = [
-    "no_label", "player", 'fuel_gauge', 'fuel', 'lives', 'logo', 'score',
-    'shot', 'fuel_board', 'building', 'street', 'enemy'
-]
-
-label_list_air_raid = [
-    "no_label", "player", 'score', 'building', 'shot', 'enemy'
-]
+#label_list_pacman = [
+#    "no_label", "pacman", 'sue', 'inky', 'pinky', 'blinky', "blue_ghost",
+#    "eyes", "white_ghost", "fruit", "save_fruit", "life1", "life2", "score",
+#    "corner_block"
+#]
+#
+#label_list_pong = [
+#    "no_label", "player", 'enemy', 'ball', 'enemy_score', 'player_score'
+#]
+#
+#label_list_carnival = [
+#    "no_label", "owl", 'rabbit', 'shooter', 'refill', 'bonus', "duck",
+#    "flying_duck", "score", "pipes", "eating_duck", "bullet"
+#]
+#
+#label_list_boxing = [
+#    "no_label", "black", 'black_score', 'clock', 'white', 'white_score', 'logo'
+#]
+#
+#label_list_tennis = [
+#    "no_label", "player", 'enemy', 'ball', 'ball_shadow', 'net', 'logo',
+#    'player_score', 'enemy_score'
+#]
+#
+## Maybe enemy bullets, but how should SPACE differentiate
+#label_list_space_invaders = ["no_label"] + [f"{side}_score" for side in ['left', 'right']] + [f"enemy_{idx}"
+#                                                                                              for idx in
+#                                                                                              range(6)] \
+#                            + ["space_ship", "player", "block", "bullet"]
+#
+#label_list_riverraid = [
+#    "no_label", "player", 'fuel_gauge', 'fuel', 'lives', 'logo', 'score',
+#    'shot', 'fuel_board', 'building', 'street', 'enemy'
+#]
+#
+#label_list_air_raid = [
+#    "no_label", "player", 'score', 'building', 'shot', 'enemy'
+#]
 
 RESULT_TEX = os.path.join("..", "results_img", "result.tex")
 
