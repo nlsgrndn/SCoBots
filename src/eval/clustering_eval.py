@@ -44,7 +44,7 @@ class ClusteringEval:
         all_labels_moving = []
         image_refs = []
         batch_size = eval_cfg.train.batch_size
-        img_path = os.path.join(dataset.image_path, dataset.game, dataset.dataset_mode)
+        img_path = os.path.join(dataset.image_path, dataset.dataset_mode)
 
         # create 
         for i, img in enumerate(logs):
