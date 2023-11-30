@@ -20,7 +20,6 @@ device: 'cpu'
 
 logdir: '../output/logs/final'
 checkpointdir: '../output/checkpoints/final'
-evaldir: '../output/eval/final'
 
 dataset: 'ATARI'
 dataset_style: ''

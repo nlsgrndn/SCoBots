@@ -1,7 +1,17 @@
 import numpy as np
 import torch
 from .eval_cfg import eval_cfg
-from .ap import read_boxes, convert_to_boxes, compute_ap, compute_counts, compute_prec_rec
+from .ap import read_boxes, convert_to_boxes, compute_ap, compute_counts, compute_prec_rec, read_boxes_object_type_dict
+from dataset import get_label_list
+
+
+def retrieve_latent_repr_from_logs(logs):
+    z_where, z_pres_prob, z_what = logs['z_where'], logs['z_pres_prob'], logs['z_what']
+    z_where = z_where.detach().cpu()
+    z_pres_prob = z_pres_prob.detach().cpu().squeeze()
+    z_what = z_what.detach().cpu()
+    z_pres = z_pres_prob > 0.5
+    return z_where, z_pres, z_pres_prob, z_what,
 
 class ApAndAccEval():
     @torch.no_grad()
@@ -21,51 +31,21 @@ class ApAndAccEval():
             iou_thresholds = np.linspace(0.1, 0.9, 9)
         boxes_gt_types = ['all', 'moving', 'relevant']
         indices = list(range(num_samples))
-        boxes_gts = {k: v for k, v in zip(boxes_gt_types, read_boxes(bb_path, indices=indices))}
+        boxes_gts = {k: v for k, v in zip(boxes_gt_types, read_boxes(bb_path, indices=indices))} # boxes_gts['moving'] and boxes_gts['relevant'] are actually equivalent
         boxes_pred = []
         boxes_relevant = []
 
         num_batches = min(len(dataset), eval_cfg.train.num_samples.cluster) // batch_size #eval_cfg.train.num_samples.cluster // eval_cfg.train.batch_size
 
+        # generating predicted bounding boxes from latent variables
         for img in logs[:num_batches]:
-            z_where, z_pres_prob, z_what = img['z_where'], img['z_pres_prob'], img['z_what']
-            z_where = z_where.detach().cpu()
-            z_pres_prob = z_pres_prob.detach().cpu().squeeze()
-            z_pres = z_pres_prob > 0.5
+            z_where, z_pres, z_pres_prob, _ = retrieve_latent_repr_from_logs(img)
             boxes_batch = convert_to_boxes(z_where, z_pres, z_pres_prob, with_conf=True)
-            boxes_relevant.extend(dataset.filter_relevant_boxes(boxes_batch, boxes_gts['all']))
+            boxes_relevant.extend(dataset.filter_relevant_boxes(boxes_batch, boxes_gts['all'])) # uses handcrafted rules to filter out irrelevant boxes for every game; boxes_gt['all'] is only used for one game
             boxes_pred.extend(boxes_batch)
 
-        # print('Drawing bounding boxes for eval...')
-        # for i in range(4):
-        #     for idx, pred, rel, gt, gt_m, gt_r in zip(indices, boxes_pred[i::4], boxes_relevant[i::4], *(gt[i::4] for gt in boxes_gts.values())):
-        #         if len(pred) == len(rel):
-        #             continue
-        #         pil_img = Image.open(f'{rgb_folder_src}/{idx:05}_{i}.png').convert('RGB')
-        #         pil_img = pil_img.resize((128, 128), PIL.Image.BILINEAR)
-        #         image = np.array(pil_img)
-        #         torch_img = torch.from_numpy(image).permute(2, 1, 0)
-        #         pred_tensor = torch.FloatTensor(pred) * 128
-        #         pred_tensor = torch.index_select(pred_tensor, 1, torch.LongTensor([0, 2, 1, 3]))
-        #         rel_tensor = torch.FloatTensor(rel) * 128
-        #         rel_tensor = torch.index_select(rel_tensor, 1, torch.LongTensor([0, 2, 1, 3]))
-        #         gt_tensor = torch.FloatTensor(gt) * 128
-        #         gt_tensor = torch.index_select(gt_tensor, 1, torch.LongTensor([0, 2, 1, 3]))
-        #         gt_m_tensor = torch.FloatTensor(gt_m) * 128
-        #         gt_m_tensor = torch.index_select(gt_m_tensor, 1, torch.LongTensor([0, 2, 1, 3]))
-        #         gt_r_tensor = torch.FloatTensor(gt_r) * 128
-        #         gt_r_tensor = torch.index_select(gt_r_tensor, 1, torch.LongTensor([0, 2, 1, 3]))
-        #         bb_img = torch_img
-        #         bb_img = draw_bb(torch_img, gt_tensor, colors=["red"] * len(gt_tensor))
-        #         # bb_img = draw_bb(bb_img, gt_m_tensor, colors=["blue"] * len(gt_m_tensor))
-        #         # bb_img = draw_bb(bb_img, gt_r_tensor, colors=["yellow"] * len(gt_r_tensor))
-        #         bb_img = draw_bb(bb_img, pred_tensor, colors=["green"] * len(pred_tensor))
-        #         # bb_img = draw_bb(bb_img, rel_tensor, colors=["white"] * len(rel_tensor))
-        #         bb_img = Image.fromarray(bb_img.permute(2, 1, 0).numpy())
-        #         bb_img.save(f'{rgb_folder}/gt_moving_p{idx:05}_{i}.png')
-        #         print(f'{rgb_folder}/gt_moving_{idx:05}.png')
-
         result = {}
+        # Comparing predicted bounding boxes with ground truth
         for gt_name, gt in boxes_gts.items():
             # Four numbers
             boxes = boxes_pred if gt_name != "relevant" else boxes_relevant
@@ -79,8 +59,31 @@ class ApAndAccEval():
             result[f'iou_thresholds_{gt_name}'] = iou_thresholds
             # A list of length 9 and P/R from low IOU level = 0.2
             aps = compute_ap(boxes, gt, iou_thresholds)
-            precision, recall = compute_prec_rec(boxes, gt)
+            precision, recall, precisions, recalls, thresholds = compute_prec_rec(boxes, gt)
+            draw_precision_recall_curve(recalls, precisions, thresholds, f'precision_recall_curve_{gt_name}.png')
             result[f'APs_{gt_name}'] = aps
             result[f'precision_{gt_name}'] = precision
             result[f'recall_{gt_name}'] = recall
+            result[f'precisions_{gt_name}'] = precisions
+            result[f'recalls_{gt_name}'] = recalls
+            result[f'thresholds_{gt_name}'] = thresholds
+
+        # compute recall for object types
+        #boxes_of_label = read_boxes_object_type_dict(bb_path, None, indices=indices)
+        #for label in boxes_of_label.keys():
+        #    _, recall = compute_prec_rec(boxes_pred, boxes_of_label[label])
+        #    result[f'recall_{label}'] = recall
+        
         return result
+
+import matplotlib.pyplot as plt
+def draw_precision_recall_curve(recalls, precisions, thresholds, save_path,):
+    plt.plot(recalls, precisions)
+    #annotate the thresholds
+    for i, threshold in enumerate(thresholds):
+        plt.annotate(np.round(threshold, decimals=2), (recalls[i], precisions[i]))
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall Curve')
+    plt.savefig(save_path)
+    plt.close()

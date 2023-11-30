@@ -45,12 +45,6 @@ def eval(cfg):
         assert 'cpu' not in cfg.device
         model = nn.DataParallel(model, device_ids=cfg.device_ids)
 
-    evaldir = osp.join(cfg.evaldir, cfg.exp_name)
-    info = {
-        'exp_name': cfg.exp_name + str(cfg.seed)
-    }
-    # evaluator.test_eval(model, testset, testset.bb_path, cfg.device, evaldir,
-    #                     info, , cfg=cfg)
     log_path = os.path.join(cfg.logdir, cfg.exp_name)
     global_step = 100000
     writer = SummaryWriter(log_dir=log_path, flush_secs=30,
@@ -58,5 +52,5 @@ def eval(cfg):
     eval_checkpoint = [model, None, None, "last", global_step]
     checkpointer = Checkpointer(osp.join(cfg.checkpointdir, "eval", cfg.exp_name), max_num=cfg.train.max_ckpt,
                                 load_time_consistency=cfg.load_time_consistency, add_flow=cfg.add_flow)
-    evaluator.test_eval(model, testset, testset.bb_path, writer, global_step,
+    evaluator.eval(model, testset, testset.bb_path, writer, global_step,
                         cfg.device, eval_checkpoint, checkpointer, cfg)

@@ -29,34 +29,13 @@ import pandas as pd
 from PIL import Image
 import PIL
 
-def process_image(log, image_rgb, idx):
-    # (B, N, 4), (B, N, 1), (B, N, D) B = batch size, N = number of cells in the grid, D = dimension of the latent space
-    z_where, z_pres_prob, z_what = log['z_where'], log['z_pres_prob'], log['z_what']
-    print(z_where.shape, z_pres_prob.shape, z_what.shape)
-    # (B, N, 4), (B, N), (B, N)
+def retrieve_latent_repr_from_logs(logs):
+    z_where, z_pres_prob, z_what = logs['z_where'], logs['z_pres_prob'], logs['z_what']
     z_where = z_where.detach().cpu()
     z_pres_prob = z_pres_prob.detach().cpu().squeeze()
-    z_pres = z_pres_prob > 0.0002
-    z_what_pres = (z_what * z_pres.unsqueeze(-1)).view(4, -1)
-    print(z_where.shape, z_pres_prob.shape, z_what_pres.shape)
-    boxes_batch = np.array(convert_to_boxes(z_where, z_pres.unsqueeze(0), z_pres_prob.unsqueeze(0))).squeeze()
-    labels = get_labels(table.iloc[[idx]], boxes_batch)
-    assert z_what_pres.shape[0] == labels.shape[0]
-    if action == "visu":
-        visu = place_labels(labels, boxes_batch, image_rgb)
-        visu = draw_bounding_boxes(visu, boxes_batch, labels)
-        show_image(visu)
-        exit()
-        # show_image(image_fs[0])
-    all_z_what.append(z_what_pres.detach().cpu())
-    all_labels.append(labels.detach().cpu())
-
-
-def img_path_to_tensor(path):
-    pil_img = Image.open(path).convert('RGB')
-    pil_img = pil_img.resize((128, 128), PIL.Image.BILINEAR)
-    image = np.array(pil_img)
-    return torch.from_numpy(image / 255).permute(2, 0, 1).float()
+    z_what = z_what.detach().cpu()
+    z_pres = z_pres_prob > 0.5
+    return z_where, z_pres, z_pres_prob, z_what,
 
 folder = "test"
 
@@ -99,16 +78,11 @@ for i, (csv_file, image_file) in enumerate(zip(csv_files, image_files)): # Note:
         loss, space_log = model.space(image, global_step=100000000)
     
     # (B, N, 4), (B, N, 1), (B, N, 32)
-    z_where, z_pres_prob, z_what = space_log['z_where'], space_log['z_pres_prob'], space_log['z_what']
-    z_where = z_where.detach().cpu()
-    z_pres_prob = z_pres_prob.detach().cpu()
-    z_pres = z_pres_prob > 0.5
+    z_where, z_pres, z_pres_prob, z_what = retrieve_latent_repr_from_logs(space_log)
     z_what_pres = z_what*z_pres
     z_what_pres =z_what_pres[z_what_pres!=0]
     # specify that z_what_pres should have 32 in the last dimension
     z_what_pres = z_what_pres.view(-1, 32)
-    print(z_what_pres.shape)
-
 
     # retrieve labels and bounding 
     boxes_batch = convert_to_boxes(z_where, z_pres.squeeze(-1), z_pres_prob.squeeze(-1))
@@ -150,36 +124,6 @@ for i, (csv_file, image_file) in enumerate(zip(csv_files, image_files)): # Note:
 
     if i >= 31:
         break
-    
-
-    
-
-
-
-#for i in tqdm(range(0, nb_images, 4 if TIME_CONSISTENCY else 1)):
-#    print(i)
-#    if TIME_CONSISTENCY:
-#        fn = [f"../aiml_atari_data/{game}/space_like/{folder}/{i:05}_{j}.png" for j in range(4)]
-#        image = torch.stack([img_path_to_tensor(f) for f in fn]).to(cfg.device).unsqueeze(0)
-#        print(image.shape)
-#        image = image.squeeze(0)
-#        print(image.shape)
-#        img_path_fs = [f"../aiml_atari_data/{game}/rgb/{folder}/{i:05}_{j}.png" for j in range(4)]
-#        image_fs = torch.stack([img_path_to_tensor(f) for f in img_path_fs]).to(cfg.device).unsqueeze(0)
-#    else:
-#        img_path = f"../aiml_atari_data/{game}/space_like/{folder}/{i:05}.png"
-#        image = open_image(img_path).to(cfg.device)
-#        img_path_fs = f"../aiml_atari_data/{game}/rgb/{folder}/{i:05}.png"
-#        image_fs = open_image(img_path_fs).to(cfg.device)
-#
-#    # TODO: treat global_step in a more elegant way
-#    with torch.no_grad():
-#        loss, space_log = model.space(image, global_step=100000000)
-#    if TIME_CONSISTENCY:
-#        for j in range(4):
-#            process_image(space_log, image_fs, i + j)
-#    else:
-#        process_image(space_log, image_fs, i)
 
 all_z_what = torch.cat(all_z_what)
 all_labels = torch.cat(all_labels)
@@ -190,26 +134,6 @@ if action == "extract":
     torch.save(all_z_what, f"labeled/{cfg.exp_name}/z_what_{folder}.pt")
     torch.save(all_labels, f"labeled/{cfg.exp_name}/labels_{folder}.pt")
     print(f"Extracted z_whats and saved it in labeled/{cfg.exp_name}/")
-
-# import ipdb; ipdb.set_trace()
-# image = (image[0] * 255).round().to(torch.uint8)  # for draw_bounding_boxes
-# image_fs = (image_fs[0] * 255).round().to(torch.uint8)  # for draw_bounding_boxes
-
-# image_fs = place_labels(labels, boxes_batch, image_fs)
-
-
-# if USE_FULL_SIZE:
-#     show_image(draw_bounding_boxes(image_fs, boxes_batch))
-# else:
-#     show_image(draw_bounding_boxes(image, boxes_batch))
-
-# exit()
-# if EXTRACT_IMAGES:
-#     for j, bbox in enumerate(torch.tensor(bb)):
-#         top, left, height, width = corners_to_wh(bbox)
-#         cropped = crop(image.to("cpu"), top, left, height, width)
-#         # show_image(cropped)
-#         save_image(cropped, img_path, j)
 
 
 

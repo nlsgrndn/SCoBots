@@ -113,7 +113,7 @@ class TcSpace(nn.Module):
             + z_what_loss_pool * arch.area_pool_weight \
             + z_what_loss_objects * area_object_scaling * arch.area_object_weight
         
-        elif self.arch_type == "space+m":
+        if self.arch_type == "space+m":
             loss = elbo_loss + motion_loss
         elif self.arch_type == "space+moc":
             loss = elbo_loss + motion_loss + combined_z_what_loss

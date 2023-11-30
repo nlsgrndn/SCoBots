@@ -120,7 +120,7 @@ def train(cfg, rtpt_active=True):
                 print('Validating...')
                 start = time.perf_counter()
                 eval_checkpoint = [model, optimizer_fg, optimizer_bg, epoch, global_step]
-                evaluator.train_eval(model, valset, valset.bb_path, writer, global_step, cfg.device, eval_checkpoint,
+                evaluator.eval(model, valset, valset.bb_path, writer, global_step, cfg.device, eval_checkpoint,
                                      checkpointer, cfg)
                 print('Validation takes {:.4f}s.'.format(time.perf_counter() - start))
             
@@ -172,7 +172,7 @@ def train(cfg, rtpt_active=True):
                     print('Final evaluation on validation set...')
                     start = time.perf_counter()
                     eval_checkpoint = [model, optimizer_fg, optimizer_bg, epoch, global_step]
-                    evaluator.train_eval(model, valset, valset.bb_path, writer, global_step, # was non-existent method validation_eval before, changed to train_eval but maybe test_eval is better?
+                    evaluator.eval(model, valset, valset.bb_path, writer, global_step,
                                               cfg.device, eval_checkpoint, checkpointer, cfg)
                     print('Validation takes {:.4f}s.'.format(time.perf_counter() - start))
                 

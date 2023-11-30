@@ -23,9 +23,8 @@ parallel: false
 device_ids: [0]
 device: 'cpu'
 
-logdir: '../output/logs/final'
-checkpointdir: '../output/checkpoints/final'
-evaldir: '../output/eval'
+logdir: '../output/logs/'
+checkpointdir: '../output/checkpoints/'
 
 dataset: 'ATARI'
 dataset_style: ''

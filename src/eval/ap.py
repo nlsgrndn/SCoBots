@@ -98,6 +98,20 @@ def read_boxes(path, size=None, indices=None):
             boxes_moving_all.append(boxes_moving)
     return boxes_all, boxes_moving_all, boxes_moving_all
 
+from collections import defaultdict
+def read_boxes_object_type_dict(path, size=None, indices=None):
+    boxes_all_dict = defaultdict(list)
+    for stack_idx in indices if (indices is not None) else range(size):
+        for img_idx in range(4):
+            boxes_tmp_dict = defaultdict(list)
+            bbs = pd.read_csv(os.path.join(path, f"{stack_idx:05}_{img_idx}.csv"), header=None, usecols=[0, 1, 2, 3, 4, 5])
+            for y_min, y_max, x_min, x_max, moving, label in bbs.itertuples(index=False, name=None):
+                boxes_tmp_dict[label].append([y_min, y_max, x_min, x_max])
+            for label in boxes_tmp_dict:
+                boxes_all_dict[label].append(np.array(boxes_tmp_dict[label]))
+    # transform to numpy arrays
+    return boxes_all_dict
+
 
 def compute_ap(pred_boxes, gt_boxes, iou_thresholds=None, recall_values=None):
     """
@@ -195,7 +209,7 @@ def compute_ap(pred_boxes, gt_boxes, iou_thresholds=None, recall_values=None):
 
 def compute_prec_rec(pred_boxes, gt_boxes):
     """
-    Compute average precision over different iou thresholds.
+    Compute precision and recall using misalignment.
 
     :param pred_boxes: [[y_min, y_max, x_min, x_max, conf] * N] * B
     :param gt_boxes: [[y_min, y_max, x_min, x_max] * N] * B
@@ -241,18 +255,30 @@ def compute_prec_rec(pred_boxes, gt_boxes):
             else:
                 hit.append((False, conf[i]))
 
-    hit = sorted(hit, key=lambda x: -x[-1])
-    hit = [x[0] for x in hit]
+    hit = sorted(hit, key=lambda x: -x[-1]) # sort by confidence (descending)
+    confidence_values = np.array([x[1] for x in hit])
+    hit = [x[0] for x in hit] # remove confidence
     hit_cum = np.cumsum(hit)
     num_cum = np.arange(len(hit)) + 1.0
     precision = hit_cum / num_cum
     recall = hit_cum / count_gt
     if len(precision) == 0 or len(recall) == 0:
-        return 0.0, 0.0
-    precision_low_iou = precision[-1]
-    recall_low_iou = recall[-1]
-    print(f'{precision_low_iou=}, {recall_low_iou=}')
-    return precision_low_iou, recall_low_iou
+        return np.array(0.0), np.array(0.0)
+    
+    threshold_values = np.append(np.arange(0.5, 0.95, 0.05), np.arange(0.95, 1.0, 0.01))
+    precisions_at_thresholds = np.zeros(len(threshold_values))
+    recalls_at_thresholds = np.zeros(len(threshold_values))
+    # store precision and recall for different confidence thresholds
+    for i, threshold in enumerate(threshold_values):
+        # get first index where confidence is above threshold
+        index = np.argmin(confidence_values[confidence_values > threshold]) if confidence_values[confidence_values > threshold].size > 0 else None
+        if index is None:
+            precisions_at_thresholds[i] = np.nan
+            recalls_at_thresholds[i] = np.nan
+        else:
+            precisions_at_thresholds[i] = precision[index]
+            recalls_at_thresholds[i] = recall[index]
+    return precision[-1], recall[-1], precisions_at_thresholds, recalls_at_thresholds, threshold_values
 
 
 def compute_iou(pred, gt):

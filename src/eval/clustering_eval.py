@@ -10,6 +10,14 @@ import os
 import pickle
 from .utils import flatten
 
+def retrieve_latent_repr_from_logs(logs):
+    z_where, z_pres_prob, z_what = logs['z_where'], logs['z_pres_prob'], logs['z_what']
+    z_where = z_where.detach().cpu()
+    z_pres_prob = z_pres_prob.detach().cpu().squeeze()
+    z_what = z_what.detach().cpu()
+    z_pres = z_pres_prob > 0.5
+    return z_where, z_pres, z_pres_prob, z_what,
+
 class ClusteringEval:
 
     def __init__(self, relevant_object_hover_path):
@@ -42,9 +50,7 @@ class ClusteringEval:
         for i, img in enumerate(logs):
 
             # retrieve logged latent variables
-            z_where, z_pres_prob, z_what = img['z_where'], img['z_pres_prob'], img['z_what']
-            z_pres_prob = z_pres_prob.squeeze()
-            z_pres = z_pres_prob > 0.5
+            z_where, z_pres, z_pres_prob, z_what = retrieve_latent_repr_from_logs(img)
 
             if not (0.05 <= z_pres.sum() / batch_size <= 60 * 4):
                 continue

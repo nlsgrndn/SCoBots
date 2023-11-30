@@ -21,7 +21,7 @@ device: 'cuda:0'
 
 logdir: '../output/logs/final'
 checkpointdir: '../output/checkpoints/final'
-evaldir: '../output/eval'
+
 
 dataset: 'ATARI'
 dataset_style: ''
