@@ -71,6 +71,7 @@ def train(cfg, rtpt_active=True):
     optimizer_fg, optimizer_bg = get_optimizers(cfg, model)
     checkpointer = Checkpointer(osp.join(cfg.checkpointdir, cfg.exp_name), max_num=cfg.train.max_ckpt,
                                 load_time_consistency=cfg.load_time_consistency, add_flow=cfg.add_flow)
+    moc_loss_instance = MOCLoss()
     start_epoch = 0
     global_step = 0
     if cfg.resume: # whether to resume training from a checkpoint
@@ -124,7 +125,7 @@ def train(cfg, rtpt_active=True):
             # move to device
             img_stacks, motion, motion_z_pres, motion_z_where = img_stacks.to(cfg.device), motion.to(cfg.device), motion_z_pres.to(cfg.device), motion_z_where.to(cfg.device)
             base_loss, log = model(img_stacks, global_step)
-            moc_loss, log = MOCLoss().compute_loss(motion, motion_z_pres, motion_z_where, log, global_step)
+            moc_loss, log = moc_loss_instance.compute_loss(motion, motion_z_pres, motion_z_where, log, global_step)
             loss = base_loss + moc_loss
             loss = loss.mean() # In case of using DataParallel
             optimizer_fg.zero_grad(set_to_none=True)

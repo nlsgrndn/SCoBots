@@ -9,15 +9,11 @@ from .space import Space
 from rtpt import RTPT
 import time
 
-
-# TODO: Investigate Time, i.e. saving preprocessing steps when training
-# Low IOU might be enough, eval metric
-# alpha map allows more precise influence of motion in pixel space
-# z_pres by motion signal, squared/exp with low might?
 class MOCLoss():
     def __init__(self):
         self.zero = nn.Parameter(torch.tensor(0.0))
         self.area_object_weight = arch.area_object_weight
+        self.count_difference_variance = RunningVariance()
   
     def compute_loss(self, motion, motion_z_pres, motion_z_where, logs, global_step):
         """
@@ -58,8 +54,13 @@ class MOCLoss():
         flow_loss_z_where = compute_flow_loss_z_where(logs) if arch.motion_loss_weight_z_where > 1e-3 else self.zero
         flow_loss_alpha_map = compute_flow_loss_alpha(logs, motion) if arch.motion_loss_weight_alpha > 1e-3 else self.zero
 
-        flow_scaling = max(0, 1 - (global_step - arch.motion_cooling_start_step) / arch.motion_cooling_end_step) # weird division by 2 removed
-        area_object_scaling = 1 - flow_scaling
+        if arch.dynamic_scheduling:
+            object_count_accurate = self.object_count_accurate_scaling(logs)
+            area_object_scaling = arch.dynamic_steepness ** (-object_count_accurate)
+            flow_scaling = 1 - area_object_scaling
+        else:
+            flow_scaling = max(0, 1 - (global_step - arch.motion_cooling_start_step) / arch.motion_cooling_end_step) # weird division by 2 removed
+            area_object_scaling = 1 - flow_scaling
 
         motion_loss = (flow_loss * arch.motion_loss_weight_z_pres * flow_scaling \
             + flow_loss_alpha_map * arch.motion_loss_weight_alpha * flow_scaling \
@@ -98,8 +99,42 @@ class MOCLoss():
         }
         logs.update(tc_log)
         return moc_loss, logs
+    
+    def object_count_accurate_scaling(self, responses):
+        # (T, B, G, G, 5)
+        z_whats = responses['z_what']
+        _, GG, D = z_whats.shape
+        # (B, T, G*G, 1)
+        z_whats = z_whats.reshape(-1, arch.T, GG, D)
+        B, T = z_whats.shape[:2]
+        z_where_pure = responses['z_where_pure'].reshape(B, T, arch.G, arch.G, -1).transpose(0, 1)
+        z_pres_pure = responses['z_pres_prob_pure'].reshape(B, T, GG, 1).reshape(B, T, arch.G, arch.G).transpose(0, 1)
+        motion_z_where = responses['motion_z_where'].reshape(B, T, arch.G, arch.G, -1).transpose(0, 1)
+        motion_z_pres = responses['motion_z_pres'].reshape(B, T, GG, 1).reshape(B, T, arch.G, arch.G).transpose(0, 1)
+        frame_marker = (torch.arange(T * B, device=z_pres_pure.device) * 10).reshape(T, B)[..., None, None].expand(T, B, arch.G, arch.G)[..., None]
+        z_where_pad = torch.cat([z_where_pure, frame_marker], dim=4)
+        motion_pad = torch.cat([motion_z_where, frame_marker], dim=4)
+        # (#hits, 5)
+        objects = z_where_pad[z_pres_pure > arch.object_threshold]
+        motion_objects = motion_pad[motion_z_pres > arch.object_threshold]
+        if objects.nelement() == 0 or motion_objects.nelement() == 0:
+            return 1000
 
+        # (#objects, #motion_objects)
+        dist = torch.cdist(motion_objects, objects, p=1)
+        # (#hits, 1)
+        values, _ = torch.topk(dist, 1, largest=False)
+        motion_z_pres = responses['motion_z_pres'].mean().detach().item()
+        pred_z_pres = responses['z_pres_prob_pure'].mean().detach().item()
+        zero = 0
 
+        motion_objects_found = values.mean().detach().item()
+        # print(f'{motion_objects_found=}')
+        value = (max(zero, (motion_objects_found - arch.z_where_offset) * arch.motion_object_found_lambda) +
+                 max(zero, pred_z_pres - motion_z_pres * arch.motion_underestimating))
+        self.count_difference_variance += pred_z_pres - motion_z_pres
+        return (value + self.count_difference_variance.value() * arch.use_variance)\
+               * responses['motion_z_pres'][0].nelement()
 
 class TcSpace(nn.Module):
 
