@@ -60,7 +60,6 @@ class ApAndAccEval():
             # A list of length 9 and P/R from low IOU level = 0.2
             aps = compute_ap(boxes, gt, iou_thresholds)
             precision, recall, precisions, recalls, thresholds = compute_prec_rec(boxes, gt)
-            draw_precision_recall_curve(recalls, precisions, thresholds, f'precision_recall_curve_{gt_name}.png')
             result[f'APs_{gt_name}'] = aps
             result[f'precision_{gt_name}'] = precision
             result[f'recall_{gt_name}'] = recall
@@ -75,15 +74,3 @@ class ApAndAccEval():
         #    result[f'recall_{label}'] = recall
         
         return result
-
-import matplotlib.pyplot as plt
-def draw_precision_recall_curve(recalls, precisions, thresholds, save_path,):
-    plt.plot(recalls, precisions)
-    #annotate the thresholds
-    for i, threshold in enumerate(thresholds):
-        plt.annotate(np.round(threshold, decimals=2), (recalls[i], precisions[i]))
-    plt.xlabel('Recall')
-    plt.ylabel('Precision')
-    plt.title('Precision-Recall Curve')
-    plt.savefig(save_path)
-    plt.close()

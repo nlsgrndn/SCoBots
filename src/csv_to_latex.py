@@ -10,8 +10,8 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D
 from mpl_toolkits.mplot3d import proj3d
 import argparse
 from termcolor import colored
-from dataset.labels import label_list_pacman, label_list_pong, label_list_carnival, label_list_boxing, label_list_tennis, label_list_space_invaders, label_list_riverraid, label_list_air_raid
-
+from src.latex_strings import figure, object_table, qual_page, table_metric_tex, table_tex
+from dataset.labels import label_list_for
 parser = argparse.ArgumentParser()
 parser.add_argument('--save',
                     '-s',
@@ -147,16 +147,6 @@ def prepare_mean_std(experiments):
                 [concat_over_seeds[column] for column in concat_over_seeds])
     df = pd.concat(columns, axis=1)
     return df
-
-
-figure = """
-\\begin{{subfigure}}{{.53\\textwidth}}\\captionsetup{{aboveskip=-0.17em}}
-  \\centering
-  \\includegraphics[width=\\textwidth]{{{1}}}
-  \\caption{{{0}}}
-  \\label{{fig:{2}}}
-\\end{{subfigure}}
-"""
 
 
 def bar_plot(experiments,
@@ -524,22 +514,6 @@ def pr_plot(experiment_groups, joined_df):
             plt.show()
 
 
-table_tex = """
-\\begin{{table}}[h]
-\\centering
-\\begin{{tabular}}{{{4}}}
-\\hline
-{0} \\\\
-\\hline
-{1} \\\\
-\\hline
-\\end{{tabular}}
-\\caption{{{2}}}
-\\label{{table:{3}}}
-\\end{{table}}
-"""
-
-
 def table(experiment_groups, columns, joined_df, at=None, caption=None):
     if at is None:
         at = [int(joined_df.loc[len(joined_df) - 1]["global_step"].item())]
@@ -566,25 +540,6 @@ def table(experiment_groups, columns, joined_df, at=None, caption=None):
                              ";".join(columns),
                              "c".join(["|"] * (len(columns) + 3))))
         tex.write("\n")
-
-
-table_metric_tex = """
-\\begin{{table}}[h]
-\\centering
-\\begin{{tabular}}{{{4}}}
-\\hline
-\\multicolumn{{{6}}}{{|c|}}{{\\textbf{{{5}}}}} \\\\
-\\hline
-\\hline
-{0} \\\\
-\\hline
-{1} \\\\
-\\hline
-\\end{{tabular}}
-\\caption{{{2}}}
-\\label{{table:{3}}}
-\\end{{table}}
-"""
 
 
 def bf(name):
@@ -704,19 +659,6 @@ def add_contrived_columns(df):
     return df
 
 
-qual_page = """\\newpage
-\\thispagestyle{{empty}}
-\\newgeometry{{left=1cm,bottom=1cm,right=1cm,top=1cm}}
-    \\begin{{sidewaysfigure}}[htbp]
-    \\centering
-    \\centerline{{\\includegraphics[width=1\\textwidth]{{img_qual/0-separations_{0}.png}}}}
-    \\caption{{{1}. The Columns from left to right: Input Image, Reconstruction, Foreground,
-    Bounding Boxes, Background, K x Background Components, K x Background Masks, K x Background Color Maps, Alpha}}
-    \\end{{sidewaysfigure}}
-\\restoregeometry
-"""
-
-
 def switch_aow(experiment_name):
     if "aow" in experiment_name:
         split = experiment_name.split("_")
@@ -756,19 +698,6 @@ def select_game(expi):
     raise ValueError(f'{expi} does not contain any of the known games...')
 
 
-object_table = """\\begin{{subtable}}[b]{{\\textwidth}}\\centering
-\\begin{{tabular}}{{@{{}}lccrr@{{}}}}
-\\toprule
-\\textbf{{Object/Entity}} & \\textbf{{Method}} & \\textbf{{Relevant}} & \\textbf{{Precision}} & \\textbf{{Recall}} \\\\
-\\midrule
-{0} \\\\
-\\bottomrule
-\\end{{tabular}}
-\\caption{{{1}}}
-\\end{{subtable}}
-"""
-
-
 def generate_object_tables(desired_experiment_order):
     for game in desired_experiment_order:
         with open(RESULT_TEX, "a") as tex:
@@ -782,31 +711,6 @@ def generate_object_tables(desired_experiment_order):
                         if label != "no_label"
                     ]), translate(game)))
             tex.write("\n")
-
-
-def label_list_for(game):
-    """
-    Return Labels from line in csv file
-    """
-    if "mspacman" in game:
-        return label_list_pacman
-    elif "carnival" in game:
-        return label_list_carnival
-    elif "pong" in game:
-        return label_list_pong
-    elif "boxing" in game:
-        return label_list_boxing
-    elif "tennis" in game:
-        return label_list_tennis
-    elif "air_raid" in game:
-        return label_list_air_raid
-    elif "riverraid" in game:
-        return label_list_riverraid
-    elif "space_invaders" in game:
-        return label_list_space_invaders
-    else:
-        raise ValueError(f"Game {game} could not be found in labels")
-
 
 def set_axes_equal(ax):
     '''Make axes of 3D plot have equal scale so that spheres appear as spheres,

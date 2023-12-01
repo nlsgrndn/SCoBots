@@ -68,21 +68,22 @@ def label_list_for(game):
     """
     Return Labels from line in csv file
     """
-    if "MsPacman" in game:
+    game = game.lower()
+    if "mspacman" in game:
         return label_list_pacman
-    elif "Carnival" in game:
+    elif "carnival" in game:
         return label_list_carnival
-    elif "Pong" in game:
+    elif "pong" in game:
         return label_list_pong
-    elif "Boxing" in game:
+    elif "boxing" in game:
         return label_list_boxing
-    elif "Tennis" in game:
+    elif "tennis" in game:
         return label_list_tennis
-    elif "Airraid" in game:
+    elif "air" in game and "raid" in game:
         return label_list_air_raid
-    elif "Riverraid" in game:
+    elif "riverraid" in game:
         return label_list_riverraid
-    elif "SpaceInvaders" in game:
+    elif "space" in game and "invaders" in game:
         return label_list_space_invaders
     else:
         raise ValueError(f"Game {game} could not be found in labels")

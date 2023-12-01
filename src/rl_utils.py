@@ -10,8 +10,8 @@ from torchvision import transforms
 from vis.utils import fill_image_with_scene, place_point
 
 relevant_atariari_labels = {"pong": ["player", "enemy", "ball"], "boxing": ["enemy", "player"]}
-#relevant_labels_per_game = {"pong": [1, 2, 3], "boxing": [1, 4]}
-relevant_labels_per_game = {"pong": [1,2,4]}
+relevant_labels_per_game = {"pong": [1, 2, 3], "boxing": [1, 4]}
+#relevant_labels_per_game = {"pong": [1,2,4]}
 # helper class to clean scene from space scene representation
 class SceneCleaner():
     def __init__(self, game):
