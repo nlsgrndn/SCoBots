@@ -29,6 +29,10 @@ class Space(nn.Module):
             log: a dictionary for visualization
         """
 
+        if len(x.shape) == 5:
+            B, T, C, H, W = x.shape
+            x = x.reshape(B * T, C, H, W)
+
         bg_likelihood, bg, kl_bg, log_bg = self.bg_module(x, global_step)
 
         # Foreground extraction

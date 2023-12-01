@@ -1,5 +1,5 @@
 seed: 1
-model: 'TcSpace'
+model: 'Space'
 exp_name: boxing
 resume: false
 load_time_consistency: true
@@ -61,6 +61,10 @@ arch:
 
   fix_alpha_steps: -1
   fix_alpha_value: 0.1
+
+eval:
+  checkpoint: 'last'
+  metric: ap_avg
 
 gamelist: [
     # 'Atlantis-v0',

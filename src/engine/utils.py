@@ -57,13 +57,11 @@ def get_config():
             raise ValueError('exp_name cannot be empty without specifying a config file')
     # add desc of arch type for eval
     if args.arch_type is None or args.arch_type == 'baseline':
-        cfg.model = 'TcSpace'
-        cfg.arch.area_object_weight = -10.0 # hacky use of parameter to indicate baseline 
+        cfg.arch.area_object_weight = 0.0
+        cfg.arch.motion_weight = 0.0
     elif args.arch_type == "+m": #
-        cfg.model = 'TcSpace'
         cfg.arch.area_object_weight = 0.0
     elif args.arch_type == "+moc": #
-        cfg.model = 'TcSpace'
         cfg.arch.area_object_weight = 10.0
 
     if args.resume_ckpt != '':

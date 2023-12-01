@@ -243,7 +243,7 @@ def draw_image_bb(model, cfg, dataset, global_step, num_batch):
     data = data.to(cfg.device)
     motion_z_pres = motion_z_pres.to(cfg.device)
     motion_z_where = motion_z_where.to(cfg.device)
-    loss, log = model(data, motion_z_pres, motion_z_where, global_step)
+    loss, log = model(data, global_step)
     bb_path = f"{cfg.dataset_roots.ATARI}/{cfg.gamelist[0]}/train/bb"
     rgb_folder_src = f"{cfg.dataset_roots.ATARI.replace('space_like', 'rgb')}/{cfg.gamelist[0]}/train"
     boxes_gt, boxes_gt_moving, _ = read_boxes(bb_path, indices=indices)

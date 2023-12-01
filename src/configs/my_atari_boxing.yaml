@@ -1,11 +1,11 @@
 seed: 1
-model: 'TcSpace'
+model: 'Space'
 exp_name: boxing
 resume: false
 load_time_consistency: true
 add_flow: true
 
-resume_ckpt: '../output/logs/boxing_space+moc_alpha_improved/model_000005001.pth'
+resume_ckpt: ''
 # '../output/checkpoints/mspacman_atari_pretrained/model.pth'
 #
 # '../output/checkpoints/mspacman_atari+z_what_1e-2/model_000162501.pth'
@@ -32,7 +32,7 @@ dataset_roots:
 
 train:
   log: true
-  batch_size: 16
+  batch_size: 1
   max_epochs: 10000
   max_steps: 5000
   print_every: 100
@@ -40,7 +40,7 @@ train:
   num_workers: 4
   clip_norm: 1.0
   max_ckpt: 4
-  eval_on: true
+  eval_on: false
   eval_every: 200
   solver:
     fg:
@@ -61,6 +61,10 @@ arch:
 
   fix_alpha_steps: -1
   fix_alpha_value: 0.1
+
+eval:
+  checkpoint: 'last'
+  metric: ap_avg
 
 gamelist: [
     # 'Atlantis-v0',

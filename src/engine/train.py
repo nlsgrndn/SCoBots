@@ -17,6 +17,7 @@ import shutil
 from torch.utils.data import Subset, DataLoader
 import matplotlib.pyplot as plt
 import numpy as np
+from model.space.time_consistency import MOCLoss
 
 
 def print_train_info(cfg):
@@ -102,14 +103,6 @@ def train(cfg, rtpt_active=True):
 
         start = time.perf_counter()
         for (img_stacks, motion, motion_z_pres, motion_z_where) in tqdm(trainloader, desc=f"Epoch {epoch}"):
-            #print("img_stacks.shape", img_stacks.shape)
-            #print("motion.shape", motion.shape)
-            #print("motion_z_pres.shape", motion_z_pres.shape)
-            #plt.imsave("engine/img_stacks.png", np.moveaxis(np.array(img_stacks[0, 0, :, :, :].cpu().detach()), (0, 1, 2), (2, 0, 1)))
-            #plt.imsave("engine/motion.png", motion[0, 0, :, :], cmap="gray")
-            #plt.imsave("engine/motion_z_pres.png", motion_z_pres[0, 0, :, :].view(16, 16), cmap="gray")
-            #exit()
-
 
             end = time.perf_counter()
             data_time = end - start
@@ -127,11 +120,12 @@ def train(cfg, rtpt_active=True):
             # main training
             start = time.perf_counter()
             model.train()
-            img_stacks = img_stacks.to(cfg.device)
-            motion = motion.to(cfg.device)
-            motion_z_pres = motion_z_pres.to(cfg.device)
-            motion_z_where = motion_z_where.to(cfg.device)
-            loss, log = model(img_stacks, motion, motion_z_pres, motion_z_where, global_step)
+
+            # move to device
+            img_stacks, motion, motion_z_pres, motion_z_where = img_stacks.to(cfg.device), motion.to(cfg.device), motion_z_pres.to(cfg.device), motion_z_where.to(cfg.device)
+            base_loss, log = model(img_stacks, global_step)
+            moc_loss, log = MOCLoss().compute_loss(motion, motion_z_pres, motion_z_where, log, global_step)
+            loss = base_loss + moc_loss
             loss = loss.mean() # In case of using DataParallel
             optimizer_fg.zero_grad(set_to_none=True)
             optimizer_bg.zero_grad(set_to_none=True)
@@ -147,8 +141,7 @@ def train(cfg, rtpt_active=True):
             optimizer_bg.step()
 
             # logging
-            if global_step%20 == 0: # print in console # global_step == start_log
-                #start_log = int((start_log - base_global_step) * 1.2) + 1 + base_global_step #WTF is this? Why 1.2?
+            if global_step%20 == 0: # print in console
                 log_state(cfg, epoch, global_step, log, metric_logger) 
             if global_step % cfg.train.print_every == 0 or never_evaluated: # log in tensorboard
                 log.update({

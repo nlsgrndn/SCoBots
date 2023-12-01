@@ -14,6 +14,93 @@ import time
 # Low IOU might be enough, eval metric
 # alpha map allows more precise influence of motion in pixel space
 # z_pres by motion signal, squared/exp with low might?
+class MOCLoss():
+    def __init__(self):
+        self.zero = nn.Parameter(torch.tensor(0.0))
+        self.area_object_weight = arch.area_object_weight
+  
+    def compute_loss(self, motion, motion_z_pres, motion_z_where, logs, global_step):
+        """
+        Inference.
+        With time-dimension for consistency
+        :param x: (B, 3, H, W)
+        :param motion: (B, H, W)
+        :param motion_z_pres: z_pres hint from motion
+        :param motion_z_where: z_where hint from motion
+        :param global_step: global training step
+        :return:
+            loss: a scalar. Note it will be better to return (B,)
+            log: a dictionary for visualization
+        """
+        if len(motion.shape) == 4: # (B, T, H, W)
+            B, T, H, W = motion.shape
+            motion = motion.reshape(T * B, 1, H, W)
+            motion_z_pres = motion_z_pres.reshape(T * B, arch.G * arch.G, 1)
+            motion_z_where = motion_z_where.reshape(T * B, arch.G * arch.G, 4)
+        else: # (B, H, W)
+            B, H, W = motion.shape
+            motion = motion.reshape(B, 1, H, W)
+            motion_z_pres = motion_z_pres.reshape(B, arch.G * arch.G, 1)
+            motion_z_where = motion_z_where.reshape(B, arch.G * arch.G, 4)
+
+        tc_log = {
+            'motion': motion,
+            'motion_z_pres': motion_z_pres,
+            'motion_z_where': motion_z_where,
+        }
+        logs.update(tc_log)
+
+        z_what_loss = z_what_loss_grid_cell(logs) if arch.adjacent_consistency_weight > 1e-3 else self.zero
+        z_pres_loss = z_pres_loss_grid_cell(logs) if arch.pres_inconsistency_weight > 1e-3 else self.zero
+        z_what_loss_pool = z_what_consistency_pool(logs) if arch.area_pool_weight > 1e-3 else self.zero
+        z_what_loss_objects, objects_detected = z_what_consistency_objects(logs) if arch.area_object_weight > 1e-3 else (self.zero, self.zero)
+        flow_loss = compute_flow_loss(logs) if arch.motion_loss_weight_z_pres > 1e-3 else self.zero
+        flow_loss_z_where = compute_flow_loss_z_where(logs) if arch.motion_loss_weight_z_where > 1e-3 else self.zero
+        flow_loss_alpha_map = compute_flow_loss_alpha(logs, motion) if arch.motion_loss_weight_alpha > 1e-3 else self.zero
+
+        flow_scaling = max(0, 1 - (global_step - arch.motion_cooling_start_step) / arch.motion_cooling_end_step) # weird division by 2 removed
+        area_object_scaling = 1 - flow_scaling
+
+        motion_loss = (flow_loss * arch.motion_loss_weight_z_pres * flow_scaling \
+            + flow_loss_alpha_map * arch.motion_loss_weight_alpha * flow_scaling \
+            + flow_loss_z_where * arch.motion_loss_weight_z_where * flow_scaling) * arch.motion_weight
+        
+        # with standard param settings only arch.area_object_weight != 0.0 and only iff MOC is used
+        combined_z_what_loss = z_what_loss * arch.adjacent_consistency_weight \
+            + z_pres_loss * arch.pres_inconsistency_weight \
+            + z_what_loss_pool * arch.area_pool_weight \
+            + z_what_loss_objects * area_object_scaling * arch.area_object_weight
+        
+        moc_loss = motion_loss + combined_z_what_loss
+
+        tc_log = {
+            'z_what_loss': z_what_loss,
+            'z_what_loss_pool': z_what_loss_pool,
+            'z_what_loss_objects': z_what_loss_objects,
+            'z_pres_loss': z_pres_loss,
+            'flow_loss': flow_loss,
+            'flow_loss_z_where': flow_loss_z_where,
+            'flow_loss_alpha_map': flow_loss_alpha_map,
+            'objects_detected': objects_detected,
+            'flow_scaling': torch.tensor(flow_scaling).to(moc_loss.device),
+            'area_object_scaling': torch.tensor(area_object_scaling).to(moc_loss.device),
+            'total_loss': moc_loss, # TODO rename to moc_loss, and change in space_vis for logging
+            'motion_loss': motion_loss,
+            'motion_loss_no_flow_scaling': motion_loss / flow_scaling,
+            'combined_z_what_loss': combined_z_what_loss,
+            'scaled_flow_loss': flow_loss * arch.motion_loss_weight_z_pres * flow_scaling * arch.motion_weight,
+            'scaled_flow_loss_z_where': flow_loss_z_where * arch.motion_loss_weight_z_where * flow_scaling * arch.motion_weight,
+            'scaled_flow_loss_alpha_map': flow_loss_alpha_map * arch.motion_loss_weight_alpha * flow_scaling * arch.motion_weight,
+            'scaled_z_what_loss': z_what_loss * arch.adjacent_consistency_weight,
+            'scaled_z_pres_loss': z_pres_loss * arch.pres_inconsistency_weight,
+            'scaled_z_what_loss_pool': z_what_loss_pool * arch.area_pool_weight,
+            'scaled_z_what_loss_objects': z_what_loss_objects * area_object_scaling * arch.area_object_weight,
+        }
+        logs.update(tc_log)
+        return moc_loss, logs
+
+
+
 class TcSpace(nn.Module):
 
     def __init__(self):
@@ -63,22 +150,17 @@ class TcSpace(nn.Module):
             'motion_z_where': motion_z_where,
         }
         responses.update(tc_log)
-        # Further losses
         if not self.training:
             return loss, responses
+        
+
         z_what_loss = z_what_loss_grid_cell(responses) if arch.adjacent_consistency_weight > 1e-3 else self.zero
         z_pres_loss = z_pres_loss_grid_cell(responses) if arch.pres_inconsistency_weight > 1e-3 else self.zero
         z_what_loss_pool = z_what_consistency_pool(responses) if arch.area_pool_weight > 1e-3 else self.zero
-        if arch.area_object_weight > 1e-3:
-            z_what_loss_objects, objects_detected = z_what_consistency_objects(responses)
-        else:
-            z_what_loss_objects, objects_detected = (self.zero, self.zero)
-        flow_loss = compute_flow_loss(
-            responses) if arch.motion_loss_weight_z_pres > 1e-3 else self.zero
-        flow_loss_z_where = compute_flow_loss_z_where(
-            responses) if arch.motion_loss_weight_z_where > 1e-3 else self.zero
-        flow_loss_alpha_map = compute_flow_loss_alpha(
-            responses, motion) if arch.motion_loss_weight_alpha > 1e-3 else self.zero
+        z_what_loss_objects, objects_detected = z_what_consistency_objects(responses) if arch.area_object_weight > 1e-3 else (self.zero, self.zero)
+        flow_loss = compute_flow_loss(responses) if arch.motion_loss_weight_z_pres > 1e-3 else self.zero
+        flow_loss_z_where = compute_flow_loss_z_where(responses) if arch.motion_loss_weight_z_where > 1e-3 else self.zero
+        flow_loss_alpha_map = compute_flow_loss_alpha(responses, motion) if arch.motion_loss_weight_alpha > 1e-3 else self.zero
 
         if arch.dynamic_scheduling:
             object_count_accurate = self.object_count_accurate_scaling(responses)
@@ -87,21 +169,6 @@ class TcSpace(nn.Module):
         else:
             flow_scaling = max(0, 1 - (global_step - arch.motion_cooling_start_step) / arch.motion_cooling_end_step) # weird division by 2 removed
             area_object_scaling = 1 - flow_scaling
-
-        # print(f'{z_what_loss_objects=} {area_object_scaling=} {arch.area_object_weight=} => {z_what_loss_objects * area_object_scaling * arch.area_object_weight}')
-        tc_log = {
-            'z_what_loss': z_what_loss,
-            'z_what_loss_pool': z_what_loss_pool,
-            'z_what_loss_objects': z_what_loss_objects,
-            'z_pres_loss': z_pres_loss,
-            'flow_loss': flow_loss,
-            'flow_loss_z_where': flow_loss_z_where,
-            'flow_loss_alpha_map': flow_loss_alpha_map,
-            'objects_detected': objects_detected,
-            'flow_scaling': torch.tensor(flow_scaling).to(loss.device),
-            'area_object_scaling': torch.tensor(area_object_scaling).to(loss.device),
-        }
-        responses.update(tc_log)
 
         motion_loss = (flow_loss * arch.motion_loss_weight_z_pres * flow_scaling \
             + flow_loss_alpha_map * arch.motion_loss_weight_alpha * flow_scaling \
@@ -119,6 +186,16 @@ class TcSpace(nn.Module):
             loss = elbo_loss + motion_loss + combined_z_what_loss
 
         tc_log = {
+            'z_what_loss': z_what_loss,
+            'z_what_loss_pool': z_what_loss_pool,
+            'z_what_loss_objects': z_what_loss_objects,
+            'z_pres_loss': z_pres_loss,
+            'flow_loss': flow_loss,
+            'flow_loss_z_where': flow_loss_z_where,
+            'flow_loss_alpha_map': flow_loss_alpha_map,
+            'objects_detected': objects_detected,
+            'flow_scaling': torch.tensor(flow_scaling).to(loss.device),
+            'area_object_scaling': torch.tensor(area_object_scaling).to(loss.device),
             'total_loss': loss,
             'motion_loss': motion_loss,
             'motion_loss_no_flow_scaling': motion_loss / flow_scaling,
@@ -313,38 +390,6 @@ def z_what_consistency_objects(responses):
             object_consistency_loss += -arch.z_cos_match_weight * torch.max(z_sim) + torch.sum(z_sim)
     return object_consistency_loss, torch.tensor(len(z_pres_idx)).to(z_whats.device)
 
-
-
-def unique_color(color):
-    """
-    Computes a "unique" value for uint8 array, e.g. for identifying the input color to make variance computation easy
-    only "unique" as we divide by 10 to lower bincount tensor size, but hopefully staying separated
-    :param color: nd.array<n>
-    """
-    return sum([255 ** i * c for i, c in enumerate(color)]) // 10
-
-
-def color_match(x_0, x_1, z_where_prior, z_where_now):
-    img_prior = np.apply_along_axis(unique_color, axis=1, arr=x_0)
-    img_now = np.apply_along_axis(unique_color, axis=1, arr=x_1)
-    max_value = max(img_now.max() + img_prior.max())
-    prior_bins = torch.bincount(selection(img_prior, z_where_prior), minlength=max_value + 1).unsqueeze(dim=0)
-    now_bins = torch.stack([torch.bincount(selection(img_now, z_w), minlength=max_value + 1) for z_w in z_where_now])
-    return nn.functional.mse_loss(prior_bins, now_bins, reduction='none').sum(dim=-1).argmin()
-
-
-def selection(x, z_where):
-    """
-    Inference.
-    Select subimage based on z_where bounding box
-    :param x: (3, H, W)
-    :param z_where: (4,)
-    """
-    size, center = torch.split(z_where, 2, dim=-1)
-    center = (center + 1.0) / 2.0
-    x_min, y_min = (center - size / 2).int()
-    x_max, y_max = (center + size / 2).int()
-    return x[:, y_min:y_max, x_min:x_max]
 
 
 def z_what_consistency_pool(responses):
