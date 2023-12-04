@@ -217,6 +217,8 @@ class SpaceEval:
         """
         print('Computing clustering and few-shot linear classifiers...')
         results = ClusteringEval(self.relevant_object_hover_path).eval_clustering(logs, valset, global_step, cfg)
+        if results is None:
+            return {}
         for name, (result_dict, img_path, few_shot_accuracy) in results.items():
             try:
                 writer.add_image(f'Clustering PCA {name.title()}', np.array(Image.open(img_path)), global_step,
