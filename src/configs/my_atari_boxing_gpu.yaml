@@ -1,5 +1,5 @@
 seed: 1
-model: 'Space'
+model: 'space'
 exp_name: boxing
 resume: false
 load_time_consistency: true

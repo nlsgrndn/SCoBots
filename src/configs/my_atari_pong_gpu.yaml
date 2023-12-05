@@ -1,5 +1,5 @@
 seed: 1
-model: 'tcspace'
+model: 'space'
 exp_name: pong
 resume: false
 load_time_consistency: true
