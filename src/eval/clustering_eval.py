@@ -8,15 +8,7 @@ from PIL import Image
 from .classify_z_what import ZWhatEvaluator
 import os
 import pickle
-from .utils import flatten
-
-def retrieve_latent_repr_from_logs(logs):
-    z_where, z_pres_prob, z_what = logs['z_where'], logs['z_pres_prob'], logs['z_what']
-    z_where = z_where.detach().cpu()
-    z_pres_prob = z_pres_prob.detach().cpu().squeeze()
-    z_what = z_what.detach().cpu()
-    z_pres = z_pres_prob > 0.5
-    return z_where, z_pres, z_pres_prob, z_what,
+from .utils import flatten, retrieve_latent_repr_from_logs
 
 class ClusteringEval:
 
@@ -77,7 +69,7 @@ class ClusteringEval:
         """
         z_encs, z_whats, all_labels, all_labels_moving, image_refs = self.collect_data(logs, dataset, global_step, cfg)
 
-        args = {'method': 't-SNE', 'indices': None, 'dim': 2, 'edgecolors': False} # method wasa set to k-means before
+        args = {'method': 't-SNE', 'indices': None, 'dim': 2, 'edgecolors': False} # method was set to k-means before
         if z_whats:
             z_whats = torch.stack(z_whats).detach().cpu()
             all_labels_relevant_idx, all_labels_relevant = dataset.to_relevant(all_labels_moving)

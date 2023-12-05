@@ -3,15 +3,7 @@ import torch
 from .eval_cfg import eval_cfg
 from .ap import read_boxes, convert_to_boxes, compute_ap, compute_counts, compute_prec_rec, read_boxes_object_type_dict
 from dataset import get_label_list
-
-
-def retrieve_latent_repr_from_logs(logs):
-    z_where, z_pres_prob, z_what = logs['z_where'], logs['z_pres_prob'], logs['z_what']
-    z_where = z_where.detach().cpu()
-    z_pres_prob = z_pres_prob.detach().cpu().squeeze()
-    z_what = z_what.detach().cpu()
-    z_pres = z_pres_prob > 0.5
-    return z_where, z_pres, z_pres_prob, z_what,
+from .utils import retrieve_latent_repr_from_logs
 
 class ApAndAccEval():
     @torch.no_grad()

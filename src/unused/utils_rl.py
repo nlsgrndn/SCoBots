@@ -1,8 +1,7 @@
+# WAS IN directory: MOC/
 from mushroom_rl.utils.dataset import compute_metrics, compute_J
 from os import listdir, makedirs, remove
 from os.path import isfile, join
-import torch
-import numpy as np
 import re
 import pickle
 import datetime
@@ -17,22 +16,6 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 import copy
 
-
-def make_deterministic(seed, mdp, states_dict=None):
-    if states_dict is None:
-        np.random.seed(seed)
-        mdp.seed(seed)
-        torch.manual_seed(seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-        print(f"Set all environment deterministic to seed {seed}")
-    else:
-        np.random.set_state(states_dict["numpy"])
-        torch.random.set_rng_state(states_dict["torch"])
-        mdp.env.env.np_random.set_state(states_dict["env"])
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-        print(f"Reset environment to recovered random state ")
 
 #def load_activation_function(act_f, game_name, seed):
 #    """

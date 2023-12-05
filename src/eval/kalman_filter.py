@@ -74,7 +74,7 @@ def classify_encodings(cfg, observations, labels, few_shot=4):
     b_classifier, b_score, relevant_labels, scaler = basic_classifier(cfg,
                                                                       flat_obs.numpy(),
                                                                       flatten(labels).detach().cpu().numpy(),
-                                                                      few_shot=few_shot)
+                                                                      few_shot=few_shot) # uses random forest
     np.set_printoptions(suppress=True)
     filter_size = len(relevant_labels) + 3
     test_labels = []

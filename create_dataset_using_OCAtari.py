@@ -1,8 +1,8 @@
 from PIL import Image
 import argparse
 import os
-from utils_rl import make_deterministic
 import numpy as np
+import torch
 from tqdm import tqdm
 import random
 from src.dataset import bb
@@ -256,6 +256,22 @@ def main():
             break
 
     print(f"Dataset Generation is completed. Everything is saved in {data_base_folder}.")
+
+def make_deterministic(seed, mdp, states_dict=None):
+    if states_dict is None:
+        np.random.seed(seed)
+        mdp.seed(seed)
+        torch.manual_seed(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        print(f"Set all environment deterministic to seed {seed}")
+    else:
+        np.random.set_state(states_dict["numpy"])
+        torch.random.set_rng_state(states_dict["torch"])
+        mdp.env.env.np_random.set_state(states_dict["env"])
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        print(f"Reset environment to recovered random state ")
 
 from hackatari.riverraid import ConstantBackgroundRiverraid
 def configure(args):

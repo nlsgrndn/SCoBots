@@ -221,7 +221,7 @@ class SpaceEval:
             return {}
         for name, (result_dict, img_path, few_shot_accuracy) in results.items():
             try:
-                writer.add_image(f'Clustering PCA {name.title()}', np.array(Image.open(img_path)), global_step,
+                writer.add_image(f'Clustering {name.title()}', np.array(Image.open(img_path)), global_step,
                                  dataformats='HWC')
             except:
                 pass
