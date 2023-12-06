@@ -50,15 +50,13 @@ class ZWhatEvaluator:
         train_x, train_y, test_x, test_y = self.train_test_split(z_what, labels, train_portion=0.9)
 
         if len(c) < 2 or len(torch.unique(train_y)) < 2:
-            # create empty plots
-            self.no_z_whats_plots()
-            return Counter(), self.dim_red_path, Counter()
+            return None
 
         # Set up dictionaries to store the z_what and labels for each game
         z_what_by_game = {rl: train_x[train_y == rl] for rl in relevant_labels}
         labels_by_game = {rl: train_y[train_y == rl] for rl in relevant_labels}
 
-        return relevant_labels, z_what_by_game, labels_by_game, test_x, test_y, train_x
+        return relevant_labels, z_what_by_game, labels_by_game, test_x, test_y, train_x, train_y
 
     def evaluate_z_what(self, z_what, labels,):
         """
@@ -71,8 +69,13 @@ class ZWhatEvaluator:
             accuracy: few shot accuracy
         """
         # Prepare data
-        relevant_labels, z_what_by_game, labels_by_game, test_x, test_y, train_x = \
-            self.prepare_data(z_what, labels)
+
+        data = self.prepare_data(z_what, labels)
+        if data is None:
+            self.no_z_whats_plots()
+            return Counter(), self.dim_red_path, Counter()
+        else:
+            relevant_labels, z_what_by_game, labels_by_game, test_x, test_y, train_x, train_y = data
         
         # Create classifiers
         ridge_classifers = ZWhatClassifierCreator(self.cfg).create_ridge_classifiers(relevant_labels, z_what_by_game, labels_by_game)
@@ -355,5 +358,5 @@ if __name__ == "__main__":
     z_what_train = torch.load(f"labeled/z_what_train.pt")
     train_labels = torch.load(f"labeled/labels_train.pt")
     cfg = None #TODO fix
-    z_what_evaluator = ZWhatEvaluator(cfg, z_what_train, train_labels, nb_used_sample, method="pca", indices="0,1", edgecolors = args.edgecolors, dim=args.dim)
+    z_what_evaluator = ZWhatEvaluator(cfg, method="pca", indices="0,1", edgecolors = args.edgecolors, dim=args.dim)
     z_what_evaluator.evaluate_z_what(cfg, z_what_train, train_labels, nb_used_sample,)

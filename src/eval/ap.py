@@ -263,7 +263,7 @@ def compute_prec_rec(pred_boxes, gt_boxes):
     precision = hit_cum / num_cum
     recall = hit_cum / count_gt
     if len(precision) == 0 or len(recall) == 0:
-        return np.array(0.0), np.array(0.0), np.array(0.0), np.array(0.0), np.array(0.0)
+        return 0.0, 0.0, np.array([0.0]), np.array([0.0]), np.array([0.0])
     
     threshold_values = np.append(np.arange(0.5, 0.95, 0.05), np.arange(0.95, 1.0, 0.01))
     precisions_at_thresholds = np.zeros(len(threshold_values))
