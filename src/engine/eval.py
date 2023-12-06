@@ -36,11 +36,11 @@ def eval(cfg):
     model.eval()
 
     if cfg.resume_ckpt:
-        checkpoint = checkpointer.load(cfg.resume_ckpt, model, None, None, cfg.device)
+        checkpointer.load(cfg.resume_ckpt, model, None, None, cfg.device)
     elif cfg.eval.checkpoint == 'last':
-        checkpoint = checkpointer.load_last('', model, None, None, cfg.device)
+        checkpointer.load_last('', model, None, None, cfg.device)
     elif cfg.eval.checkpoint == 'best':
-        checkpoint = checkpointer.load_best(cfg.eval.metric, model, None, None, cfg.device)
+        checkpointer.load_best(cfg.eval.metric, model, None, None, cfg.device)
     if cfg.parallel:
         assert 'cpu' not in cfg.device
         model = nn.DataParallel(model, device_ids=cfg.device_ids)
@@ -49,8 +49,5 @@ def eval(cfg):
     global_step = 100000
     writer = SummaryWriter(log_dir=log_path, flush_secs=30,
                            purge_step=global_step)
-    eval_checkpoint = [model, None, None, "last", global_step]
-    checkpointer = Checkpointer(osp.join(cfg.checkpointdir, "eval", cfg.exp_name), max_num=cfg.train.max_ckpt,
-                                load_time_consistency=cfg.load_time_consistency, add_flow=cfg.add_flow)
     evaluator.eval(model, testset, testset.bb_path, writer, global_step,
-                        cfg.device, eval_checkpoint, checkpointer, cfg)
+                        cfg.device, cfg)
