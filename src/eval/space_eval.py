@@ -84,7 +84,7 @@ class SpaceEval:
 
     @torch.no_grad()
     # @profile
-    def eval(self, model, dataset, bb_path, writer, global_step, device, checkpoint, checkpointer, cfg):
+    def eval(self, model, dataset, bb_path, writer, global_step, device, cfg):
         """
         Evaluation. This includes:
             - mse evaluated on dataset
@@ -98,7 +98,8 @@ class SpaceEval:
             self.write_header()
 
         _, logs = self.apply_model(dataset, device, model, global_step)
-        self.core_eval_code(dataset, bb_path, writer, global_step, cfg, logs)
+        results = self.core_eval_code(dataset, bb_path, writer, global_step, cfg, logs)
+        return results
 
     @torch.no_grad()
     def apply_model(self, dataset, device, model, global_step, use_global_step=False):
@@ -136,10 +137,12 @@ class SpaceEval:
         return losses, logs
 
     def core_eval_code(self, valset, bb_path, writer, global_step, cfg, logs,):
+        results_collector = {}
         with open(self.eval_file_path, "a") as file:
             self.write_metric(None, None, global_step, global_step, use_writer=False)
             if 'cluster' in eval_cfg.train.metrics:
                 results = self.train_eval_clustering(logs, valset, writer, global_step, cfg)
+                results_collector.update(results)
                 if cfg.train.log:
                     pp = pprint.PrettyPrinter(depth=2)
                     for res in results:
@@ -148,8 +151,10 @@ class SpaceEval:
             if 'mse' in eval_cfg.train.metrics:
                 mse = self.train_eval_mse(logs, writer, global_step)
                 print("MSE result: ", mse)
+                results_collector.update({'mse': mse})
             if 'ap' in eval_cfg.train.metrics:
                 results = self.train_eval_ap_and_acc(logs, valset, bb_path, writer, global_step)
+                results_collector.update(results)
                 if cfg.train.log:
                     results = {k2: v2[len(v2) // 4] if isinstance(v2, list) or isinstance(v2, np.ndarray) else v2 for
                                k2, v2, in
@@ -158,6 +163,7 @@ class SpaceEval:
                     print("AP Result:")
                     pp.pprint({k: v for k, v in results.items() if "iou" not in k})
             file.write("\n")
+        return results_collector
 
     @torch.no_grad()
     def train_eval_ap_and_acc(self, logs, valset, bb_path, writer: SummaryWriter, global_step):
@@ -190,9 +196,7 @@ class SpaceEval:
                 self.write_metric(writer, f'{class_name}/precision', result_dict[f'precisions_{class_name}'][i], global_step)
                 self.write_metric(writer, f'{class_name}/recall', result_dict[f'recalls_{class_name}'][i], global_step,
                                   make_sep=(class_name != 'relevant') or (i != len(result_dict[f'thresholds_{class_name}']) - 1))
-
-
-                              
+      
         return result_dict
 
     @torch.no_grad()
