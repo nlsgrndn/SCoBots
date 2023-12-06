@@ -274,10 +274,13 @@ class ZWhatClassifierCreator:
             classifiers[training_objects_per_class] = clf
             filename = f'{self.cfg.logdir}/{self.cfg.exp_name}/z_what-classifier_with_{training_objects_per_class}.joblib.pkl'
             joblib.dump(clf, filename)
-            model_name = self.cfg.resume_ckpt.split("/")[-1].replace(".pth", "")
-            save_path = f"classifiers/{model_name}_z_what_classifier.joblib.pkl"
-            joblib.dump(clf, save_path)
-            print(f"Saved classifiers in {save_path}")
+            #model_name = self.cfg.resume_ckpt.split("/")[-1].replace(".pth", "")
+
+        clf = classifiers[max(ZWhatClassifierCreator.few_shot_values)] 
+        model_name = self.cfg.exp_name
+        save_path = f"classifiers/{model_name}_z_what_classifier.joblib.pkl"
+        joblib.dump(clf, save_path)
+        print(f"Saved classifiers in {save_path}")
         return classifiers
 
     def evaluate_ridge_classifiers_few_shot_accuracy(self, test_x, test_y, classifiers):

@@ -18,7 +18,6 @@ if __name__ == '__main__':
         'gather': gather,
         'test_flow': test_flow,
         'multi_train': multi_train,
-        'train_multi': multi_train
     }
     cfg, task = get_config()
     assert task in task_dict

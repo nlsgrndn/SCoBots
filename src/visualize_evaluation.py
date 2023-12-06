@@ -10,6 +10,7 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D
 from mpl_toolkits.mplot3d import proj3d
 import argparse
 from termcolor import colored
+import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--save',
@@ -109,11 +110,9 @@ def collect_prec_recall_data(df):
         thresholds = rec.columns.astype(float)
         recall_values = rec.iloc[0]
         precision_values = prec.iloc[0]
-        draw_precision_recall_curve(recall_values, precision_values, thresholds, os.path.join(result_path, "img", f'precision_recall_curve_{category}.png'))
+        draw_precision_recall_curve(recall_values, precision_values, thresholds, os.path.join(result_path, "img", f'precision_recall_curve_{category}.png'), category)
         
-
-import matplotlib.pyplot as plt
-def draw_precision_recall_curve(recalls, precisions, thresholds, save_path,):
+def draw_precision_recall_curve(recalls, precisions, thresholds, save_path, category):
     fig, ax = plt.subplots()
     ax.plot(recalls, precisions)
     #annotate the thresholds
@@ -121,7 +120,7 @@ def draw_precision_recall_curve(recalls, precisions, thresholds, save_path,):
         ax.annotate(np.round(threshold, decimals=2), (recalls[i], precisions[i]))
     ax.set_xlabel('Recall')
     ax.set_ylabel('Precision')
-    ax.set_title('Precision-Recall Curve')
+    ax.set_title(f'Precision-Recall Curve for {category}')
     plt.savefig(save_path)
 
 def main():
@@ -131,13 +130,25 @@ def main():
     os.makedirs(os.path.join(result_path, "img"), exist_ok=True)
     files = os.listdir(data_path)
     files = [f for f in files if f.endswith(".csv")] # collect files from multiple seeds or games
-    file = files[0] # only one file for now
-    print(f"Processing {file}")
-    df = pd.read_csv(os.path.join(data_path, file), sep=";")
-    df = add_contrived_columns(df)
-    print(df)
-    plot_ap(df)
-    collect_prec_recall_data(df)
+    #file = files[0] # only one file for now
+    for file in files:
+        print(f"Processing {file}")
+        df = pd.read_csv(os.path.join(data_path, file), sep=";")
+        df = add_contrived_columns(df)
+        # drop all but the last row
+        df = df.iloc[[-1]]
+        for category in ['relevant']:
+            print(f"{category}_f_score:", df[f'{category}_f_score'].values[0])
+            # print few shot accuracy
+            for i in [1, 4, 16, 64]:
+                print(f"{category}_few_shot_accuracy_with_{i}:", df[f'{category}_few_shot_accuracy_with_{i}'].values[0])
+            print(f"{category}_few_shot_accuracy_cluster_nn:", df[f'{category}_few_shot_accuracy_cluster_nn'].values[0])
+            # print mutual information
+            print(f"{category}_adjusted_rand_score", df[f'{category}_adjusted_rand_score'].values[0])
+            print(f"{category}_adjusted_mutual_info_score", df[f'{category}_adjusted_mutual_info_score'].values[0])
+
+        plot_ap(df)
+        collect_prec_recall_data(df)
 
 if __name__ == "__main__":
     main()
