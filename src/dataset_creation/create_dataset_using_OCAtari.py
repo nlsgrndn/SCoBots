@@ -5,14 +5,14 @@ import numpy as np
 import torch
 from tqdm import tqdm
 import random
-from src.dataset import bb
-from src.motion import median
-from src.motion import flow
-from src.motion import mode
-from src.motion.motion_processing import ProcessingVisualization, BoundingBoxes, \
+from dataset import bb
+from motion import median
+from motion import flow
+from motion import mode
+from motion.motion_processing import ProcessingVisualization, BoundingBoxes, \
     ClosingMeanThreshold, IteratedCentroidSelection, Skeletonize, Identity, FlowBoundingBox, ZWhereZPres, \
     set_color_hist, set_special_color_weight
-from src.niceprint import pprint as print
+from niceprint import pprint as print
 
 
 #OCAtari
