@@ -1,6 +1,6 @@
 from eval.clustering_eval import ClusteringEval
 from eval.ap_and_acc_eval import ApAndAccEval
-from utils import MetricLogger
+from metric_logger import MetricLogger
 import numpy as np
 import torch
 import os
@@ -109,7 +109,6 @@ class SpaceEval:
             num_samples = min(len(dataset),max(eval_cfg.train.num_samples.values()))
         else:
             num_samples = len(dataset)
-        # eval_cfg.train.batch_size = 4 Why was this manually overwritten to 4 here?
         batch_size = eval_cfg.train.batch_size
         num_workers = eval_cfg.train.num_workers
         data_subset = Subset(dataset, indices=range(num_samples))
@@ -119,12 +118,6 @@ class SpaceEval:
         with torch.no_grad():
             for imgs, motion, motion_z_pres, motion_z_where in dataloader:
                 imgs = imgs.to(device)
-                motion = None
-                motion_z_pres = None
-                motion_z_where = None
-                # motion = motion.to(device)
-                # motion_z_pres = motion_z_pres.to(device)
-                # motion_z_where = motion_z_where.to(device)
                 loss, log = model(imgs, global_step if use_global_step else 1000000000)
                 for key in ['imgs', 'y', 'log_like', 'elbo_loss', 'fg', 'z_pres_prob_pure',
                             'prior_z_pres_prob', 'o_att', 'alpha_att_hat', 'alpha_att', 'alpha_map', 'alpha_map_pure',

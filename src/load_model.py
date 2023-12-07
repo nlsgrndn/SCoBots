@@ -7,7 +7,7 @@ import os.path as osp
 from engine.utils import get_config
 from model import get_model
 from rl_utils import SceneCleaner, load_space
-from utils import Checkpointer
+from checkpointer import Checkpointer
 from solver import get_optimizers
 import numpy as np
 import torch
@@ -39,7 +39,8 @@ def show_scene(image, scene):
 
 
 use_cuda = 'cuda' in cfg.device
-space, transformation, sc, z_classifier = load_space(cfg, z_classifier_path= 'classifiers/pong_model_000005001_z_what_classifier.joblib.pkl')
+space, transformation, sc, z_classifier = load_space(cfg, z_classifier_path= 'classifiers/boxing_z_what_classifier.joblib.pkl')
+                                                     #'classifiers/pong_model_000005001_z_what_classifier.joblib.pkl')
                                                      #"classifiers/model_000005001_z_what_classifier.joblib.pkl")
 #import matplotlib; matplotlib.use("Tkagg")
 cfg.device_ids = [0]
@@ -60,7 +61,7 @@ for i in range(201):
         z_where, z_pres_prob, z_what, z_depth = log['z_where'], log['z_pres_prob'], log['z_what'], log['z_depth']
         z_where, z_what, z_depth = z_where.squeeze().detach().cpu(), z_what.squeeze().detach().cpu(), z_depth.squeeze().detach().cpu()
         z_pres_prob = z_pres_prob.squeeze().detach().cpu()
-        z_pres = z_pres_prob > 0.995 # TODO: fix code for case when z_pres_prob <= 0.5 everywhere
+        z_pres = z_pres_prob > 0.5 # TODO: fix code for case when z_pres_prob <= 0.5 everywhere
         z_pres_prob = z_pres_prob.view(16, 16)
         #print(z_pres)
         import os

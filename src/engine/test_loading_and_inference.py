@@ -1,4 +1,4 @@
-from utils import Checkpointer
+from checkpointer import Checkpointer
 import os.path as osp
 import os
 from model.space.space import Space

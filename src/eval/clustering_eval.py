@@ -1,14 +1,15 @@
 import torch
 import os
 from tqdm import tqdm
+
 from .eval_cfg import eval_cfg
-from .ap import convert_to_boxes
+from model.space.postprocess_latent_variables import convert_to_boxes, retrieve_latent_repr_from_logs
 from .kalman_filter import classify_encodings
 from PIL import Image
 from .classify_z_what import ZWhatEvaluator
 import os
 import pickle
-from .utils import flatten, retrieve_latent_repr_from_logs
+from .utils import flatten
 
 class ClusteringEval:
 
@@ -72,7 +73,7 @@ class ClusteringEval:
         args = {'method': 'PCA', 'indices': None, 'dim': 2, 'edgecolors': False} # method was set to k-means before
         if z_whats:
             z_whats = torch.stack(z_whats).detach().cpu()
-            all_labels_relevant_idx, all_labels_relevant = dataset.to_relevant(all_labels_moving)
+            all_labels_relevant_idx, all_labels_relevant = dataset.to_relevant(all_labels_moving) # simply removes all no_label objects
             z_whats_relevant = z_whats[flatten(all_labels_relevant_idx)]
 
             # call evaluate_z_what for all, moving and relevant objects

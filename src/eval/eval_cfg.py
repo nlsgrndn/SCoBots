@@ -3,7 +3,7 @@ eval_cfg = CfgNode({
     # Evaluation during training
     'train': {
         # What to evaluate
-        'metrics': ['ap', 'mse', 'cluster'], #['ap', 'mse', 'cluster'],
+        'metrics': ['ap', 'mse','cluster',], #['ap', 'mse', 'cluster'],
         # Number of samples for evaluation
         'num_samples': {
             'mse': 1024,
@@ -15,10 +15,4 @@ eval_cfg = CfgNode({
         'batch_size': 1, #32,
         'num_workers': 1, #4,
     },
-    'test': {
-        # For dataloader
-        'batch_size': 1, #2,
-        'num_workers': 1, #4,
-    }
-
 })

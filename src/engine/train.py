@@ -2,7 +2,8 @@ from model import get_model
 from eval import get_evaluator
 from dataset import get_dataset, get_dataloader
 from solver import get_optimizers
-from utils import Checkpointer, MetricLogger
+from checkpointer import Checkpointer
+from metric_logger import MetricLogger
 import os
 import os.path as osp
 from torch import nn

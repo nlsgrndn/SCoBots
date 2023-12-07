@@ -34,9 +34,9 @@ import os.path as osp
 
 from model import get_model
 from engine.utils import get_config
-from utils import Checkpointer
+from checkpointer import Checkpointer
 from solver import get_optimizers
-from eval.ap import convert_to_boxes
+from model.space.postprocess_latent_variables import convert_to_boxes
 
 cfg, task = get_config()
 

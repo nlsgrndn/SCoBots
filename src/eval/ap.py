@@ -1,6 +1,5 @@
 import numpy as np
 import os
-import torch
 import pandas as pd
 
 
@@ -31,46 +30,6 @@ def compute_counts(boxes_pred, boxes_gt):
     return np.mean(error_rates), perfect, overcount, undercount
 
 
-def convert_to_boxes(z_where, z_pres, z_pres_prob, with_conf=False):
-    """
-
-    All inputs should be tensors
-
-    :param z_where: (B, N, 4). [sx, sy, tx, ty]. N is arch.G ** 2
-    :param z_pres: (B, N) Must be binary and byte tensor
-    :param z_pres_prob: (B, N). In range (0, 1)
-    :return: [[y_min, y_max, x_min, x_max, conf] * N] * B
-    """
-    B, N, _ = z_where.size()
-    z_pres = z_pres.bool()
-    # import ipdb; ipdb.set_trace()
-
-    # each (B, N, 1)
-    width, height, center_x, center_y = torch.split(z_where, 1, dim=-1)
-
-    center_x = (center_x + 1.0) / 2.0
-    center_y = (center_y + 1.0) / 2.0
-    x_min = center_x - width / 2
-    x_max = center_x + width / 2
-    y_min = center_y - height / 2
-    y_max = center_y + height / 2
-    # (B, N, 4)
-    pos = torch.cat([y_min, y_max, x_min, x_max], dim=-1)
-    boxes = []
-    for b in range(B):
-        # (N, 4), (N,) -> (M, 4), where M is the number of z_pres == 1
-        box = pos[b][z_pres[b]]
-        # (N,) -> (M, 1)
-        if with_conf:
-            conf = z_pres_prob[b][z_pres[b]][:, None]
-            # (M, 5)
-            box = torch.cat([box, conf], dim=1)
-        box = box.detach().cpu().numpy()
-        boxes.append(box)
-
-    return boxes
-
-
 def read_boxes(path, size=None, indices=None):
     """
     Read bounding boxes and normalize to (0, 1)
@@ -92,6 +51,33 @@ def read_boxes(path, size=None, indices=None):
                 boxes.append([y_min, y_max, x_min, x_max])
                 if "M" in moving:
                     boxes_moving.append([y_min, y_max, x_min, x_max])
+            boxes = np.array(boxes)
+            boxes_moving = np.array(boxes_moving)
+            boxes_all.append(boxes)
+            boxes_moving_all.append(boxes_moving)
+    return boxes_all, boxes_moving_all, boxes_moving_all
+
+def read_boxes_with_labels(path, size=None, indices=None):
+    """
+    Read bounding boxes and normalize to (0, 1)
+    Note BB files structure was changed to left, top coordinates + width and height
+    :param path: checkpointdir to bounding box root
+    :param size: how many indices
+    :param indices: relevant indices of the dataset
+    :return: A list of list of list [[[y_min, y_max, x_min, x_max, label] * N] * B]
+    """
+    boxes_all = []
+    boxes_moving_all = []
+
+    for stack_idx in indices if (indices is not None) else range(size):
+        for img_idx in range(4):
+            boxes = []
+            boxes_moving = []
+            bbs = pd.read_csv(os.path.join(path, f"{stack_idx:05}_{img_idx}.csv"), header=None, usecols=[0, 1, 2, 3, 4, 5])
+            for y_min, y_max, x_min, x_max, moving, label in bbs.itertuples(index=False, name=None):
+                boxes.append([y_min, y_max, x_min, x_max, label])
+                if "M" in moving:
+                    boxes_moving.append([y_min, y_max, x_min, x_max, label])
             boxes = np.array(boxes)
             boxes_moving = np.array(boxes_moving)
             boxes_all.append(boxes)

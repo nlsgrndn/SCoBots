@@ -1,9 +1,10 @@
 import numpy as np
 import torch
+
+from model.space.postprocess_latent_variables import convert_to_boxes, retrieve_latent_repr_from_logs
 from .eval_cfg import eval_cfg
-from .ap import read_boxes, convert_to_boxes, compute_ap, compute_counts, compute_prec_rec, read_boxes_object_type_dict
+from .ap import read_boxes, compute_ap, compute_counts, compute_prec_rec, read_boxes_object_type_dict
 from dataset import get_label_list
-from .utils import retrieve_latent_repr_from_logs
 
 class ApAndAccEval():
     @torch.no_grad()

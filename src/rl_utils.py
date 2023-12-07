@@ -3,7 +3,7 @@ import joblib
 import os.path as osp
 
 from model import get_model
-from utils import Checkpointer
+from checkpointer import Checkpointer
 from solver import get_optimizers
 from PIL import Image
 from torchvision import transforms

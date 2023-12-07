@@ -1,7 +1,7 @@
 from model import get_model
 from eval import get_evaluator #comes from __init__.py
 from dataset import get_dataset, get_dataloader
-from utils import Checkpointer
+from checkpointer import Checkpointer
 import os
 import os.path as osp
 from torch import nn

@@ -13,7 +13,8 @@ from collections import Counter
 from torchvision.utils import draw_bounding_boxes as draw_bb
 from PIL import Image
 import PIL
-from eval import convert_to_boxes, read_boxes
+from eval.ap import read_boxes
+from model.space.postprocess_latent_variables import convert_to_boxes
 import math
 
 matplotlib.use('Agg')

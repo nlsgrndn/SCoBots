@@ -21,7 +21,7 @@ import random
 import torch
 from torchvision.utils import draw_bounding_boxes as draw_bb
 from torchvision.utils import save_image
-from eval import convert_to_boxes, read_boxes
+
 
 
 def draw_images(args):

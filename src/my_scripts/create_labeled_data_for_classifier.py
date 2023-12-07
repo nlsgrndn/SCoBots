@@ -1,41 +1,21 @@
 import os, sys
+
+from checkpointer import Checkpointer
 _curent_dir = os.getcwd()
 for _cd in [_curent_dir, _curent_dir + "/post_eval"]:
     if _cd not in sys.path:
         sys.path.append(_cd)
 
 import os.path as osp
-import matplotlib.pyplot as plt
 import numpy as np
 from engine.utils import get_config
-from engine.train import train
-from engine.eval import eval
-from engine.show import show
 from model import get_model
-from vis import get_vislogger
-from dataset import get_dataset, get_dataloader
-from utils import Checkpointer, open_image, show_image, save_image, \
-    corners_to_wh, draw_bounding_boxes, get_labels, place_labels
+from src_utils import open_image
 import os
-from torch import nn
-from torch.utils.data import Subset, DataLoader
-from utils import draw_bounding_boxes
-from torchvision.transforms.functional import crop
 import torch
-from eval.ap import read_boxes, convert_to_boxes, compute_ap, compute_counts
-from tqdm import tqdm
 from termcolor import colored
 import pandas as pd
-from PIL import Image
-import PIL
-
-def retrieve_latent_repr_from_logs(logs):
-    z_where, z_pres_prob, z_what = logs['z_where'], logs['z_pres_prob'], logs['z_what']
-    z_where = z_where.detach().cpu()
-    z_pres_prob = z_pres_prob.detach().cpu().squeeze()
-    z_what = z_what.detach().cpu()
-    z_pres = z_pres_prob > 0.5
-    return z_where, z_pres, z_pres_prob, z_what,
+from model.space.postprocess_latent_variables import convert_to_boxes, retrieve_latent_repr_from_logs
 
 folder = "test"
 
@@ -76,15 +56,12 @@ for i, (csv_file, image_file) in enumerate(zip(csv_files, image_files)): # Note:
     with torch.no_grad():
         loss, space_log = model(image, global_step=100000000)
     
-    # (B, N, 4), (B, N, 1), (B, N, 32)
+    # (B, N, 4), (B, N,), (B, N,), (B, N, 32)
     z_where, z_pres, z_pres_prob, z_what = retrieve_latent_repr_from_logs(space_log)
-    z_what_pres = z_what*z_pres
-    z_what_pres =z_what_pres[z_what_pres!=0]
-    # specify that z_what_pres should have 32 in the last dimension
-    z_what_pres = z_what_pres.view(-1, 32)
+    z_what_pres = z_what[z_pres]
 
     # retrieve labels and bounding 
-    boxes_batch = convert_to_boxes(z_where, z_pres.squeeze(-1), z_pres_prob.squeeze(-1))
+    boxes_batch = convert_to_boxes(z_where, z_pres, z_pres_prob)
     labels = table.iloc[:,5]
     if labels.shape[0] != boxes_batch[0].shape[0]:
         print(colored(f"Warning: {labels.shape[0]} labels and {boxes_batch[0].shape[0]} boxes", "red"))
