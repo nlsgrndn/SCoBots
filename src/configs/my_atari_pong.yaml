@@ -2,10 +2,11 @@ seed: 1
 model: 'space'
 exp_name: pong
 resume: false
-load_time_consistency: true
-add_flow: true
 save_relevant_objects: false
-resume_ckpt: '../output/logs/final/pong_with_moc_no_cooling/model_000002501.pth'
+
+
+z_what_classifier_path: "../downloaded_models/pong/z_what-classifier_with_64.joblib.pkl"
+resume_ckpt: '../downloaded_models/pong/model_000005001.pth'
 #'../old_models/actually_new_model_000005041.pth'
 # ''
 # ../old_models/model_000005001.pth

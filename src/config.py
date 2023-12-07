@@ -7,9 +7,6 @@ cfg = CfgNode({
     'exp_name': '',
     'model': 'SPACE',
     'flow': False,
-    'add_flow': False,
-    # Whether a TcSpace or (Space for TcSpace) should be loaded
-    'load_time_consistency': True,
     # Resume training or not
     'resume': True,
     # If resume is true, then we load this checkpoint. If '', we load the last checkpoint

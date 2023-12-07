@@ -62,10 +62,8 @@ def draw_bounding_boxes(image, boxes_batch, labels=None):
 
 
 class Checkpointer:
-    def __init__(self, checkpointdir, max_num, load_time_consistency=False, add_flow=False):
+    def __init__(self, checkpointdir, max_num,):
         self.max_num = max_num
-        self.load_time_consistency = load_time_consistency
-        self.add_flow = add_flow
         self.checkpointdir = checkpointdir
         if not osp.exists(checkpointdir):
             makedirs(checkpointdir)
@@ -115,20 +113,13 @@ class Checkpointer:
         assert osp.exists(path), f'Checkpoint {path} does not exist.'
         checkpoint = torch.load(path, map_location=device)
         checkpoint_model = checkpoint.pop('model')
-        # if self.add_flow:
-        #     for key in checkpoint_model:
-        #         if model.state_dict()[key].shape != checkpoint_model[key].shape:
-        #             print(key)
-        #             B, C, H, W = checkpoint_model[key].size()
-        #             flow_weights = torch.randn((B, 1, H, W)).to(checkpoint_model[key].device)
-        #             checkpoint_model[key] = torch.cat((checkpoint_model[key], flow_weights), dim=1)
         try:
             model.load_state_dict(checkpoint_model)
         except RuntimeError as rterr:
             model.space.load_state_dict(checkpoint_model)
-        if optimizer_fg and not self.add_flow:
+        if optimizer_fg:
             optimizer_fg.load_state_dict(checkpoint.pop('optimizer_fg'))
-        if optimizer_bg and not self.add_flow:
+        if optimizer_bg:
             optimizer_bg.load_state_dict(checkpoint.pop('optimizer_bg'))
         print('blue', f'Checkpoint "{path}" loaded.')
         return checkpoint

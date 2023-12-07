@@ -69,8 +69,7 @@ def train(cfg, rtpt_active=True):
     model = model.to(cfg.device)
     model.train() # set model to train mode
     optimizer_fg, optimizer_bg = get_optimizers(cfg, model)
-    checkpointer = Checkpointer(osp.join(cfg.checkpointdir, cfg.exp_name), max_num=cfg.train.max_ckpt,
-                                load_time_consistency=cfg.load_time_consistency, add_flow=cfg.add_flow)
+    checkpointer = Checkpointer(osp.join(cfg.checkpointdir, cfg.exp_name), max_num=cfg.train.max_ckpt,)
     moc_loss_instance = MOCLoss()
     start_epoch = 0
     global_step = 0

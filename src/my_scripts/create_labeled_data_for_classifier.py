@@ -47,15 +47,14 @@ cfg, task = get_config()
 
 TIME_CONSISTENCY = True
 #EXTRACT_IMAGES = False
-USE_FULL_SIZE = True
+#USE_FULL_SIZE = True
 
 
 # load model and configurations
 game = cfg.gamelist[0]
 model = get_model(cfg)
 model = model.to(cfg.device)
-checkpointer = Checkpointer(osp.join(cfg.checkpointdir, cfg.exp_name),
-                            max_num=cfg.train.max_ckpt, load_time_consistency=TIME_CONSISTENCY)
+checkpointer = Checkpointer(osp.join(cfg.checkpointdir, cfg.exp_name), max_num=cfg.train.max_ckpt,)
 if cfg.resume:
     checkpoint = checkpointer.load(cfg.resume_ckpt, model, None, None, cfg.device)
 
@@ -75,7 +74,7 @@ for i, (csv_file, image_file) in enumerate(zip(csv_files, image_files)): # Note:
     table = pd.read_csv(csv_path, header=None, index_col=None)
     image = open_image(image_path).to(cfg.device)
     with torch.no_grad():
-        loss, space_log = model.space(image, global_step=100000000)
+        loss, space_log = model(image, global_step=100000000)
     
     # (B, N, 4), (B, N, 1), (B, N, 32)
     z_where, z_pres, z_pres_prob, z_what = retrieve_latent_repr_from_logs(space_log)

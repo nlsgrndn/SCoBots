@@ -62,8 +62,7 @@ def load_space(cfg, z_classifier_path=None):
     use_cuda = 'cuda' in cfg.device
     if use_cuda:
         spacetime_model = spacetime_model.to('cuda:0')
-    checkpointer = Checkpointer(osp.join(cfg.checkpointdir, cfg.exp_name), max_num=cfg.train.max_ckpt,
-                                load_time_consistency=cfg.load_time_consistency, add_flow=cfg.add_flow)
+    checkpointer = Checkpointer(osp.join(cfg.checkpointdir, cfg.exp_name), max_num=cfg.train.max_ckpt,)
     optimizer_fg, optimizer_bg = get_optimizers(cfg, spacetime_model)
     if cfg.resume:
         checkpoint = checkpointer.load_last(cfg.resume_ckpt, spacetime_model, optimizer_fg, optimizer_bg, cfg.device)
@@ -71,7 +70,7 @@ def load_space(cfg, z_classifier_path=None):
             start_epoch = checkpoint['epoch']
             global_step = checkpoint['global_step'] + 1
 
-    space = spacetime_model.space
+    space = spacetime_model
     if z_classifier_path is None:
         z_classifier_path =  'classifiers/pong_model_000005001_z_what_classifier.joblib.pkl'
         #f"classifiers/{cfg.exp_name}_space{cfg.arch_type_desc}_seed{cfg.seed}_z_what_classifier.joblib.pkl"

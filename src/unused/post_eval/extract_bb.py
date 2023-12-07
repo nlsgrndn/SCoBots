@@ -43,8 +43,7 @@ USE_FULL_SIZE = True
 
 model = get_model(cfg)
 model = model.to(cfg.device)
-checkpointer = Checkpointer(osp.join(cfg.checkpointdir, cfg.exp_name),
-                            max_num=cfg.train.max_ckpt, load_time_consistency=TIME_CONSISTENCY)
+checkpointer = Checkpointer(osp.join(cfg.checkpointdir, cfg.exp_name), max_num=cfg.train.max_ckpt,)
 if cfg.resume:
     checkpoint = checkpointer.load(cfg.resume_ckpt, model, None, None, cfg.device)
 
