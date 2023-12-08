@@ -24,20 +24,57 @@ from eval.utils import plot_confusion_matrix
 
 
 class ZWhatEvaluator:
-    def __init__(self, cfg, title="", method="pca", indices=None, edgecolors=False, dim=2):
+    def __init__(self, cfg, title="", method="pca", indices=None,):
         print("Initializing ZWhatEvaluator with method", method)
         self.cfg = cfg
         self.title = title
         self.folder = f'{cfg.logdir}/{cfg.exp_name}'
         self.dim_red_path = f"{self.folder}/{method}{indices if indices else ''}_{title}_{cfg.arch_type}_s{cfg.seed}"
-        self.method = method
         self.indices = indices # 'The relevant objects by their index, e.g. \"0,1\" for Pacman and Sue')
-        self.N_NEIGHBORS = 24
-        self.DISPLAY_CENTROIDS = True
-        self.COLORS = ['black', 'r', 'g', 'b', 'c', 'm', 'y', 'pink', 'purple', 'orange',
-            'olive', 'brown', 'tomato', 'darkviolet', 'grey', 'chocolate']
-        self.edgecolors = edgecolors
-        self.dim = dim
+        self.z_what_plotter = ZWhatPlotter(cfg, self.folder, self.dim_red_path, method)
+
+    def evaluate_z_what(self, z_what, labels,):
+        """
+        This function evaluates the z_what encoding using PCA or t-SNE and plots the results.
+        :param z_what: (#objects, encoding_dim)self.title
+        :param labels: (#objects)
+        :return:
+            result: metrics
+            path: to pca or tsne image
+            accuracy: few shot accuracy
+        """
+        # Prepare data
+
+        data = self.prepare_data(z_what, labels)
+        if data is None:
+            self.z_what_plotter.no_z_whats_plots()
+            return Counter(), self.dim_red_path, Counter()
+        else:
+            relevant_labels, test_x, test_y, train_x, train_y = data
+        
+        # Create ridge classifiers
+        ridge_classifers = ZWhatClassifierCreator(self.cfg).create_ridge_classifiers(relevant_labels, train_x, train_y)
+        # Create K-means
+        k_means = ZWhatClassifierCreator(self.cfg).create_k_means(train_x, relevant_labels)
+        # Create NN classifier
+        nn_class, centroids, centroid_label= ZWhatClassifierCreator(self.cfg).nn_clf_based_on_k_means_centroids(k_means, train_x, train_y, relevant_labels)
+
+        # Eval
+        few_shot_accuracy = ZWhatClassifierEvaluator(self.cfg).evaluate_ridge_classifiers_few_shot_accuracy(test_x, test_y, ridge_classifers)
+        #mutual_info_scores, train_pred_y = ZWhatClassifierEvaluator(self.cfg).eval_k_means(train_x, train_y, k_means)
+        mutual_info_scores, test_pred_y = ZWhatClassifierEvaluator(self.cfg).eval_k_means(test_x, test_y, k_means)
+        few_shot_accuracy_cluster_nn = ZWhatClassifierEvaluator(self.cfg).nn_eval(nn_class, test_x, test_y)
+        few_shot_accuracy = {**few_shot_accuracy, **few_shot_accuracy_cluster_nn}
+
+        # Confusion matrix
+        cm, label_list = self.compute_confusion_matrix(nn_class, test_x, test_y) #TODO: check which classifier to use
+        plot_confusion_matrix(cm, label_list, path = f"{self.folder}/confusion_matrix_z_what_{self.title}.png")
+
+        # Visualize
+        #self.z_what_plotter.visualize_z_what(train_x, train_y, train_pred_y, centroids, centroid_label, relevant_labels)
+        self.z_what_plotter.visualize_z_what(test_x, test_y, test_pred_y, centroids, centroid_label, relevant_labels)
+
+        return mutual_info_scores, self.dim_red_path, few_shot_accuracy
 
     def prepare_data(self, z_what, labels,):
         c = Counter(labels.tolist() if labels is not None else [])
@@ -56,48 +93,6 @@ class ZWhatEvaluator:
         
         return relevant_labels, test_x, test_y, train_x, train_y
 
-    def evaluate_z_what(self, z_what, labels,):
-        """
-        This function evaluates the z_what encoding using PCA or t-SNE and plots the results.
-        :param z_what: (#objects, encoding_dim)
-        :param labels: (#objects)
-        :return:
-            result: metrics
-            path: to pca or tsne image
-            accuracy: few shot accuracy
-        """
-        # Prepare data
-
-        data = self.prepare_data(z_what, labels)
-        if data is None:
-            self.no_z_whats_plots()
-            return Counter(), self.dim_red_path, Counter()
-        else:
-            relevant_labels, test_x, test_y, train_x, train_y = data
-        
-        # Create classifiers
-        ridge_classifers = ZWhatClassifierCreator(self.cfg).create_ridge_classifiers(relevant_labels, train_x, train_y)
-        # Create K-means
-        k_means = ZWhatClassifierCreator(self.cfg).create_k_means(z_what, relevant_labels) #TODO: pass train_x instead of z_what to ensure that the test set is not used for clustering
-        # Create NN classifier
-        nn_class, centroids, centroid_label= ZWhatClassifierCreator(self.cfg).nn_clf_based_on_k_means_centroids(k_means, labels, relevant_labels, train_x, self.N_NEIGHBORS)
-
-        # Eval
-        few_shot_accuracy = ZWhatClassifierCreator(self.cfg).evaluate_ridge_classifiers_few_shot_accuracy(test_x, test_y, ridge_classifers)
-        mutual_info_scores, y = ZWhatClassifierCreator(self.cfg).eval_k_means(z_what, labels, k_means)
-        few_shot_accuracy_cluster_nn = ZWhatClassifierCreator(self.cfg).nn_eval(nn_class, test_x, test_y)
-        few_shot_accuracy = {**few_shot_accuracy, **few_shot_accuracy_cluster_nn}
-
-        # Confusion matrix
-        cm, label_list = self.compute_confusion_matrix(nn_class, test_x, test_y) #TODO: check which classifier to use
-        plot_confusion_matrix(cm, label_list, path = f"{self.folder}/confusion_matrix_z_what_{self.title}.png")
-
-        # Visualize
-        self.visualize_z_what(z_what, labels, y, centroids, centroid_label, relevant_labels)
-
-        return mutual_info_scores, self.dim_red_path, few_shot_accuracy
-    
-
     def compute_confusion_matrix(self, clf, inputs, labels):
         """
         Compute the confusion matrix for a given classifier
@@ -113,8 +108,7 @@ class ZWhatEvaluator:
         cm = metrics.confusion_matrix(labels, y_pred, labels=label_list_idx)
         return cm, label_list
         
-    @staticmethod
-    def train_test_split(z_what, labels, train_portion=0.9):
+    def train_test_split(self, z_what, labels, train_portion=0.9):
         nb_sample = int(train_portion * len(labels))
         train_x = z_what[:nb_sample]
         train_y = labels[:nb_sample]
@@ -122,12 +116,25 @@ class ZWhatEvaluator:
         test_y = labels[nb_sample:]
         return train_x, train_y, test_x, test_y
 
-    @staticmethod
-    def only_keep_relevant_data(z_what, labels, relevant_labels):
+    def only_keep_relevant_data(sefl, z_what, labels, relevant_labels):
         relevant = torch.zeros(labels.shape, dtype=torch.bool)
         for rl in relevant_labels:
             relevant |= labels == rl
         return z_what[relevant], labels[relevant]
+
+class ZWhatPlotter:
+
+    def __init__(self, cfg, folder, dim_red_path, method="pca"):
+        print("Initializing ZWhatPlotter with method", method)
+        self.cfg = cfg
+        self.folder = folder
+        self.dim_red_path = dim_red_path
+        self.method = method
+        self.DISPLAY_CENTROIDS = True
+        self.COLORS = ['black', 'r', 'g', 'b', 'c', 'm', 'y', 'pink', 'purple', 'orange',
+            'olive', 'brown', 'tomato', 'darkviolet', 'grey', 'chocolate']
+        self.edgecolors = False #True iff the ground truth labels and the predicted labels ''(Mixture of some greedy policy and NN) should be drawn in the same image
+        self.dim = 2 # Number of dimension for PCA/TSNE visualization
 
     def visualize_z_what(self, z_what, labels, y, centroids, centroid_label, relevant_labels):
         z_what_emb, centroid_emb, dim_name = self.perform_dimensionality_reduction(z_what, centroids) # either PCA or TSNE
@@ -164,7 +171,7 @@ class ZWhatEvaluator:
             dim_name = "t-SNE"
         return z_what_emb, centroid_emb, dim_name
 
-    def non_edgecolor_visualization(self,relevant_labels, label_list, y, centroid_label, sorted, z_what_emb, centroid_emb, dim_name):
+    def non_edgecolor_visualization(self, relevant_labels, label_list, y, centroid_label, sorted, z_what_emb, centroid_emb, dim_name):
         fig, axs = plt.subplots(2, 1)
         fig.set_size_inches(8, 15)
         axs[0].set_title("Ground Truth Labels", fontsize=20)
@@ -274,9 +281,40 @@ class ZWhatEvaluator:
         print(colored(f"Saved empty {self.method} images in {self.dim_red_path}", "red"))
         plt.close(fig)
 
+class ZWhatClassifierEvaluator:
+
+    few_shot_values = [1, 4, 16, 64]
+    def __init__(self, cfg):
+        self.cfg = cfg
+        os.makedirs(f'{self.cfg.logdir}/{self.cfg.exp_name}', exist_ok=True)
+        os.makedirs(f'classifiers', exist_ok=True)
+
+    def evaluate_ridge_classifiers_few_shot_accuracy(self, test_x, test_y, classifiers):
+        few_shot_accuracy = {}
+        for training_objects_per_class in ZWhatClassifierCreator.few_shot_values:
+            clf = classifiers[training_objects_per_class]
+            acc = clf.score(test_x, test_y)
+            few_shot_accuracy[f'few_shot_accuracy_with_{training_objects_per_class}'] = acc
+        return few_shot_accuracy
+
+    def eval_k_means(self,z_what, labels, k_means):
+        y =k_means.predict(z_what)
+        results = {
+            'adjusted_mutual_info_score': metrics.adjusted_mutual_info_score(labels, y),
+            'adjusted_rand_score': metrics.adjusted_rand_score(labels, y),
+        }
+        return results, y
+
+    def nn_eval(self, nn_class, test_x, test_y):
+        few_shot_accuracy_cluster_nn = {'few_shot_accuracy_cluster_nn' : nn_class.score(test_x, test_y)}
+        return few_shot_accuracy_cluster_nn
+
+
 class ZWhatClassifierCreator:
 
     few_shot_values = [1, 4, 16, 64]
+    N_NEIGHBORS = 24
+
     def __init__(self, cfg):
         self.cfg = cfg
         os.makedirs(f'{self.cfg.logdir}/{self.cfg.exp_name}', exist_ok=True)
@@ -305,32 +343,18 @@ class ZWhatClassifierCreator:
         print(f"Saved classifiers in {save_path}")
         return classifiers
 
-    def evaluate_ridge_classifiers_few_shot_accuracy(self, test_x, test_y, classifiers):
-        few_shot_accuracy = {}
-        for training_objects_per_class in ZWhatClassifierCreator.few_shot_values:
-            clf = classifiers[training_objects_per_class]
-            acc = clf.score(test_x, test_y)
-            few_shot_accuracy[f'few_shot_accuracy_with_{training_objects_per_class}'] = acc
-        return few_shot_accuracy
-
     def create_k_means(self, z_what, relevant_labels):
         k_means = KMeans(n_clusters=len(relevant_labels))
         k_means.fit(z_what)
         return k_means
 
-    def eval_k_means(self,z_what, labels, k_means):
-        y =k_means.predict(z_what)
-        results = {
-            'adjusted_mutual_info_score': metrics.adjusted_mutual_info_score(labels, y),
-            'adjusted_rand_score': metrics.adjusted_rand_score(labels, y),
-        }
-        return results, y
 
-    def nn_clf_based_on_k_means_centroids(self, k_means, labels, relevant_labels, train_x, n_neighbors):
+    # high level: essentially assign semantic labels to k_means centroids instead of just enumerating the clusters
+    def nn_clf_based_on_k_means_centroids(self, k_means, train_x, train_y, relevant_labels):
         # Assign a label to each cluster centroid
         centroids = k_means.cluster_centers_
         X = train_x.numpy()
-        n_neighbors = min(n_neighbors, len(X))
+        n_neighbors = min(self.N_NEIGHBORS, len(X))
         nn = NearestNeighbors(n_neighbors=n_neighbors).fit(X)
         _, z_w_idx = nn.kneighbors(centroids)
         centroid_label = []
@@ -338,7 +362,7 @@ class ZWhatClassifierCreator:
             count = {rl: 0 for rl in relevant_labels}
             added = False
             for i in range(n_neighbors):
-                nei_label = labels[nei[i]].item()
+                nei_label = train_y[nei[i]].item()
                 count[nei_label] += 1
                 if count[nei_label] > 6.0 / (i + 1) if nei_label in centroid_label else 3.0 / (i + 1):
                     centroid_label.append(nei_label)
@@ -350,32 +374,4 @@ class ZWhatClassifierCreator:
         # Train a K-nearest neighbors classifier on the centroids
         nn_class = KNeighborsClassifier(n_neighbors=1)
         nn_class.fit(centroids, centroid_label)
-        return nn_class, centroids, centroid_label 
-
-    def nn_eval(self, nn_class, test_x, test_y):
-        few_shot_accuracy_cluster_nn = {'few_shot_accuracy_cluster_nn' : nn_class.score(test_x, test_y)}
-        return few_shot_accuracy_cluster_nn
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Evaluate the z_what encoding')
-    parser.add_argument('-edgecolors', type=bool, default=True,
-                        help='True iff the ground truth labels and the predicted labels '
-                             '(Mixture of some greedy policy and NN) should be drawn in the same image')
-    parser.add_argument('-dim', type=int, choices=[2, 3], default=2,
-                        help='Number of dimension for PCA/TSNE visualization')
-    args = parser.parse_args()
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    nb_used_sample = 500
-
-    # z_what_train = torch.randn((400, 32))
-    # train_labels = torch.randint(high=8, size=(400,))
-    #z_what_train = torch.load(f"labeled/z_what_validation.pt")
-    #train_labels = torch.load(f"labeled/labels_validation.pt")
-    # same but with train
-    z_what_train = torch.load(f"labeled/z_what_train.pt")
-    train_labels = torch.load(f"labeled/labels_train.pt")
-    cfg = None #TODO fix
-    z_what_evaluator = ZWhatEvaluator(cfg, method="pca", indices="0,1", edgecolors = args.edgecolors, dim=args.dim)
-    z_what_evaluator.evaluate_z_what(cfg, z_what_train, train_labels, nb_used_sample,)
+        return nn_class, centroids, centroid_label

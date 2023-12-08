@@ -12,5 +12,7 @@ nb_used_sample = 32
 dataset_mode  = "test"
 z_what_train = torch.load(f"labeled/pong/z_what_{dataset_mode}.pt")
 train_labels = torch.load(f"labeled/pong/labels_{dataset_mode}.pt")
-z_what_evaluator = ZWhatEvaluator(cfg, indices = None, dim = 2, edgecolors = True)
-z_what_evaluator.evaluate_z_what(z_what_train, train_labels, nb_used_sample, cfg=cfg)
+z_what_train = z_what_train[:nb_used_sample]
+train_labels = train_labels[:nb_used_sample]
+z_what_evaluator = ZWhatEvaluator(cfg)
+z_what_evaluator.evaluate_z_what(z_what_train, train_labels)

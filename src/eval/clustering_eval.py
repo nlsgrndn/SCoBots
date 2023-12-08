@@ -70,7 +70,7 @@ class ClusteringEval:
         """
         z_encs, z_whats, all_labels, all_labels_moving, image_refs = self.collect_data(logs, dataset, global_step, cfg)
 
-        args = {'method': 'PCA', 'indices': None, 'dim': 2, 'edgecolors': False} # method was set to k-means before
+        args = {'method': 'PCA', 'indices': None} # method was set to k-means before
         if z_whats:
             z_whats = torch.stack(z_whats).detach().cpu()
             all_labels_relevant_idx, all_labels_relevant = dataset.to_relevant(all_labels_moving) # simply removes all no_label objects
