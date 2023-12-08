@@ -31,6 +31,7 @@ cfg = CfgNode({
         'OBJ3D_SMALL': '../data/OBJ3D_SMALL',
     },
 
+    'z_what_classifier_path': '', # should be overwritten in respective cfg files #TODO check whether better to put in cfg or in model
     # For Atari
     'gamelist': [
         'Atlantis-v0',

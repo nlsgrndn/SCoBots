@@ -20,12 +20,14 @@ import numpy as np
 import joblib
 from termcolor import colored
 from sklearn.manifold import TSNE
+from eval.utils import plot_confusion_matrix
 
 
 class ZWhatEvaluator:
     def __init__(self, cfg, title="", method="pca", indices=None, edgecolors=False, dim=2):
         print("Initializing ZWhatEvaluator with method", method)
         self.cfg = cfg
+        self.title = title
         self.folder = f'{cfg.logdir}/{cfg.exp_name}'
         self.dim_red_path = f"{self.folder}/{method}{indices if indices else ''}_{title}_{cfg.arch_type}_s{cfg.seed}"
         self.method = method
@@ -51,12 +53,8 @@ class ZWhatEvaluator:
 
         if len(c) < 2 or len(torch.unique(train_y)) < 2:
             return None
-
-        # Set up dictionaries to store the z_what and labels for each game
-        z_what_by_game = {rl: train_x[train_y == rl] for rl in relevant_labels}
-        labels_by_game = {rl: train_y[train_y == rl] for rl in relevant_labels}
-
-        return relevant_labels, z_what_by_game, labels_by_game, test_x, test_y, train_x, train_y
+        
+        return relevant_labels, test_x, test_y, train_x, train_y
 
     def evaluate_z_what(self, z_what, labels,):
         """
@@ -75,12 +73,12 @@ class ZWhatEvaluator:
             self.no_z_whats_plots()
             return Counter(), self.dim_red_path, Counter()
         else:
-            relevant_labels, z_what_by_game, labels_by_game, test_x, test_y, train_x, train_y = data
+            relevant_labels, test_x, test_y, train_x, train_y = data
         
         # Create classifiers
-        ridge_classifers = ZWhatClassifierCreator(self.cfg).create_ridge_classifiers(relevant_labels, z_what_by_game, labels_by_game)
+        ridge_classifers = ZWhatClassifierCreator(self.cfg).create_ridge_classifiers(relevant_labels, train_x, train_y)
         # Create K-means
-        k_means = ZWhatClassifierCreator(self.cfg).create_k_means(z_what, relevant_labels)
+        k_means = ZWhatClassifierCreator(self.cfg).create_k_means(z_what, relevant_labels) #TODO: pass train_x instead of z_what to ensure that the test set is not used for clustering
         # Create NN classifier
         nn_class, centroids, centroid_label= ZWhatClassifierCreator(self.cfg).nn_clf_based_on_k_means_centroids(k_means, labels, relevant_labels, train_x, self.N_NEIGHBORS)
 
@@ -90,11 +88,31 @@ class ZWhatEvaluator:
         few_shot_accuracy_cluster_nn = ZWhatClassifierCreator(self.cfg).nn_eval(nn_class, test_x, test_y)
         few_shot_accuracy = {**few_shot_accuracy, **few_shot_accuracy_cluster_nn}
 
+        # Confusion matrix
+        cm, label_list = self.compute_confusion_matrix(nn_class, test_x, test_y) #TODO: check which classifier to use
+        plot_confusion_matrix(cm, label_list, path = f"{self.folder}/confusion_matrix_z_what_{self.title}.png")
+
         # Visualize
         self.visualize_z_what(z_what, labels, y, centroids, centroid_label, relevant_labels)
 
         return mutual_info_scores, self.dim_red_path, few_shot_accuracy
     
+
+    def compute_confusion_matrix(self, clf, inputs, labels):
+        """
+        Compute the confusion matrix for a given classifier
+        :param clf: classifier
+        :param inputs: inputs
+        :param labels: labels
+        :return: confusion matrix
+        """
+        y_pred = clf.predict(inputs)
+        labels = labels.numpy()
+        label_list_idx = list(Counter(np.concatenate((labels, y_pred))).keys())
+        label_list = [get_label_list(self.cfg)[i] for i in label_list_idx]
+        cm = metrics.confusion_matrix(labels, y_pred, labels=label_list_idx)
+        return cm, label_list
+        
     @staticmethod
     def train_test_split(z_what, labels, train_portion=0.9):
         nb_sample = int(train_portion * len(labels))
@@ -264,11 +282,15 @@ class ZWhatClassifierCreator:
         os.makedirs(f'{self.cfg.logdir}/{self.cfg.exp_name}', exist_ok=True)
         os.makedirs(f'classifiers', exist_ok=True)
 
-    def create_ridge_classifiers(self, relevant_labels, z_what_by_game, labels_by_game):
+    def create_ridge_classifiers(self, relevant_labels, train_x, train_y):
+        # separate the data by class label
+        z_what_by_class_label = {rl: train_x[train_y == rl] for rl in relevant_labels}
+        labels_by_class_label = {rl: train_y[train_y == rl] for rl in relevant_labels}
+
         classifiers = {}
         for training_objects_per_class in ZWhatClassifierCreator.few_shot_values:
-            current_train_sample = torch.cat([z_what_by_game[rl][:training_objects_per_class] for rl in relevant_labels])
-            current_train_labels = torch.cat([labels_by_game[rl][:training_objects_per_class] for rl in relevant_labels])
+            current_train_sample = torch.cat([z_what_by_class_label[rl][:training_objects_per_class] for rl in relevant_labels])
+            current_train_labels = torch.cat([labels_by_class_label[rl][:training_objects_per_class] for rl in relevant_labels])
             clf = RidgeClassifier()
             clf.fit(current_train_sample, current_train_labels)
             classifiers[training_objects_per_class] = clf
@@ -333,12 +355,6 @@ class ZWhatClassifierCreator:
     def nn_eval(self, nn_class, test_x, test_y):
         few_shot_accuracy_cluster_nn = {'few_shot_accuracy_cluster_nn' : nn_class.score(test_x, test_y)}
         return few_shot_accuracy_cluster_nn
-    
-# all_train_labels = pd.read_csv(f"../aiml_atari_data/rgb/MsPacman-v0/train_labels.csv")
-# all_validation_labels = pd.read_csv(f"../aiml_atari_data/rgb/MsPacman-v0/validation_labels.csv")
-
-# label_list = ["pacman", 'sue', 'inky', 'pinky', 'blinky', "blue_ghost",
-#               "white_ghost", "fruit", "save_fruit", "life", "life2", "score0"]
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Evaluate the z_what encoding')
