@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 import matplotlib
-from utils import spatial_transform
+from model.space.utils import spatial_transform
 from .utils import bbox_in_one, colored_bbox_in_one_image
 from attrdict import AttrDict
 from torchvision.utils import make_grid
@@ -13,7 +13,7 @@ from collections import Counter
 from torchvision.utils import draw_bounding_boxes as draw_bb
 from PIL import Image
 import PIL
-from eval.ap import read_boxes
+from eval.data_reading import read_boxes
 from model.space.postprocess_latent_variables import convert_to_boxes
 import math
 

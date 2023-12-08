@@ -1,5 +1,5 @@
 from model import get_model
-from eval import get_evaluator
+from eval.space_eval import SpaceEval
 from dataset import get_dataset, get_dataloader
 from solver import get_optimizers
 from checkpointer import Checkpointer
@@ -60,11 +60,7 @@ def train(cfg, rtpt_active=True):
     # data loading
     dataset = get_dataset(cfg, 'train')
     trainloader = get_dataloader(cfg, 'train')
-    if cfg.train.eval_on:
-        valset = get_dataset(cfg, 'val')
-        # valloader = get_dataloader(cfg, 'val')
-        evaluator = get_evaluator(cfg)
-    
+
     # model loading
     model = get_model(cfg)
     model = model.to(cfg.device)
@@ -87,10 +83,14 @@ def train(cfg, rtpt_active=True):
     log_path = os.path.join(cfg.logdir, cfg.exp_name)
     if os.path.exists(log_path) and len(log_path) > 15 and cfg.logdir and cfg.exp_name and str(cfg.seed):
         shutil.rmtree(log_path)
-    writer = SummaryWriter(log_dir=log_path, flush_secs=30,
-                           purge_step=global_step)
+    tb_writer = SummaryWriter(log_dir=log_path, flush_secs=30,
+                           purge_step=global_step) #tb refers to tensorboard
     vis_logger = get_vislogger(cfg)
     metric_logger = MetricLogger()
+    if cfg.train.eval_on:
+        valset = get_dataset(cfg, 'val')
+        # valloader = get_dataloader(cfg, 'val')
+        evaluator = SpaceEval(cfg, tb_writer)
     
     # initialize variables for training loop
     print(f'Start training, Global Step: {global_step}, Start Epoch: {start_epoch} Max: {cfg.train.max_steps}')
@@ -114,7 +114,7 @@ def train(cfg, rtpt_active=True):
                 print('Validating...')
                 start = time.perf_counter()
                 eval_checkpoint = [model, optimizer_fg, optimizer_bg, epoch, global_step]
-                results = evaluator.eval(model, valset, valset.bb_path, writer, global_step, cfg.device, cfg)
+                results = evaluator.eval(model, valset, valset.bb_path, global_step, cfg.device, cfg)
                 checkpointer.save_best("precision_relevant", results["precision_relevant"], eval_checkpoint, min_is_better=False)
                 print('Validation takes {:.4f}s.'.format(time.perf_counter() - start))
             
@@ -148,7 +148,7 @@ def train(cfg, rtpt_active=True):
                 log.update({
                     'loss': metric_logger['loss'].median,
                 })
-                vis_logger.train_vis(model, writer, log, global_step, 'train', cfg, dataset)
+                vis_logger.train_vis(model, tb_writer, log, global_step, 'train', cfg, dataset)
 
             # checkpointing
             if global_step % cfg.train.save_every == 0: # save checkpoint
@@ -165,7 +165,7 @@ def train(cfg, rtpt_active=True):
                 if cfg.train.eval_on:
                     print('Final evaluation on validation set...')
                     start = time.perf_counter()
-                    evaluator.eval(model, valset, valset.bb_path, writer, global_step,
+                    evaluator.eval(model, valset, valset.bb_path, global_step,
                                               cfg.device, cfg)
                     print('Validation takes {:.4f}s.'.format(time.perf_counter() - start))
                 

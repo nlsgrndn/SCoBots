@@ -26,7 +26,7 @@ from torch.utils.data import Subset, DataLoader
 from src.unused.post_eval.extract_bb_utils import draw_bounding_boxes
 from torchvision.transforms.functional import crop
 import torch
-from eval.ap import read_boxes, compute_ap, compute_counts
+from eval.ap import compute_ap, compute_counts
 from tqdm import tqdm
 from termcolor import colored
 import pandas as pd

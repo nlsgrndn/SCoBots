@@ -1,5 +1,5 @@
 from model import get_model
-from eval import get_evaluator #comes from __init__.py
+from eval.space_eval import SpaceEval
 from dataset import get_dataset, get_dataloader
 from checkpointer import Checkpointer
 import os
@@ -32,7 +32,11 @@ def eval(cfg):
     model = get_model(cfg)
     model = model.to(cfg.device)
     checkpointer = Checkpointer(osp.join(cfg.checkpointdir, cfg.exp_name), max_num=cfg.train.max_ckpt)
-    evaluator = get_evaluator(cfg)
+    log_path = os.path.join(cfg.logdir, cfg.exp_name)
+    global_step = 100000
+    tb_writer = SummaryWriter(log_dir=log_path, flush_secs=30,
+                           purge_step=global_step) # tb refers to tensorboard
+    evaluator = SpaceEval(cfg, tb_writer)
     model.eval()
 
     if cfg.resume_ckpt:
@@ -45,9 +49,5 @@ def eval(cfg):
         assert 'cpu' not in cfg.device
         model = nn.DataParallel(model, device_ids=cfg.device_ids)
 
-    log_path = os.path.join(cfg.logdir, cfg.exp_name)
-    global_step = 100000
-    writer = SummaryWriter(log_dir=log_path, flush_secs=30,
-                           purge_step=global_step)
-    evaluator.eval(model, testset, testset.bb_path, writer, global_step,
+    evaluator.eval(model, testset, testset.bb_path, global_step,
                         cfg.device, cfg)
