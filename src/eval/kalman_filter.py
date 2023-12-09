@@ -1,9 +1,6 @@
 import numpy as np
 from filterpy.kalman import KalmanFilter
 from filterpy.common import Q_discrete_white_noise
-from scipy.optimize import linear_sum_assignment
-from scipy.spatial.distance import pdist
-from scipy.spatial.distance import squareform
 from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import LogisticRegression, LinearRegression, SGDClassifier, RidgeClassifier
 from sklearn.metrics import accuracy_score
@@ -23,6 +20,7 @@ from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.metrics import confusion_matrix
 import torch
 import time
+from bbox_matching import hungarian_matching
 
 # License: BSD 3 clause
 # Options for incorporating labels:
@@ -69,21 +67,25 @@ def classify_encodings(cfg, observations, labels, few_shot=4):
     """
 
     flat_obs = flatten(observations).detach().cpu()
-    if flat_obs.nelement() / 36 < len(observations) * 4:
+    if flat_obs.nelement() / 36 < len(observations) * 4: # Why 36? -> 4 (dim of z_where) + 32 (dim of z_what) (my best guess)
         return 0
     b_classifier, b_score, relevant_labels, scaler = basic_classifier(cfg,
                                                                       flat_obs.numpy(),
                                                                       flatten(labels).detach().cpu().numpy(),
                                                                       few_shot=few_shot) # uses random forest
     np.set_printoptions(suppress=True)
-    filter_size = len(relevant_labels) + 3
+    filter_size = len(relevant_labels) + 3 # +1 for not an object; +2 position variables
+    # Note: filter_size is the dimension of the state vector
+    # Note: using one dimension for each class, seems to be a bit of a waste/not what kalman filters are for
+    #       BUT maybe it makes sense when each class is seen as a continuous probability 
     test_labels = []
     test_predictions = []
     test_predictions_non_kalman = []
     assignment = None
     target_classes = [-1] + [c for c in b_classifier.classes_]
     for data_point, label_point in zip(observations, labels):
-        filters = [default_kalman(filter_size) for _ in range(max([len(objects) for objects in data_point]) + 1)]
+        
+        filters = [default_kalman(filter_size) for _ in range(max([len(objects) for objects in data_point]) + 1)] 
         c_obj = None
 
         for objects in data_point:
@@ -132,18 +134,6 @@ def default_kalman(filter_size):
     kalman_filter.Q = np.eye(filter_size) * 0.5
     kalman_filter.H = np.eye(filter_size)
     return kalman_filter
-
-
-def hungarian_matching(x, obs):
-    cost = distance_matrix(x, obs)
-    row_ind, col_ind = linear_sum_assignment(cost)
-    return col_ind, cost[row_ind, col_ind]
-
-
-def distance_matrix(x, obs):
-    distances = squareform(pdist(np.append(x, obs, axis=0)))
-    return distances[len(x):, :len(x)]
-
 
 def step(filters, objects, probabilities, filter_size, test_labels):
     x = np.array([f.x[:2] for f in filters])  # filter positions
