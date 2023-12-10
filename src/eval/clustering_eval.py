@@ -82,10 +82,11 @@ class ClusteringEval:
             z_whats_relevant = z_whats[flatten(all_labels_relevant_idx)]
 
             # call evaluate_z_what for all, moving and relevant objects
+            print(z_whats.shape)
             print("number of objects for classification: ")
             print("all: ", len(z_whats))
-            print("moving: ", len(flatten(z_whats)))
-            print("relevant: ", len(flatten(z_whats_relevant)))
+            print("moving: ", len(z_whats))
+            print("relevant: ", len(z_whats_relevant))
             all_objects = ZWhatEvaluator(cfg, title= "all", **args).evaluate_z_what(z_whats, flatten(all_labels),)
             moving_objects = ZWhatEvaluator(cfg, title= "moving", **args).evaluate_z_what(z_whats, flatten(all_labels_moving),)
             relevant_objects = ZWhatEvaluator(cfg, title= "relevant", **args).evaluate_z_what(z_whats_relevant, flatten(all_labels_relevant),)
