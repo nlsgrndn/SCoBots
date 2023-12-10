@@ -37,6 +37,9 @@ class SpaceEval:
             - cluster metrics evaluated on dataset
         :return:
         """
+        print("##################################################")
+        print("dataset length: ", len(dataset), "number of images", len(dataset) * 4)
+        print("##################################################")
         if self.first_eval:
             self.first_eval = False
             self.set_and_make_directories(self.eval_file_path, self.relevant_object_hover_path)

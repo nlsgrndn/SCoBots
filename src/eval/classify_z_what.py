@@ -57,7 +57,6 @@ class ZWhatEvaluator:
         ridge_classifers = ZWhatClassifierCreator(self.cfg).create_ridge_classifiers(relevant_labels, train_x, train_y)
         # Create K-means
         k_means = ZWhatClassifierCreator(self.cfg).create_k_means(train_x, relevant_labels)
-        print (f"datapoints for k-means for {self.title}: {len(train_x)}")
         # Create NN classifier
         nn_class, centroids, centroid_label= ZWhatClassifierCreator(self.cfg).nn_clf_based_on_k_means_centroids(k_means, train_x, train_y, relevant_labels)
 
