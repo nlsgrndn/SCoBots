@@ -17,18 +17,21 @@ class ClusteringEval:
         self.relevant_object_hover_path = relevant_object_hover_path
     
     def collect_data(self, logs, dataset, global_step, cfg):
+
+        num_samples = min(len(dataset), eval_cfg.train.num_samples.cluster)
+        num_batches = num_samples // eval_cfg.train.batch_size
+        batch_size = eval_cfg.train.batch_size
         z_encs = []
         z_whats = []
         all_labels = []
         all_labels_moving = []
         image_refs = []
-        batch_size = eval_cfg.train.batch_size
+
         img_path = os.path.join(dataset.image_path, dataset.dataset_mode)
 
         # create "dataset": z_encs, z_whats, all_labels, all_labels_moving
         # z_enc: list of lists of tensors of shape (N, 4) where N is the number of objects in the image
-        for i, img in enumerate(logs):
-
+        for i, img in enumerate(logs[:num_batches]):
             # retrieve logged latent variables
             z_where, z_pres, z_pres_prob, z_what = retrieve_latent_repr_from_logs(img)
             if not (0.05 <= z_pres.sum() / batch_size <= 60 * 4):
@@ -41,11 +44,13 @@ class ClusteringEval:
             z_whats.extend(z_what[z_pres])
 
             # collect what and where latent variables
-            # 4 because 4 consecutive images in the batch
-            for j in range(len(z_pres_prob) // 4):
+            # store z_encs as list of lists where each inner list contains the z_where and z_what encodings of 4 consecutive frames
+            nr_of_consecutive_frames = 4
+            for j in range(batch_size):
                 datapoint_encs = []
-                for k in range(4):
-                    z_wr, z_pr, z_wt = z_where[j * 4 + k], z_pres_prob[j * 4 + k], z_what[j * 4 + k]
+                for k in range(nr_of_consecutive_frames):
+                    index = j * nr_of_consecutive_frames + k
+                    z_wr, z_pr, z_wt = z_where[index], z_pres_prob[index], z_what[index]
                     z_pr = z_pr.squeeze() > 0.5
                     datapoint_encs.append(torch.cat([z_wr[z_pr], z_wt[z_pr]], dim=1))
                 z_encs.append(datapoint_encs)

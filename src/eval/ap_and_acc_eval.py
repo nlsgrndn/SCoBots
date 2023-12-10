@@ -34,7 +34,7 @@ class ApAndAccEval():
         # collect and generate predicted bounding boxes
         boxes_pred = []
         boxes_pred_relevant = []
-        num_batches = min(len(dataset), eval_cfg.train.num_samples.cluster) // eval_cfg.train.batch_size
+        num_batches = num_samples // eval_cfg.train.batch_size
         for img in logs[:num_batches]:
             z_where, z_pres, z_pres_prob, _ = retrieve_latent_repr_from_logs(img)
             boxes_batch = convert_to_boxes(z_where, z_pres, z_pres_prob, with_conf=True)

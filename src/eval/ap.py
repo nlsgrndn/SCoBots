@@ -1,4 +1,5 @@
 import numpy as np
+from bbox_matching import compute_iou, compute_misalignment
 
 
 def compute_counts(boxes_pred, boxes_gt):
@@ -192,51 +193,3 @@ def compute_prec_rec(pred_boxes, gt_boxes, threshold_values):
             precisions_at_thresholds[i] = precision[index]
             recalls_at_thresholds[i] = recall[index]
     return precision[-1], recall[-1], precisions_at_thresholds, recalls_at_thresholds
-
-
-def compute_iou(pred, gt):
-    """
-
-    :param pred: (M, 4), (y_min, y_max, x_min, x_max)
-    :param gt: (N, 4)
-    :return: (M, N)
-    """
-    compute_area = lambda b: (b[:, 1] - b[:, 0]) * (b[:, 3] - b[:, 2])
-
-    area_pred = compute_area(pred)[:, None]
-    area_gt = compute_area(gt)[None, :]
-    # (M, 1, 4), (1, N, 4)
-    pred = pred[:, None]
-    gt = gt[None, :]
-    # (M, 1) (1, N)
-
-    # (M, N)
-    top = np.maximum(pred[:, :, 0], gt[:, :, 0])
-    bottom = np.minimum(pred[:, :, 1], gt[:, :, 1])
-    left = np.maximum(pred[:, :, 2], gt[:, :, 2])
-    right = np.minimum(pred[:, :, 3], gt[:, :, 3])
-
-    h_inter = np.maximum(0.0, bottom - top)
-    w_inter = np.maximum(0.0, right - left)
-    # (M, N)
-    area_inter = h_inter * w_inter
-    iou = area_inter / (area_pred + area_gt - area_inter)
-
-    return iou
-
-
-def compute_diagonal(bbs):
-    return np.sqrt((bbs[:, 1] - bbs[:, 0]) ** 2 + (bbs[:, 3] - bbs[:, 2]) ** 2)
-
-
-def compute_misalignment(pred, gt):
-    diagonal_gt = compute_diagonal(gt)
-    center_pred = np.column_stack([(pred[:, 0] + pred[:, 1]) / 2, (pred[:, 2] + pred[:, 3]) / 2])[:, None, :]
-    center_gt = np.column_stack([(gt[:, 0] + gt[:, 1]) / 2, (gt[:, 2] + gt[:, 3]) / 2])[None, :, :]
-    delta_bbs = np.concatenate([
-        np.repeat(center_pred, len(gt), axis=1),
-        np.repeat(center_gt, len(pred), axis=0)
-    ], axis=2)
-    delta_bbs[:, :, [1, 2]] = delta_bbs[:, :, [2, 1]]
-    diagonal_pair = compute_diagonal(delta_bbs.reshape((-1, 4))).reshape((len(pred), len(gt)))
-    return np.maximum(0, 1 - diagonal_pair / diagonal_gt)
