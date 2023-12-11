@@ -16,7 +16,8 @@ import os
 import torch
 import pandas as pd
 import joblib
-from dataset.labels import label_list_for
+from dataset.atari_labels import label_list_for
+from bbox_matching import match_bounding_boxes_z_what
 
 def get_label_predictions(classifier, z_what):
     return classifier.predict(z_what)
@@ -40,8 +41,9 @@ path_with_images = os.path.join(cfg.dataset_roots.ATARI, game, "space_like", fol
 csv_files = sorted(os.listdir(path_with_csvs))
 image_files = sorted(os.listdir(path_with_images))
 
-actual_bbs = []
-predicted_bbs = []
+actual_bbs_and_label = []
+predicted_bbs_and_label = []
+predicted_bbs_and_z_what = []
 # Iterate over the files and open/process them
 for i, (csv_file, image_file) in enumerate(zip(csv_files, image_files)): # Note: all images are processed one by one
     csv_path = os.path.join(path_with_csvs, csv_file)
@@ -54,7 +56,7 @@ for i, (csv_file, image_file) in enumerate(zip(csv_files, image_files)): # Note:
     table = table.drop(columns=[4])
     # convert to numpy array
     table = table.to_numpy()
-    actual_bbs.append(table)
+    actual_bbs_and_label.append(table)
 
     image = open_image(image_path).to(cfg.device)
     with torch.no_grad():
@@ -65,23 +67,49 @@ for i, (csv_file, image_file) in enumerate(zip(csv_files, image_files)): # Note:
     z_what_pres = z_what[z_pres]
 
     # retrieve labels and bounding
-    from dataset.labels import filter_relevant_boxes_masks
     #assuming batch size is 1 (therefore [0])
     boxes_batch = convert_to_boxes(z_where, z_pres, z_pres_prob)[0] #TODO: maybe use filter_relevant_boxes_masks instead
 
+
+    boxes_and_z_what_pres = np.concatenate((boxes_batch, z_what_pres), axis=1)
+    predicted_bbs_and_z_what.append(boxes_and_z_what_pres)
 
     labels = get_label_predictions(z_what_classifier, z_what_pres)
     labels = labels[:, None]
     boxes_and_labels = np.concatenate((boxes_batch, labels), axis=1)
 
-    predicted_bbs.append(boxes_and_labels)
+    predicted_bbs_and_label.append(boxes_and_labels)
 
-    if i >= 31:
+    if i >= 127:
         break
+
+labels_collector = []
+z_whats_collector = []
+for i in range(len(actual_bbs_and_label)):
+    gt_labels, z_what_embeddings = match_bounding_boxes_z_what(actual_bbs_and_label[i], predicted_bbs_and_z_what[i])
+    labels_collector.extend(gt_labels)
+    z_whats_collector.extend(z_what_embeddings)
+labels_collector = np.array(labels_collector)
+z_whats_collector = np.array(z_whats_collector)
+
+
+# filter irrelevant boxes
+relevant_indices_for_game = {"pong": [1,2,4], "boxing": [2, 4]}
+relevant_indices = relevant_indices_for_game[cfg.exp_name]
+
+
+mask = np.isin(labels_collector, relevant_indices)
+labels_collector_relevant = labels_collector[mask]
+z_whats_collector_relevant =z_whats_collector[mask]
 
 if not os.path.exists(f"labeled/{cfg.exp_name}"):
     os.makedirs(f"labeled/{cfg.exp_name}")
 # store as numpy files
-np.savez(f"labeled/{cfg.exp_name}/actual_bbs_{folder}.npz", *actual_bbs)
-np.savez(f"labeled/{cfg.exp_name}/predicted_bbs_{folder}.npz", *predicted_bbs)
+np.savez(f"labeled/{cfg.exp_name}/actual_bbs_and_label_{folder}.npz", *actual_bbs_and_label)
+np.savez(f"labeled/{cfg.exp_name}/predicted_bbs_and_label_{folder}.npz", *predicted_bbs_and_label)
+np.savez(f"labeled/{cfg.exp_name}/predicted_bbs_and_z_what_{folder}.npz", *predicted_bbs_and_z_what)
+np.save(f"labeled/{cfg.exp_name}/labels_relevant_{folder}.npy", labels_collector_relevant)
+np.save(f"labeled/{cfg.exp_name}/z_whats_relevant_{folder}.npy", z_whats_collector_relevant)
+np.save(f"labeled/{cfg.exp_name}/labels_all_{folder}.npy", labels_collector)
+np.save(f"labeled/{cfg.exp_name}/z_whats_all_{folder}.npy", z_whats_collector)
 print(f"Extracted z_whats and saved it in labeled/{cfg.exp_name}/")

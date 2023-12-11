@@ -68,7 +68,7 @@ for i, (csv_file, image_file) in enumerate(zip(csv_files, image_files)): # Note:
         
     
     # transform labels to tensor by mapping label strings to integer values
-    from dataset.labels import label_list_pong
+    from dataset.atari_labels import label_list_pong
 
     # assign ground truth labels to detected bounding boxes by using the distance to the RAM bounding boxes
     labels = []

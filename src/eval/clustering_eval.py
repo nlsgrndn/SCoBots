@@ -19,7 +19,33 @@ class ClusteringEval:
         self.relevant_object_hover_path = relevant_object_hover_path
         self.indices = indices # 'The relevant objects by their index, e.g. \"0,1\" for Pacman and Sue')
     
-    def collect_data(self, logs, dataset, global_step,):
+
+    @torch.no_grad()
+    def eval_clustering(self, logs, dataset, global_step,):
+        """
+        Evaluate clustering metrics
+
+        :param logs: results from applying the model
+        :param dataset: dataset
+        :param global_step: gradient step number
+        :return metrics: for all classes of evaluation many metrics describing the clustering,
+            based on different ground truths
+        """
+        data, z_encs_relevant, labels_relevant_unflattened = \
+            self.collect_z_what_data(logs, dataset, global_step,)
+        
+        results = {}
+        for key in ['all', 'moving', 'relevant']:
+            relevant_labels, test_x, test_y, train_x, train_y = data[key]
+            objects = ZWhatEvaluator(self.cfg, title= key,).evaluate_z_what(train_x, train_y, test_x, test_y, relevant_labels)
+            if key == 'relevant' and objects[2] is not None:
+                # add bayes accuracy metric for relevant objects based on Kalman filter
+                bayes_accuracy = classify_encodings(self.cfg, z_encs_relevant, labels_relevant_unflattened)
+                objects[2]['bayes_accuracy'] = bayes_accuracy
+            results[key] = objects
+        return results
+
+    def collect_z_what_data(self, logs, dataset, global_step,):
         num_samples = min(len(dataset), eval_cfg.train.num_samples.cluster)
         num_batches = num_samples // eval_cfg.train.batch_size
         batch_size = eval_cfg.train.batch_size
@@ -123,36 +149,11 @@ class ClusteringEval:
         test_y = labels[nb_sample:]
         return train_x, train_y, test_x, test_y
 
-    def only_keep_relevant_data(sefl, z_what, labels, relevant_labels):
+    def only_keep_relevant_data(self, z_what, labels, relevant_labels):
         relevant = torch.zeros(labels.shape, dtype=torch.bool)
         for rl in relevant_labels:
             relevant |= labels == rl
         return z_what[relevant], labels[relevant]
-    
-    @torch.no_grad()
-    def eval_clustering(self, logs, dataset, global_step,):
-        """
-        Evaluate clustering metrics
-
-        :param logs: results from applying the model
-        :param dataset: dataset
-        :param global_step: gradient step number
-        :return metrics: for all classes of evaluation many metrics describing the clustering,
-            based on different ground truths
-        """
-        data, z_encs_relevant, labels_relevant_unflattened = \
-            self.collect_data(logs, dataset, global_step,)
-        
-        results = {}
-        for key in ['all', 'moving', 'relevant']:
-            relevant_labels, test_x, test_y, train_x, train_y = data[key]
-            objects = ZWhatEvaluator(self.cfg, title= key,).evaluate_z_what(train_x, train_y, test_x, test_y, relevant_labels)
-            if key == 'relevant' and objects[2] is not None:
-                # add bayes accuracy metric for relevant objects based on Kalman filter
-                bayes_accuracy = classify_encodings(self.cfg, z_encs_relevant, labels_relevant_unflattened)
-                objects[2]['bayes_accuracy'] = bayes_accuracy
-            results[key] = objects
-        return results
 
     def save_relevant_objects_as_images(self, global_step, image_refs, batch_size, img_path, i, z_where, z_pres):
         for idx, (sel, bbs) in enumerate(tqdm(zip(z_pres, z_where), total=len(z_pres))):

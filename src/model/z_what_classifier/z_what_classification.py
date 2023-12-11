@@ -7,6 +7,8 @@ from sklearn.cluster import KMeans
 from sklearn.neighbors import NearestNeighbors
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.mixture import GaussianMixture
+# import x-means from pyclustering
+from pyclustering.cluster.xmeans import xmeans
 
 import joblib
 
@@ -75,6 +77,11 @@ class ZWhatClassifierCreator:
         nn_class = KNeighborsClassifier(n_neighbors=1)
         nn_class.fit(centroids, centroid_label)
         return nn_class, centroids, centroid_label
+    
+    def create_x_means(self, z_what,):
+        x_means = xmeans(z_what,)
+        x_means.process()
+        return x_means
 
 
     

@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 from ocatari.ram.pong import MAX_NB_OBJECTS_HUD as MAX_NB_OBJECTS_HUD_PONG
 from ocatari.ram.boxing import MAX_NB_OBJECTS_HUD as MAX_NB_OBJECTS_HUD_BOXING
-from bbox_matching import match_bbs
 
 no_label_str = "no_label"
 
@@ -90,20 +89,6 @@ def label_list_for(game):
         return label_list_space_invaders
     else:
         raise ValueError(f"Game {game} could not be found in labels")
-
-
-def get_labels(gt_bbs, game, boxes_batch):
-    """
-    Compare ground truth to boxes computed by SPACE
-    """
-    return match_bbs(gt_bbs, boxes_batch, label_list_for(game), no_label_str)
-
-
-def get_labels_moving(gt_bbs, game, boxes_batch):
-    """
-    Compare ground truth to boxes computed by SPACE
-    """
-    return match_bbs(gt_bbs[gt_bbs[4] == "M"], boxes_batch, label_list_for(game), no_label_str)
 
 
 #  Deprecated in favor of IOU

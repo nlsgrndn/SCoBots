@@ -11,7 +11,7 @@ from mpl_toolkits.mplot3d import proj3d
 import argparse
 from termcolor import colored
 from post_evaluation.latex_strings import figure, object_table, qual_page, table_metric_tex, table_tex
-from dataset.labels import label_list_for
+from dataset.atari_labels import label_list_for
 parser = argparse.ArgumentParser()
 parser.add_argument('--save',
                     '-s',

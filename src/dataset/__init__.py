@@ -1,7 +1,7 @@
 from .atari import Atari
 from .obj3d import Obj3D
 from torch.utils.data import DataLoader
-from .labels import label_list_for
+from .atari_labels import label_list_for
 import torch.utils.data as data_utils
 import torch
 

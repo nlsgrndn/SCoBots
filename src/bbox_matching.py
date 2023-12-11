@@ -127,6 +127,36 @@ def match_bounding_boxes(
 
     return actual_list, predicted_list
 
+def match_bounding_boxes_z_what(
+        labels: np.ndarray, predicted: np.ndarray, matching_method=compute_misalignment
+        ): # from generate_confusion_matrices.py
+    """
+    Match bounding boxes in labels and predicted.
+    :param labels: np.ndarray of shape (n, 5) where n is the number of bounding boxes
+    :param predicted: np.ndarray of shape (m, 5) where m is the number of bounding boxes
+    :return: actual_list, predicted_list
+    """
+    actual_list = []
+    predicted_list = []
+    label_idx_used = []
+    THRESHOLD = 0.2
+
+    # compute matching scores
+    matching_scores = matching_method(predicted, labels)
+
+    # match bounding boxes
+    for i in range(predicted.shape[0]):
+        max_m_score = np.max(matching_scores[i])
+        if max_m_score > THRESHOLD:
+            actual_list.append(labels[np.argmax(matching_scores[i])][4])
+            predicted_list.append(predicted[i][4:])
+            label_idx_used.append(np.argmax(matching_scores[i]))
+        else:
+            predicted_list.append(predicted[i][4:])
+            actual_list.append(0) # 0 corresponds to no_label
+
+    return actual_list, predicted_list
+
 
 def hungarian_matching(x, obs): # from kalman_filter.py: uses just euclidean distance of the center
     cost = distance_matrix(x, obs)

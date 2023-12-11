@@ -7,13 +7,15 @@ import skvideo.io as skv
 from PIL import Image
 import PIL
 import os.path as osp
-from .labels import get_labels, get_labels_moving, to_relevant, filter_relevant_boxes
+from .atari_labels import to_relevant, filter_relevant_boxes
 import pandas as pd
 import cv2 as cv
 from skimage.morphology import (disk, square)
 from skimage.morphology import (erosion, dilation, opening, closing, white_tophat, skeletonize)
 from torchvision import transforms
 from torchvision.utils import draw_bounding_boxes as draw_bb
+from bbox_matching import match_bbs
+from dataset.atari_labels import label_list_for, no_label_str
 
 
 class Atari(Dataset):
@@ -77,15 +79,31 @@ class Atari(Dataset):
                 sub_labels = []
                 idx = 0
         return labels
+    
 
     def get_labels(self, batch_start, batch_end, boxes_batch):
-        return self.get_labels_impl(batch_start, batch_end, boxes_batch, get_labels)
+        return self.get_labels_impl(batch_start, batch_end, boxes_batch, self.match_labels)
 
     def get_labels_moving(self, batch_start, batch_end, boxes_batch):
-        return self.get_labels_impl(batch_start, batch_end, boxes_batch, get_labels_moving)
+        return self.get_labels_impl(batch_start, batch_end, boxes_batch, self.match_labels_moving)
 
     def to_relevant(self, labels_moving):
         return to_relevant(self.game, labels_moving)
 
     def filter_relevant_boxes(self, boxes_batch, boxes_gt):
         return filter_relevant_boxes(self.game, boxes_batch, boxes_gt)
+    
+    def match_labels(gt_bbs, game, boxes_batch):
+        """
+        Compare ground truth to boxes computed by SPACE
+        """
+        return match_bbs(gt_bbs, boxes_batch, label_list_for(game), no_label_str)
+
+
+    def match_labels_moving(gt_bbs, game, boxes_batch):
+        """
+        Compare ground truth to boxes computed by SPACE
+        """
+        return match_bbs(gt_bbs[gt_bbs[4] == "M"], boxes_batch, label_list_for(game), no_label_str)
+    
+

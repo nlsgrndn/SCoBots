@@ -20,21 +20,23 @@ class ApAndAccEval():
         :return ap: a list of average precisions, corresponding to each iou_thresholds
         """
         print('Computing error rates, counts and APs...')
-        boxes_gts, boxes_pred, boxes_pred_relevant = self.get_data(logs, dataset, bb_path)
+        boxes_gts, boxes_pred, boxes_pred_relevant = self.get_bbox_data(logs, dataset, bb_path)
         results = self.compute_metrics(boxes_gts, boxes_pred, boxes_pred_relevant)
         return results
     
-    def get_data(self, logs, dataset, bb_path,):
+    def get_bbox_data(self, logs, dataset, bb_path,):
         # read ground truth bounding boxes
-        boxes_gt_types = ['all', 'moving', 'relevant']
+
         num_samples = min(len(dataset), eval_cfg.train.num_samples.ap)
+        num_batches = num_samples // eval_cfg.train.batch_size
+
         indices = list(range(num_samples))
+        boxes_gt_types = ['all', 'moving', 'relevant']
         boxes_gts = {k: v for k, v in zip(boxes_gt_types, read_boxes(bb_path, indices=indices))} # boxes_gts['moving'] and boxes_gts['relevant'] are actually equivalent
         
         # collect and generate predicted bounding boxes
         boxes_pred = []
         boxes_pred_relevant = []
-        num_batches = num_samples // eval_cfg.train.batch_size
         for img in logs[:num_batches]:
             z_where, z_pres, z_pres_prob, _ = retrieve_latent_repr_from_logs(img)
             boxes_batch = convert_to_boxes(z_where, z_pres, z_pres_prob, with_conf=True)

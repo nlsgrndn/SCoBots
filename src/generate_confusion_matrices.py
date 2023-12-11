@@ -1,6 +1,6 @@
 # TODO move to eval folder and integrate somehow with eval.py
 from sklearn.metrics import confusion_matrix
-from dataset.labels import label_list_for
+from dataset.atari_labels import label_list_for
 from collections import Counter
 import numpy as np
 import matplotlib.pyplot as plt
