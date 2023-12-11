@@ -25,34 +25,30 @@ from model.z_what_classifier.z_what_classification import ZWhatClassifierCreator
 
 
 class ZWhatEvaluator:
-    def __init__(self, cfg, title="", method="pca", indices=None,):
+    def __init__(self, cfg, title="", method="PCA", indices=None):
         print("Initializing ZWhatEvaluator with method", method)
         self.cfg = cfg
         self.title = title
         self.folder = f'{cfg.logdir}/{cfg.exp_name}'
         self.dim_red_path = f"{self.folder}/{method}{indices if indices else ''}_{title}_{cfg.arch_type}_s{cfg.seed}"
-        self.indices = indices # 'The relevant objects by their index, e.g. \"0,1\" for Pacman and Sue')
         self.z_what_plotter = ZWhatPlotter(cfg, self.folder, self.dim_red_path, method)
-
-    def evaluate_z_what(self, z_what, labels,):
+    
+    def evaluate_z_what(self, train_x, train_y, test_x, test_y, relevant_labels):
         """
         This function evaluates the z_what encoding using PCA or t-SNE and plots the results.
-        :param z_what: (#objects, encoding_dim)self.title
-        :param labels: (#objects)
+        :param train_x: (#objects, encoding_dim)
+        :param train_y: (#objects)
+        :param test_x: (#objects, encoding_dim)
+        :param test_y: (#objects)
+        :param relevant_labels: list of relevant labels
         :return:
             result: metrics
             path: to pca or tsne image
             accuracy: few shot accuracy
         """
-        # Prepare data
-
-        data = self.prepare_data(z_what, labels)
-        if data is None:
+        if train_x is None: # representative for all inputs
             self.z_what_plotter.no_z_whats_plots()
-            return Counter(), self.dim_red_path, Counter()
-        else:
-            relevant_labels, test_x, test_y, train_x, train_y = data
-        
+            return None, None, None
         # Create ridge classifiers
         ridge_classifers = ZWhatClassifierCreator(self.cfg).create_ridge_classifiers(relevant_labels, train_x, train_y)
         # Create K-means
@@ -77,23 +73,6 @@ class ZWhatEvaluator:
 
         return mutual_info_scores, self.dim_red_path, few_shot_accuracy
 
-    def prepare_data(self, z_what, labels,):
-        c = Counter(labels.tolist() if labels is not None else [])
-        if self.cfg.train.log:
-            print("Distribution of matched labels:", c)
-        # Initialization stuff
-        relevant_labels = [int(part) for part in self.indices.split(',')] if self.indices else list(c.keys())
-
-        # Filter out the irrelevant labels
-        z_what, labels = self.only_keep_relevant_data(z_what, labels, relevant_labels)
-        # Split the data into train and test
-        train_x, train_y, test_x, test_y = self.train_test_split(z_what, labels, train_portion=0.9)
-
-        if len(c) < 2 or len(torch.unique(train_y)) < 2:
-            return None
-        
-        return relevant_labels, test_x, test_y, train_x, train_y
-
     def compute_confusion_matrix(self, clf, inputs, labels):
         """
         Compute the confusion matrix for a given classifier
@@ -108,20 +87,6 @@ class ZWhatEvaluator:
         label_list = [get_label_list(self.cfg)[i] for i in label_list_idx]
         cm = metrics.confusion_matrix(labels, y_pred, labels=label_list_idx)
         return cm, label_list
-        
-    def train_test_split(self, z_what, labels, train_portion=0.9):
-        nb_sample = int(train_portion * len(labels))
-        train_x = z_what[:nb_sample]
-        train_y = labels[:nb_sample]
-        test_x = z_what[nb_sample:]
-        test_y = labels[nb_sample:]
-        return train_x, train_y, test_x, test_y
-
-    def only_keep_relevant_data(sefl, z_what, labels, relevant_labels):
-        relevant = torch.zeros(labels.shape, dtype=torch.bool)
-        for rl in relevant_labels:
-            relevant |= labels == rl
-        return z_what[relevant], labels[relevant]
 
 class ZWhatPlotter:
 

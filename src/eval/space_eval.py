@@ -14,6 +14,21 @@ import pprint
 
 
 class SpaceEval:
+
+    ap_results_none_dict = {
+            'all': ({'adjusted_mutual_info_score': np.nan, 'adjusted_rand_score': np.nan}, "dummy_path",
+                    {'few_shot_accuracy_with_1': np.nan, 'few_shot_accuracy_with_4': np.nan, 'few_shot_accuracy_with_16': np.nan,
+                     'few_shot_accuracy_with_64': np.nan, 'few_shot_accuracy_cluster_nn': np.nan}),
+            'moving': ({'adjusted_mutual_info_score': np.nan, 'adjusted_rand_score': np.nan}, "dummy_path",
+                       {'few_shot_accuracy_with_1': np.nan, 'few_shot_accuracy_with_4': np.nan,
+                        'few_shot_accuracy_with_16': np.nan,
+                        'few_shot_accuracy_with_64': np.nan, 'few_shot_accuracy_cluster_nn': np.nan}),
+            'relevant': ({'adjusted_mutual_info_score': np.nan, 'adjusted_rand_score': np.nan}, "dummy_path",
+                         {'few_shot_accuracy_with_1': np.nan, 'few_shot_accuracy_with_4': np.nan,
+                          'few_shot_accuracy_with_16': np.nan,
+                          'few_shot_accuracy_with_64': np.nan, 'few_shot_accuracy_cluster_nn': np.nan, 'bayes_accuracy': np.nan})
+        }
+
     def __init__(self, cfg, tb_writer):
         self.eval_file_path = f'{cfg.logdir}/{cfg.exp_name}/metrics.csv'
         self.relevant_object_hover_path = f'{cfg.logdir}/{cfg.exp_name}/hover'
@@ -157,21 +172,9 @@ class SpaceEval:
         :return: result_dict
         """
         print('Computing clustering and few-shot linear classifiers...')
-        results = ClusteringEval(self.relevant_object_hover_path).eval_clustering(logs, valset, global_step, cfg)
-        if results is None:
-            results = {
-                'all': ({'adjusted_mutual_info_score': np.nan, 'adjusted_rand_score': np.nan}, "dummy_path",
-                        {'few_shot_accuracy_with_1': np.nan, 'few_shot_accuracy_with_4': np.nan, 'few_shot_accuracy_with_16': np.nan,
-                         'few_shot_accuracy_with_64': np.nan, 'few_shot_accuracy_cluster_nn': np.nan}),
-                'moving': ({'adjusted_mutual_info_score': np.nan, 'adjusted_rand_score': np.nan}, "dummy_path",
-                           {'few_shot_accuracy_with_1': np.nan, 'few_shot_accuracy_with_4': np.nan,
-                            'few_shot_accuracy_with_16': np.nan,
-                            'few_shot_accuracy_with_64': np.nan, 'few_shot_accuracy_cluster_nn': np.nan}),
-                'relevant': ({'adjusted_mutual_info_score': np.nan, 'adjusted_rand_score': np.nan}, "dummy_path",
-                             {'few_shot_accuracy_with_1': np.nan, 'few_shot_accuracy_with_4': np.nan,
-                              'few_shot_accuracy_with_16': np.nan,
-                              'few_shot_accuracy_with_64': np.nan, 'few_shot_accuracy_cluster_nn': np.nan, 'bayes_accuracy': np.nan})
-            }
+        results = ClusteringEval(cfg, self.relevant_object_hover_path).eval_clustering(logs, valset, global_step)
+        if (None, None, None) in results.values():
+            results = self.ap_results_none_dict
         for name, (result_dict, img_path, few_shot_accuracy) in results.items():
             try:
                 self.tb_writer.add_image(f'Clustering {name.title()}', np.array(Image.open(img_path)), global_step,
