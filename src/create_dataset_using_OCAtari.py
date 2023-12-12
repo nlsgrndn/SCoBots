@@ -87,9 +87,6 @@ def create_dataset_using_ocatari():
     parser = argparse.ArgumentParser(
         description='Create the dataset for a specific game of ATARI Gym')
     parser.add_argument('-g', '--game', type=str, help='An atari game',
-                        # default='SpaceInvaders')
-                        # default='MsPacman')
-                        # default='Tennis')
                         default='SpaceInvaders')
     parser.add_argument('--compute_root_images', default=False, action="store_true",
                         help='instead compute the median and mode of images found images')
@@ -116,10 +113,10 @@ def create_dataset_using_ocatari():
 
     # initialize
     print("box", "Settings:", args)
-    folder_sizes = {"train": 256, "test": 32, "validation": 32}
+    folder_sizes = {"train": 2048, "test": 128, "validation": 128}
     limit = folder_sizes[args.folder]
-    data_base_folder = "aiml_atari_data"
-    mode_base_folder = "aiml_atari_data"
+    data_base_folder = "../aiml_atari_data"
+    mode_base_folder = "../aiml_atari_data"
     REQ_CONSECUTIVE_IMAGE = 20
     create_folders(args, data_base_folder)
 

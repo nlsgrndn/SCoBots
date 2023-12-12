@@ -93,13 +93,14 @@ class Atari(Dataset):
     def filter_relevant_boxes(self, boxes_batch, boxes_gt):
         return filter_relevant_boxes(self.game, boxes_batch, boxes_gt)
     
+    @staticmethod
     def match_labels(gt_bbs, game, boxes_batch):
         """
         Compare ground truth to boxes computed by SPACE
         """
         return match_bbs(gt_bbs, boxes_batch, label_list_for(game), no_label_str)
 
-
+    @staticmethod
     def match_labels_moving(gt_bbs, game, boxes_batch):
         """
         Compare ground truth to boxes computed by SPACE
