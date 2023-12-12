@@ -1,0 +1,63 @@
+seed: 1
+model: 'space'
+exp_name: skiing
+resume: false
+
+z_what_classifier_path: ""
+resume_ckpt: ""
+# '../output/checkpoints/mspacman_atari_pretrained/model.pth'
+parallel: true
+device_ids: [0,1,2,3]
+device: 'cuda:0'
+
+logdir: '../output/logs/'
+checkpointdir: '../output/checkpoints/'
+
+
+dataset: 'ATARI'
+dataset_style: ''
+dataset_roots:
+  OBJ3D_SMALL: '../data/OBJ3D_SMALL'
+  OBJ3D_LARGE: '../data/OBJ3D_LARGE'
+  ATARI: '../aiml_atari_data'
+
+
+train:
+  log: true
+  batch_size: 1
+  max_epochs: 10000
+  max_steps: 5000
+  print_every: 100
+  save_every: 100
+  num_workers: 4
+  clip_norm: 1.0
+  max_ckpt: 4
+  eval_on: true
+  eval_every: 2
+  solver:
+    fg:
+      optim: 'RMSprop'
+      lr: 3e-5
+    bg:
+      optim: 'Adam'
+      lr: 1e-3
+
+arch:
+  motion_input: false
+  motion: true
+  motion_kind: 'mode'
+  G: 16
+
+  z_scale_mean_start_value: -1.0
+  z_scale_mean_end_value: -1.0
+
+  fix_alpha_steps: -1
+  fix_alpha_value: 0.1
+
+eval:
+  checkpoint: 'last'
+  metric: ap_avg
+
+gamelist: [
+  "skiing",
+    ]

@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from ocatari.ram.pong import MAX_NB_OBJECTS_HUD as MAX_NB_OBJECTS_HUD_PONG
 from ocatari.ram.boxing import MAX_NB_OBJECTS_HUD as MAX_NB_OBJECTS_HUD_BOXING
+from ocatari.ram.skiing import MAX_NB_OBJECTS_HUD as MAX_NB_OBJECTS_HUD_SKIING
 
 no_label_str = "no_label"
 
@@ -30,6 +31,8 @@ label_list_riverraid = [no_label_str, "player", 'fuel_gauge', 'fuel', 'lives', '
 
 label_list_air_raid = [no_label_str, "player", 'score', 'building', 'shot', 'enemy']
 
+label_list_skiing = [no_label_str] + sorted(list(MAX_NB_OBJECTS_HUD_SKIING.keys()))
+
 
 def filter_relevant_boxes(game, boxes_batch, boxes_gt):
     if "MsPacman" in game:
@@ -52,6 +55,8 @@ def filter_relevant_boxes(game, boxes_batch, boxes_gt):
         return [box_bat[np.logical_or((box_bat[:, 0] > 8 / 128) * (box_bat[:, 1] < 60 / 128),
                                       (box_bat[:, 0] > 68 / 128) * (box_bat[:, 1] < 116 / 128))]
                 for box_bat in boxes_batch]
+    elif "Skiing" in game:
+        return [box_bat for box_bat in boxes_batch] #TODO Find helpful rules if necessary
     else:
         raise ValueError(f"Game {game} could not be found in labels")
 
@@ -87,6 +92,8 @@ def label_list_for(game):
         return label_list_riverraid
     elif "space" in game and "invaders" in game:
         return label_list_space_invaders
+    elif "skiing" in game:
+        return label_list_skiing
     else:
         raise ValueError(f"Game {game} could not be found in labels")
 
