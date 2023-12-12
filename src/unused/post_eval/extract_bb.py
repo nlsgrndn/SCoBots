@@ -1,7 +1,7 @@
 import os, sys
 
 from model.space.postprocess_latent_variables import convert_to_boxes
-from checkpointer import Checkpointer
+from utils.checkpointer import Checkpointer
 from src_utils import open_image
 _curent_dir = os.getcwd()
 for _cd in [_curent_dir, _curent_dir + "/post_eval"]:
@@ -18,12 +18,12 @@ from engine.show import show
 from model import get_model
 from vis import get_vislogger
 from dataset import get_dataset, get_dataloader
-from src.unused.post_eval.extract_bb_utils import show_image, save_image, \
+from unused.post_eval.extract_bb_utils import show_image, save_image, \
     corners_to_wh, draw_bounding_boxes, get_labels, place_labels
 import os
 from torch import nn
 from torch.utils.data import Subset, DataLoader
-from src.unused.post_eval.extract_bb_utils import draw_bounding_boxes
+from unused.post_eval.extract_bb_utils import draw_bounding_boxes
 from torchvision.transforms.functional import crop
 import torch
 from eval.ap import compute_ap, compute_counts

@@ -1,7 +1,7 @@
 import os, sys
 
 from model.space.postprocess_latent_variables import convert_to_boxes, retrieve_latent_repr_from_logs
-from checkpointer import Checkpointer
+from utils.checkpointer import Checkpointer
 _curent_dir = os.getcwd()
 for _cd in [_curent_dir, _curent_dir + "/post_eval"]:
     if _cd not in sys.path:
@@ -17,7 +17,7 @@ import torch
 import pandas as pd
 import joblib
 from dataset.atari_labels import label_list_for
-from bbox_matching import match_bounding_boxes_z_what
+from utils.bbox_matching import match_bounding_boxes_z_what
 
 def get_label_predictions(classifier, z_what):
     return classifier.predict(z_what)

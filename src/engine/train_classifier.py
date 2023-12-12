@@ -6,7 +6,7 @@ from dataset import get_dataset
 from model import get_model
 from eval.space_eval import SpaceEval
 from dataset import get_dataset, get_dataloader
-from checkpointer import Checkpointer
+from utils.checkpointer import Checkpointer
 import os
 import os.path as osp
 from torch import nn
@@ -16,7 +16,7 @@ import torch
 from eval.utils import flatten
 from sklearn.decomposition import PCA
 from torch.utils.tensorboard import SummaryWriter
-from bbox_matching import match_bounding_boxes_z_what
+from utils.bbox_matching import match_bounding_boxes_z_what
 from dataset.atari_labels import label_list_for
 from pyclustering.cluster import cluster_visualizer
 from pyclustering.cluster.xmeans import xmeans

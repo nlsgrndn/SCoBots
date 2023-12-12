@@ -1,5 +1,5 @@
 import numpy as np
-from bbox_matching import compute_iou, compute_misalignment
+from utils.bbox_matching import compute_iou, compute_misalignment
 
 
 def compute_counts(boxes_pred, boxes_gt):

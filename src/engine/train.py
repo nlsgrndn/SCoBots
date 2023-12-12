@@ -2,8 +2,8 @@ from model import get_model
 from eval.space_eval import SpaceEval
 from dataset import get_dataset, get_dataloader
 from solver import get_optimizers
-from checkpointer import Checkpointer
-from metric_logger import MetricLogger
+from utils.checkpointer import Checkpointer
+from utils.metric_logger import MetricLogger
 import os
 import os.path as osp
 from torch import nn

@@ -1,4 +1,4 @@
-from niceprint import makedirs, pprint as print
+from utils.niceprint import makedirs, pprint as print
 
 
 import torch

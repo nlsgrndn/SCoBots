@@ -1,6 +1,6 @@
 from eval.clustering_eval import ClusteringEval
 from eval.ap_and_acc_eval import ApAndAccEval
-from metric_logger import MetricLogger
+from utils.metric_logger import MetricLogger
 import numpy as np
 import torch
 import os

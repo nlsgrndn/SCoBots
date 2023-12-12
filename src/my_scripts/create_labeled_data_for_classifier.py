@@ -1,6 +1,6 @@
 import os, sys
 
-from checkpointer import Checkpointer
+from utils.checkpointer import Checkpointer
 _curent_dir = os.getcwd()
 for _cd in [_curent_dir, _curent_dir + "/post_eval"]:
     if _cd not in sys.path:

@@ -4,10 +4,11 @@ File to load a model and test it on a game
 
 import joblib
 import os.path as osp
+import os
 from engine.utils import get_config
 from model import get_model
 from rl_utils import SceneCleaner, load_space
-from checkpointer import Checkpointer
+from utils.checkpointer import Checkpointer
 from solver import get_optimizers
 import numpy as np
 import torch
@@ -34,27 +35,32 @@ def show_scene(image, scene):
     import os
     if not osp.exists("images"):
         os.makedirs("images")
-    plt.imsave(f"images/{i}.png", np.moveaxis(np.array(filled_image.cpu().detach()), (0, 1, 2), (2, 0, 1)))
+    if not osp.exists(f"images/{cfg.exp_name}"):
+        os.makedirs(f"images/{cfg.exp_name}")
+    plt.imsave(f"images/{cfg.exp_name}/{i}.png", np.moveaxis(np.array(filled_image.cpu().detach()), (0, 1, 2), (2, 0, 1)))
     #plt.show()
 
 
-use_cuda = 'cuda' in cfg.device
-space, transformation, sc, z_classifier = load_space(cfg, z_classifier_path= 'classifiers/boxing_z_what_classifier.joblib.pkl')
-                                                     #'classifiers/pong_model_000005001_z_what_classifier.joblib.pkl')
-                                                     #"classifiers/model_000005001_z_what_classifier.joblib.pkl")
+
+space, transformation, sc, z_classifier = load_space(cfg, z_classifier_path= cfg.z_what_classifier_path)
 #import matplotlib; matplotlib.use("Tkagg")
 cfg.device_ids = [0]
 env_name = cfg.gamelist[0]
 env = gym.make(env_name)
 env.reset()
 nb_action = env.action_space.n
-for i in range(201):
+count = 0
+for i in range(1000):
     observation, reward, done, truncated, info = env.step(np.random.randint(nb_action))
-    if i % 50 == 0:
+    if i % 50 == 0 or count > 0:
+        if count >= 10:
+            count = 0
+            continue
+        count += 1
         img = Image.fromarray(observation[:, :, ::-1], 'RGB').resize((128, 128), Image.ANTIALIAS)
         #x = torch.moveaxis(torch.tensor(np.array(img)), 2, 0)
         x = transformation(img)
-        if use_cuda:
+        if 'cuda' in cfg.device:
             x = x.cuda()
         
         _, log = space.forward(x.unsqueeze(dim=0))
@@ -63,12 +69,19 @@ for i in range(201):
         z_pres_prob = z_pres_prob.squeeze().detach().cpu()
         z_pres = z_pres_prob > 0.5 # TODO: fix code for case when z_pres_prob <= 0.5 everywhere
         z_pres_prob = z_pres_prob.view(16, 16)
-        #print(z_pres)
-        import os
+
+        z_pres_prob_image = np.array(z_pres_prob)
+        z_pres_prob_image = np.repeat(z_pres_prob_image, 8, axis=0)
+        z_pres_prob_image = np.repeat(z_pres_prob_image, 8, axis=1)
+        z_pres_prob_image = np.expand_dims(z_pres_prob_image, axis=2)
+        z_pres_prob_image = np.repeat(z_pres_prob_image, 3, axis=2) 
+        z_pres_prob_image[:, :, 1:] = 0
+        actual_image = np.moveaxis(np.array(x.cpu().detach()), (0, 1, 2), (2, 0, 1))
+        combined_image = 0.5 * actual_image + 0.5 * z_pres_prob_image
+
         if not osp.exists("images_z_pres_prob"):
             os.makedirs("images_z_pres_prob")
-        plt.imsave(f"images_z_pres_prob/{i}.png", np.array(z_pres_prob))
-        plt.imsave(f"images_z_pres_prob/image_{i}.png", np.moveaxis(np.array(x.cpu().detach()), (0, 1, 2), (2, 0, 1)))
+        plt.imsave(f"images_z_pres_prob/{i}.png", np.array(combined_image))
 
 
 

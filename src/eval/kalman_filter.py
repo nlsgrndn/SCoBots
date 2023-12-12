@@ -20,7 +20,7 @@ from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.metrics import confusion_matrix
 import torch
 import time
-from bbox_matching import hungarian_matching
+from utils.bbox_matching import hungarian_matching
 
 # License: BSD 3 clause
 # Options for incorporating labels:

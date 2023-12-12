@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from typing import List, Union
 from eval.utils import plot_confusion_matrix
-from bbox_matching import match_bounding_boxes
+from utils.bbox_matching import match_bounding_boxes
 
 def confusion_matrix_visualization(labels: List[np.ndarray], predicted: List[np.ndarray], label_list: List[Union[str, int]]):
     actual_labels_combined = []
