@@ -83,7 +83,7 @@ def compute_root_images(imgs, data_base_folder, game):
     print("blue", f"Saved mode.png and median.png in {data_base_folder}/{game}-v0/background/")
 
 
-def main():
+def create_dataset_using_ocatari():
     parser = argparse.ArgumentParser(
         description='Create the dataset for a specific game of ATARI Gym')
     parser.add_argument('-g', '--game', type=str, help='An atari game',
@@ -273,7 +273,7 @@ def make_deterministic(seed, mdp, states_dict=None):
         torch.backends.cudnn.benchmark = False
         print(f"Reset environment to recovered random state ")
 
-from hackatari.riverraid import ConstantBackgroundRiverraid
+#from hackatari.riverraid import ConstantBackgroundRiverraid
 def configure(args):
     global env
     print(f"Playing {args.game}...")
@@ -315,4 +315,4 @@ def create_folders(args, data_base_folder):
 
 
 if __name__ == '__main__':
-    main()
+    create_dataset_using_ocatari()
