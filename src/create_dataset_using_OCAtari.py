@@ -6,7 +6,6 @@ import torch
 from tqdm import tqdm
 import random
 from dataset import bb
-from motion import median
 from motion import flow
 from motion import mode
 from motion.motion_processing import ProcessingVisualization, BoundingBoxes, \
@@ -38,7 +37,7 @@ def some_steps(agent):
     return take_action(agent)
 
 
-def draw_images(obs, image_n):
+def draw_images(obs, image_n, rgb_folder, bgr_folder):
     ## RAW IMAGE
     img = Image.fromarray(obs, 'RGB')
     img.save(f'{rgb_folder}/{image_n:05}.png')
@@ -53,34 +52,17 @@ def take_action(agent):
     obs, reward, done, truncated, info = agent.env.step(action)
     return obs, reward, done, truncated, info
 
-
-bgr_folder = None
-rgb_folder = None
-flow_folder = None
-median_folder = None
-mode_folder = None
-bb_folder = None
-vis_folder = None
-env = None
-
-
-# def compute_root_images(args, data_base_folder):
-#     imgs = [np.array(Image.open(f), dtype=np.uint8) for f in glob(f"{rgb_folder}/*") if ".png" in f]
-
 def compute_root_images(imgs, data_base_folder, game):
     img_arr = np.stack(imgs)
     # Ensures median exists in any image at least, even images lead to averaging
     if len(img_arr) % 2:
-        print("Removing one image for median computation to ensure P(median|game) != 0")
+        print("Removing one image for median computation to ensure P(median|game) != 0") #TODO check whether to keep this for mode
         img_arr = img_arr[:-1]
-    median = np.median(img_arr, axis=0).astype(np.uint8)
     mode = np.apply_along_axis(lambda x: np.bincount(x).argmax(), axis=0, arr=img_arr).astype(np.uint8)
-    frame = Image.fromarray(median)
     os.makedirs(f"{data_base_folder}/{game}-v0/background", exist_ok=True)
-    frame.save(f"{data_base_folder}/{game}-v0/background/median.png")
     frame = Image.fromarray(mode)
     frame.save(f"{data_base_folder}/{game}-v0/background/mode.png")
-    print("blue", f"Saved mode.png and median.png in {data_base_folder}/{game}-v0/background/")
+    print("blue", f"Saved mode.png in {data_base_folder}/{game}-v0/background/")
 
 
 def create_dataset_using_ocatari():
@@ -89,7 +71,7 @@ def create_dataset_using_ocatari():
     parser.add_argument('-g', '--game', type=str, help='An atari game',
                         default='SpaceInvaders')
     parser.add_argument('--compute_root_images', default=False, action="store_true",
-                        help='instead compute the median and mode of images found images')
+                        help='instead compute the mode of the images')
     # parser.add_argument('--root', default=True, action="store_true",
     #                     help='use the root-mode (or root-median --median) instead of the trail')
     parser.add_argument('--no_color_hist', default=False, action="store_true",
@@ -98,8 +80,6 @@ def create_dataset_using_ocatari():
                         help='renders the environment')
     parser.add_argument('-s', '--stacks', default=True, action="store_false",
                         help='should render in correlated stacks of 4')
-    parser.add_argument('--median', default=False, action="store_true",
-                        help='should compute median-delta instead of mode')
     parser.add_argument('--bb', default=True, action="store_false",
                         help='should compute bounding_boxes')
     parser.add_argument('--flow', action="store_true",
@@ -118,15 +98,13 @@ def create_dataset_using_ocatari():
     data_base_folder = "../aiml_atari_data"
     mode_base_folder = "../aiml_atari_data"
     REQ_CONSECUTIVE_IMAGE = 20
-    create_folders(args, data_base_folder)
+
+    rgb_folder, bgr_folder, flow_folder, bb_folder, vis_folder, mode_folder = \
+        create_folders(args, data_base_folder)
 
     # for optional visualization
     visualizations_flow = [
         Identity(vis_folder, "Flow", max_vis=50, every_n=1),
-    ] if args.vis else []
-    visualizations_median = [ # was empty before #TODO check if this is correct
-        Identity(vis_folder, "Median", max_vis=50, every_n=1),
-        ZWhereZPres(vis_folder, "Median", max_vis=20, every_n=2),
     ] if args.vis else []
     visualizations_mode = [
         Identity(vis_folder, "Mode", max_vis=50, every_n=1),
@@ -138,14 +116,15 @@ def create_dataset_using_ocatari():
 
 
     agent, observation, info = configure(args)
-    #for _ in range(100):
-    #    obs, reward, done, truncated, info = take_action(agent)
-    #    print(agent.env.objects)
-    #    if done or truncated:
-    #        agent.env.reset()
-    print("configuration done")
 
-    # compute the root images i.e. median and mode as the background
+    # take some steps to not start at the beginning of the game (might unnecessary)
+    for _ in range(100):
+        obs, reward, done, truncated, info = take_action(agent)
+        print(agent.env.objects)
+        if done or truncated:
+            agent.env.reset()
+
+    # compute the root image i.e. mode as the background
     if args.compute_root_images:
         root_image_limit = 100 # was 1000 before
         imgs = []
@@ -166,7 +145,7 @@ def create_dataset_using_ocatari():
     consecutive_images = []
     consecutive_images_info = []
 
-    series = []
+
     print("Init steps...")
     for _ in range(50):
         obs, reward, done, truncated, info = take_action(agent)
@@ -176,10 +155,7 @@ def create_dataset_using_ocatari():
         print("red", f"Couldn't find {mode_path}/mode.png, use --trail to use the trail instead")
         exit(1)
     
-    root_median = np.array(Image.open(f"{mode_base_folder}/{args.game}-v0/background/median.png"))[:, :, :3]
     root_mode = np.array(Image.open(f"{mode_base_folder}/{args.game}-v0/background/mode.png"))[:, :, :3]
-    print("Ensuring that global median (mode) is used.")
-
 
     if not args.no_color_hist:
         set_color_hist(root_mode)
@@ -194,9 +170,10 @@ def create_dataset_using_ocatari():
             set_special_color_weight(3497752, 20000)
 
     pbar = tqdm(total=limit)
-    enemy_scored = False
+
     while True:
         obs, reward, done, truncated, info = take_action(agent)
+
         game_objects = [(go.y, go.x, go.h, go.w, "S" if go.hud else "M", go.category) for go in sorted(agent.env.objects, key=lambda o: str(o))]
         info["bbs"] = game_objects
 
@@ -204,8 +181,7 @@ def create_dataset_using_ocatari():
             continue
         if args.render:
             env.render()
-        
-        #import ipdb; ipdb.set_trace()
+            
         consecutive_images += [obs]
         consecutive_images_info.append(info)
         if len(consecutive_images) == REQ_CONSECUTIVE_IMAGE:
@@ -231,12 +207,8 @@ def create_dataset_using_ocatari():
             if args.flow:
                 flow.save(space_stack, f'{flow_folder}/{image_count:05}_{{}}.pt', visualizations_flow)
             
-            # either save the median or the mode
-            if args.median:
-                median.save(space_stack, f'{median_folder}/{image_count:05}_{{}}.pt', visualizations_median,
-                            median=root_median)
-            else:
-                mode.save(space_stack, f'{mode_folder}/{image_count:05}_{{}}.pt', visualizations_mode,
+            # save the mode
+            mode.save(space_stack, f'{mode_folder}/{image_count:05}_{{}}.pt', visualizations_mode,
                           mode=root_mode, space_frame=resize_stack)
             
             while done or truncated:
@@ -289,26 +261,25 @@ class RandomAgent:
 
 
 def create_folders(args, data_base_folder):
-    global rgb_folder, bgr_folder, flow_folder, median_folder, bb_folder, vis_folder, mode_folder
     rgb_folder = f"{data_base_folder}/{args.game}-v0/rgb/{args.folder}"
     bgr_folder = f"{data_base_folder}/{args.game}-v0/space_like/{args.folder}" 
     bb_folder = f"{data_base_folder}/{args.game}-v0/bb/{args.folder}" # gt information based on extraction from internals of the game. is used for evaluation
-    flow_folder = f"{data_base_folder}/{args.game}-v0/flow/{args.folder}" # information based on optical flow. is used for training
-    median_folder = f"{data_base_folder}/{args.game}-v0/median/{args.folder}"
+    flow_folder = f"{data_base_folder}/{args.game}-v0/flow/{args.folder}"
     mode_folder = f"{data_base_folder}/{args.game}-v0/mode/{args.folder}"
     if args.vis:
         vis_folder = f"{data_base_folder}/{args.game}-v0/vis/{args.folder}"
+    else:
+        vis_folder = None
     os.makedirs(bgr_folder, exist_ok=True)
     os.makedirs(rgb_folder, exist_ok=True)
     os.makedirs(flow_folder, exist_ok=True)
-    os.makedirs(median_folder, exist_ok=True)
     os.makedirs(mode_folder, exist_ok=True)
     os.makedirs(bb_folder, exist_ok=True)
     if args.vis:
         os.makedirs(vis_folder + "/BoundingBox", exist_ok=True)
-        os.makedirs(vis_folder + "/Median", exist_ok=True)
         os.makedirs(vis_folder + "/Flow", exist_ok=True)
         os.makedirs(vis_folder + "/Mode", exist_ok=True)
+    return rgb_folder, bgr_folder, flow_folder, bb_folder, vis_folder, mode_folder
 
 
 if __name__ == '__main__':
