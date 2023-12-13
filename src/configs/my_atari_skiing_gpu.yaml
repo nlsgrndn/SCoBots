@@ -33,7 +33,7 @@ train:
   clip_norm: 1.0
   max_ckpt: 4
   eval_on: true
-  eval_every: 2
+  eval_every: 200
   solver:
     fg:
       optim: 'RMSprop'

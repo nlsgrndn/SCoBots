@@ -19,10 +19,13 @@ from torch.utils.tensorboard import SummaryWriter
 from utils.bbox_matching import match_bounding_boxes_z_what
 from dataset.atari_labels import label_list_for
 from pyclustering.cluster import cluster_visualizer
-from pyclustering.cluster.xmeans import xmeans
+from pyclustering.cluster.xmeans import xmeans, splitting_type
 from pyclustering.cluster.center_initializer import kmeans_plusplus_initializer
 from pyclustering.utils import read_sample
 from pyclustering.samples.definitions import SIMPLE_SAMPLES
+import pandas as pd
+import random
+from PIL import Image
 
 
 
@@ -35,10 +38,10 @@ def train_classifier(cfg):
 
     # Dataset
     dataset = get_dataset(cfg, 'val') #TODO check which dataset should be used here
-    data_category = "relevant"
+    data_category = "all"
     data_source = "files" #"eval_classes" or "files"
     if data_source == "files":
-        relevant_labels, test_x, test_y, train_x, train_y = collect_data_using_files(cfg, data_category=data_category)
+        (relevant_labels, test_x, test_y, train_x, train_y) , image_refs = collect_data_using_files(cfg, data_category=data_category)
     elif data_source == "eval_classes":
         relevant_labels, test_x, test_y, train_x, train_y = collect_data_using_eval_classes(cfg, model, dataset, global_step = None, data_category=data_category)
     else:
@@ -51,38 +54,34 @@ def train_classifier(cfg):
     #ridge_classifiers = clf_creator.create_ridge_classifiers(relevant_labels, train_x, train_y)
     #k_means = clf_creator.create_k_means(train_x, relevant_labels)
     #nn_clf, _, _ = clf_creator.nn_clf_based_on_k_means_centroids(k_means, train_x, train_y, relevant_labels)
+    # generate random number without numpy
+    seed = random.randint(0, 100000)
+    np.random.seed(seed)
     
-
-    sample = train_x
-    amount_initial_centers = 2
-    initial_centers = kmeans_plusplus_initializer(sample, amount_initial_centers).initialize()
-    # Create instance of X-Means algorithm. The algorithm will start analysis from 2 clusters, the maximum
-    # number of clusters that can be allocated is 20.
-    xmeans_instance = xmeans(sample, initial_centers,)
-    xmeans_instance.process()
-    # Extract clustering results: clusters and their centers
-    clusters = xmeans_instance.get_clusters()
-    centers = xmeans_instance.get_centers()
-    # Print total sum of metric errors
-    print("Total WCE:", xmeans_instance.get_total_wce())
-    # Visualize clustering results
-    visualizer = cluster_visualizer()
-    sample, centers, dim_name = perform_dimensionality_reduction(sample, centers)
-    visualizer.append_clusters(clusters, sample)
-    visualizer.append_cluster(centers, None, marker='*', markersize=10)
-    visualizer.save('xmeans.png')
+    image_refs = image_refs[:len(train_x)]
+    #pca = PCA(n_components=0.6, svd_solver='full')
+    #train_x = pca.fit_transform(train_x)
+    #print(pca.components_.shape)
+    sample = np.array(train_x)
+    xmeans_instance, centers, _ = ZWhatClassifierCreator(cfg).create_x_means(sample, seed=seed)
     print(train_y)
     y_pred_train = np.array(xmeans_instance.predict(train_x))
     pred_vs_gt = np.stack((y_pred_train, train_y), axis=1)
     print(Counter([tuple(x) for x in pred_vs_gt]))
-
-
-    #x_means = clf_creator.create_x_means(train_x,)
-    #print("number of centers of x-means", len(x_means.get_centers()))
-    #train_pred_by_x_means = x_means.predict(train_x)
-    #test_pred_by_x_means = x_means.predict(test_x)
-    #print("train_pred_by_x_means", train_pred_by_x_means)
-    #print("test_pred_by_x_means", test_pred_by_x_means)
+    df = pd.DataFrame( dict(image_refs=image_refs, y_pred=y_pred_train, y_gt=train_y))
+    print("seed", seed)
+    print("number of clusters", len(centers))
+    # save all images of all present combinations of (y_pred and y_gt) in a separate folder
+    for y_pred, y_gt in Counter([tuple(x) for x in pred_vs_gt]):
+        df_filtered = df[(df.y_pred == y_pred) & (df.y_gt == y_gt)]
+        for image_ref in df_filtered.image_refs:
+            image_path = f"labeled/{cfg.exp_name}/objects/{image_ref}"
+            image = Image.open(image_path)
+            label = label_list_for(cfg.exp_name)[int(y_gt)]
+            folder = f"labeled/{cfg.exp_name}/objects/cluster{int(y_pred)}_gt{label}"
+            if not os.path.exists(folder):
+                os.makedirs(folder)
+            image.save(folder + f"/{image_ref}")
 
 def collect_data_using_eval_classes(cfg, model, dataset, global_step, data_category="all"):
     print("Collecting data using eval classes")
@@ -104,7 +103,9 @@ def collect_data_using_files(cfg, data_category="all"):
     game = cfg.exp_name
     labels = np.load(f"labeled/{game}/labels_{data_category}_test.npy")
     z_whats = np.load(f"labeled/{game}/z_whats_{data_category}_test.npy")
-    return prepare_data(torch.tensor(z_whats), torch.tensor(labels))
+    image_refs = pd.read_csv(f"labeled/{game}/image_refs_{data_category}_test.csv")
+    image_refs = image_refs.iloc[:, 0].tolist()
+    return prepare_data(torch.tensor(z_whats), torch.tensor(labels)), image_refs
 
 def prepare_data(z_what, labels,):
     c = Counter(labels.tolist() if labels is not None else [])
@@ -133,13 +134,6 @@ def only_keep_relevant_data(z_what, labels, relevant_labels):
         relevant |= labels == rl
     return z_what[relevant], labels[relevant]
 
-def perform_dimensionality_reduction(z_what, centroids,):
-        # perform PCA or TSNE
-        print("Running PCA...")
-        pca = PCA(n_components=2)
-        z_what_emb = pca.fit_transform(z_what.numpy())
-        centroid_emb = pca.transform(np.array(centroids))
-        dim_name = "PCA"
-        return z_what_emb, centroid_emb, dim_name
+
 
     

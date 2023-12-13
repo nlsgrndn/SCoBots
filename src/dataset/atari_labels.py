@@ -1,37 +1,62 @@
 import torch
 import pandas as pd
 import numpy as np
-from ocatari.ram.pong import MAX_NB_OBJECTS_HUD as MAX_NB_OBJECTS_HUD_PONG
-from ocatari.ram.boxing import MAX_NB_OBJECTS_HUD as MAX_NB_OBJECTS_HUD_BOXING
-from ocatari.ram.skiing import MAX_NB_OBJECTS_HUD as MAX_NB_OBJECTS_HUD_SKIING
+from ocatari.ram.pong import MAX_NB_OBJECTS_HUD as MAX_NB_OBJECTS_ALL_PONG
+from ocatari.ram.pong import MAX_NB_OBJECTS as MAX_NB_OBJECTS_MOVING_PONG
+from ocatari.ram.boxing import MAX_NB_OBJECTS_HUD as MAX_NB_OBJECTS_ALL_BOXING
+from ocatari.ram.boxing import MAX_NB_OBJECTS as MAX_NB_OBJECTS_MOVING_BOXING
+from ocatari.ram.tennis import MAX_NB_OBJECTS_HUD as MAX_NB_OBJECTS_ALL_TENNIS
+from ocatari.ram.tennis import MAX_NB_OBJECTS as MAX_NB_OBJECTS_MOVING_TENNIS
+from ocatari.ram.skiing import MAX_NB_OBJECTS_HUD as MAX_NB_OBJECTS_ALL_SKIING
+from ocatari.ram.skiing import MAX_NB_OBJECTS as MAX_NB_OBJECTS_MOVING_SKIING
+from ocatari.ram.carnival import MAX_NB_OBJECTS_HUD as MAX_NB_OBJECTS_ALL_CARNIVAL
+from ocatari.ram.carnival import MAX_NB_OBJECTS as MAX_NB_OBJECTS_MOVING_CARNIVAL
+from ocatari.ram.spaceinvaders import MAX_NB_OBJECTS_HUD as MAX_NB_OBJECTS_ALL_SPACE_INVADERS
+from ocatari.ram.spaceinvaders import MAX_NB_OBJECTS as MAX_NB_OBJECTS_MOVING_SPACE_INVADERS
+from ocatari.ram.riverraid import MAX_NB_OBJECTS_HUD as MAX_NB_OBJECTS_ALL_RIVER_RAID
+from ocatari.ram.riverraid import MAX_NB_OBJECTS as MAX_NB_OBJECTS_MOVING_RIVER_RAID
+from ocatari.ram.mspacman import MAX_NB_OBJECTS_HUD as MAX_NB_OBJECTS_ALL_MSPACMAN
+from ocatari.ram.mspacman import MAX_NB_OBJECTS as MAX_NB_OBJECTS_MOVING_MSPACMAN
+from ocatari.ram.carnival import MAX_NB_OBJECTS_HUD as MAX_NB_OBJECTS_ALL_CARNIVAL
+from ocatari.ram.carnival import MAX_NB_OBJECTS as MAX_NB_OBJECTS_MOVING_CARNIVAL
+
 
 no_label_str = "no_label"
 
-label_list_pacman = [no_label_str, "pacman", 'sue', 'inky', 'pinky', 'blinky', "blue_ghost", "eyes",
-                     "white_ghost", "fruit", "save_fruit", "life1", "life2", "score", "corner_block"]
+label_list_carnival = [no_label_str] + sorted(list(MAX_NB_OBJECTS_ALL_CARNIVAL.keys()))
+label_list_carnival_moving = sorted(list(MAX_NB_OBJECTS_MOVING_CARNIVAL.keys()))
+moving_indices_carnival = [label_list_carnival.index(moving_label) for moving_label in label_list_carnival_moving]
 
-label_list_pong = [no_label_str] + sorted(list(MAX_NB_OBJECTS_HUD_PONG.keys()))
-#[no_label_str, "player", 'enemy', 'ball', 'enemy_score', 'player_score']
+label_list_mspacman = [no_label_str] + sorted(list(MAX_NB_OBJECTS_ALL_MSPACMAN.keys()))
+label_list_mspacman_moving = sorted(list(MAX_NB_OBJECTS_MOVING_MSPACMAN.keys()))
+moving_indices_mspacman = [label_list_mspacman.index(moving_label) for moving_label in label_list_mspacman_moving]
 
-label_list_carnival = [no_label_str, "owl", 'rabbit', 'shooter', 'refill', 'bonus', "duck",
-                       "flying_duck", "score", "pipes", "eating_duck", "bullet"]
+label_list_pong = [no_label_str] + sorted(list(MAX_NB_OBJECTS_ALL_PONG.keys()))
+label_list_pong_moving = sorted(list(MAX_NB_OBJECTS_MOVING_PONG.keys()))
+moving_indices_pong = [label_list_pong.index(moving_label) for moving_label in label_list_pong_moving]
 
-label_list_boxing = [no_label_str] + sorted(list(MAX_NB_OBJECTS_HUD_BOXING.keys()))
+label_list_boxing = [no_label_str] + sorted(list(MAX_NB_OBJECTS_ALL_BOXING.keys()))
+label_list_boxing_moving = sorted(list(MAX_NB_OBJECTS_MOVING_BOXING.keys()))
+moving_indices_boxing = [label_list_boxing.index(moving_label) for moving_label in label_list_boxing_moving]
 
-label_list_tennis = [no_label_str, "player", 'enemy', 'ball', 'ball_shadow', 'net', 'logo',
-                     'player_score', 'enemy_score']
+label_list_tennis = [no_label_str] + sorted(list(MAX_NB_OBJECTS_ALL_TENNIS.keys()))
+label_list_tennis_moving = sorted(list(MAX_NB_OBJECTS_MOVING_TENNIS.keys()))
+moving_indices_tennis = [label_list_tennis.index(moving_label) for moving_label in label_list_tennis_moving]                                                   
 
-label_list_space_invaders = [no_label_str] + [f"{side}_score" for side in ['left', 'right']] + [f"enemy_{idx}"
-                                                                                              for idx in
-                                                                                              range(6)] \
-                            + ["space_ship", "player", "block", "bullet"]
+label_list_space_invaders = [no_label_str] + sorted(list(MAX_NB_OBJECTS_ALL_SPACE_INVADERS.keys()))
+label_list_space_invaders_moving = sorted(list(MAX_NB_OBJECTS_MOVING_SPACE_INVADERS.keys()))
+moving_indices_space_invaders = [label_list_space_invaders.index(moving_label) for moving_label in label_list_space_invaders_moving]
 
-label_list_riverraid = [no_label_str, "player", 'fuel_gauge', 'fuel', 'lives', 'logo', 'score', 'shot', 'fuel_board',
-                        'building', 'street', 'enemy']
+label_list_riverraid = [no_label_str] + sorted(list(MAX_NB_OBJECTS_ALL_RIVER_RAID.keys()))
+label_list_riverraid_moving = sorted(list(MAX_NB_OBJECTS_MOVING_RIVER_RAID.keys()))
+moving_indices_riverraid = [label_list_riverraid.index(moving_label) for moving_label in label_list_riverraid_moving]
 
-label_list_air_raid = [no_label_str, "player", 'score', 'building', 'shot', 'enemy']
+label_list_skiing = [no_label_str] + sorted(list(MAX_NB_OBJECTS_ALL_SKIING.keys()))
+label_list_skiing_moving = sorted(list(MAX_NB_OBJECTS_MOVING_SKIING.keys()))
+moving_indices_skiing = [label_list_skiing.index(moving_label) for moving_label in label_list_skiing_moving]
 
-label_list_skiing = [no_label_str] + sorted(list(MAX_NB_OBJECTS_HUD_SKIING.keys()))
+
+label_list_air_raid = [no_label_str, "player", 'score', 'building', 'shot', 'enemy'] #TODO: Remove or find OCAtari labels
 
 
 def filter_relevant_boxes(game, boxes_batch, boxes_gt):
@@ -59,6 +84,29 @@ def filter_relevant_boxes(game, boxes_batch, boxes_gt):
         return [box_bat for box_bat in boxes_batch] #TODO Find helpful rules if necessary
     else:
         raise ValueError(f"Game {game} could not be found in labels")
+    
+
+def get_moving_indices(game):
+    if "MsPacman" in game:
+        return moving_indices_mspacman
+    elif "Carnival" in game:
+        return moving_indices_carnival
+    elif "SpaceInvaders" in game:
+        return moving_indices_space_invaders
+    elif "Pong" in game:
+        return moving_indices_pong
+    elif "Boxing" in game:
+        return moving_indices_boxing
+    elif "Airraid" in game:
+        return ValueError("Moving indices for Airraid not implemented")
+    elif "Riverraid" in game:
+        return moving_indices_riverraid
+    elif "Tennis" in game:
+        return moving_indices_tennis
+    elif "Skiing" in game:
+        return moving_indices_skiing
+    else:
+        raise ValueError(f"Game {game} could not be found in labels")
 
 
 def to_relevant(game, labels_moving):
@@ -77,7 +125,7 @@ def label_list_for(game):
     """
     game = game.lower()
     if "mspacman" in game:
-        return label_list_pacman
+        return label_list_mspacman
     elif "carnival" in game:
         return label_list_carnival
     elif "pong" in game:

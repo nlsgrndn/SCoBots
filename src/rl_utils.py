@@ -8,16 +8,14 @@ from solver import get_optimizers
 from PIL import Image
 from torchvision import transforms
 from vis.utils import fill_image_with_scene, place_point
+from dataset.atari_labels import get_moving_indices
 
-relevant_atariari_labels = {"pong": ["player", "enemy", "ball"], "boxing": ["enemy", "player"]}
-relevant_labels_per_game = {"pong": [1, 2, 4], "boxing": [2,4]}
-#relevant_labels_per_game = {"pong": [1,2,4]}
 # helper class to clean scene from space scene representation
 class SceneCleaner():
     def __init__(self, game):
         # initialize SceneCleaner with the game name and relevant labels for the game
         self.game = game
-        self.relevant_labels = relevant_labels_per_game[game]
+        self.relevant_labels = get_moving_indices(game)
         # initialize last_known with zeros for each relevant label
         self.last_known = [[0, 0] for _ in self.relevant_labels]
 

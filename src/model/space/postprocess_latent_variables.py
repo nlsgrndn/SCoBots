@@ -1,6 +1,16 @@
 import torch
 
 
+def z_where_to_bb_format(width, height, center_x, center_y):
+    center_x = (center_x + 1.0) / 2.0
+    center_y = (center_y + 1.0) / 2.0
+    x_min = center_x - width / 2
+    x_max = center_x + width / 2
+    y_min = center_y - height / 2
+    y_max = center_y + height / 2
+    return y_min, y_max, x_min, x_max
+
+
 def convert_to_boxes(z_where, z_pres, z_pres_prob, with_conf=False):
     """
 
@@ -17,13 +27,7 @@ def convert_to_boxes(z_where, z_pres, z_pres_prob, with_conf=False):
 
     # each (B, N, 1)
     width, height, center_x, center_y = torch.split(z_where, 1, dim=-1)
-
-    center_x = (center_x + 1.0) / 2.0
-    center_y = (center_y + 1.0) / 2.0
-    x_min = center_x - width / 2
-    x_max = center_x + width / 2
-    y_min = center_y - height / 2
-    y_max = center_y + height / 2
+    y_min, y_max, x_min, x_max = z_where_to_bb_format(width, height, center_x, center_y)
     # (B, N, 4)
     pos = torch.cat([y_min, y_max, x_min, x_max], dim=-1)
     boxes = []

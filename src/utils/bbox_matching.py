@@ -127,6 +127,28 @@ def match_bounding_boxes(
 
     return actual_list, predicted_list
 
+def match_bounding_boxes_v2(
+        labels: np.ndarray, predicted: np.ndarray, matching_method=compute_iou
+        ): # from generate_confusion_matrices.py
+    """
+    Match bounding boxes in labels and predicted.
+    :param labels: np.ndarray of shape (n, 5) where n is the number of bounding boxes
+    :param predicted: np.ndarray of shape (m, 5) where m is the number of bounding boxes
+    :return: label_for_pred
+    """
+
+    # compute matching scores
+    # (#pred, #gt)
+    matching_scores = matching_method(predicted, labels)
+
+    # match bounding boxes
+    # (#pred, )
+    gt_id_for_pred = np.argmax(matching_scores, axis=1)
+    # (#pred, )
+    label_for_pred = labels[gt_id_for_pred, 4]
+
+    return label_for_pred
+
 def match_bounding_boxes_z_what(
         labels: np.ndarray, predicted: np.ndarray, matching_method=compute_misalignment
         ): # from generate_confusion_matrices.py
