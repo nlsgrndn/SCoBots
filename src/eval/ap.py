@@ -28,7 +28,7 @@ def compute_counts(boxes_pred, boxes_gt):
 
     return np.mean(error_rates), perfect, overcount, undercount
 
-def compute_ap(pred_boxes, gt_boxes, iou_thresholds=None, recall_values=None):
+def compute_ap(pred_boxes, gt_boxes, iou_thresholds=None, recall_values=None, matching_method=compute_iou):
     """
     Compute average precision over different iou thresholds.
 
@@ -47,66 +47,24 @@ def compute_ap(pred_boxes, gt_boxes, iou_thresholds=None, recall_values=None):
     AP = []
     for threshold in iou_thresholds:
         # Compute AP for this threshold
-        # Number of total ground truths
-        count_gt = 0
-        hit = []
-        # For each image, determine each prediction is a hit of not
-        for pred, gt in zip(pred_boxes, gt_boxes):
-            count_gt += len(gt)
-            # Sort predictions within an image by decreasing confidence
-            pred = sorted(pred, key=lambda x: -x[-1])
-
-            if len(gt) == 0:
-                hit.extend((False, conf) for *_, conf in pred)
-                continue
-            if len(pred) == 0:
-                continue
-
-            M, N = len(pred), len(gt)
-
-            # (M, 4), (M) (N, 4)
-            pred = np.array(pred)
-            pred, conf = pred[:, :4], pred[:, -1]
-            gt = np.array(gt)
-
-            # (M, N)
-            iou = compute_iou(pred, gt)
-            # (M,)
-            best_indices = np.argmax(iou, axis=1)
-            # (M,)
-            best_iou = iou[np.arange(M), best_indices]
-            # (N,), thresholding results
-            valid = best_iou > threshold
-            used = [False] * N
-
-            for i in range(M):
-                # Only count first hit
-                if valid[i] and not used[best_indices[i]]:
-                    hit.append((True, conf[i]))
-                    used[best_indices[i]] = True
-                else:
-                    hit.append((False, conf[i]))
+        
+        hit, count_gt = compute_hits(pred_boxes, gt_boxes, threshold, matching_method)
 
         if len(hit) == 0:
             AP.append(0.0)
             continue
 
         # Sort
-        # hit.sort(key=lambda x: -x[-1])
         hit = sorted(hit, key=lambda x: -x[-1])
-
-        # print('yes')
-        # print(hit)
         hit = [x[0] for x in hit]
-        # print(hit)
+        
         # Compute average precision
-        # hit_cum = np.cumsum(np.array(hit, dtype=np.float32))
         hit_cum = np.cumsum(hit)
         num_cum = np.arange(len(hit)) + 1.0
         precision = hit_cum / num_cum
         recall = hit_cum / count_gt
+        
         # Compute AP at selected recall values
-        # print(precision)
         precs = []
         for val in recall_values:
             prec = precision[recall >= val]
@@ -114,15 +72,12 @@ def compute_ap(pred_boxes, gt_boxes, iou_thresholds=None, recall_values=None):
 
         # Mean over recall values
         AP.append(np.mean(precs))
-        # AP.extend(precs)
 
-        # print(AP)
     print(AP)
-    # mean over all thresholds
     return AP
 
 
-def compute_prec_rec(pred_boxes, gt_boxes, threshold_values):
+def compute_prec_rec(pred_boxes, gt_boxes, threshold_values, matching_method=compute_misalignment):
     """
     Compute precision and recall using misalignment.
 
@@ -131,6 +86,34 @@ def compute_prec_rec(pred_boxes, gt_boxes, threshold_values):
     :return: p/r
     """
     threshold = 0.5
+    hit, count_gt = compute_hits(pred_boxes, gt_boxes, threshold, matching_method)
+
+    hit = sorted(hit, key=lambda x: -x[-1]) # sort by confidence (descending)
+    confidence_values = np.array([x[1] for x in hit])
+    hit = [x[0] for x in hit] # remove confidence
+    hit_cum = np.cumsum(hit)
+    num_cum = np.arange(len(hit)) + 1.0
+    precision = hit_cum / num_cum
+    recall = hit_cum / count_gt
+    if len(precision) == 0 or len(recall) == 0:
+        return 0.0, 0.0, np.array([0.0]), np.array([0.0]), np.array([0.0])
+    
+    precisions_at_thresholds = np.zeros(len(threshold_values))
+    recalls_at_thresholds = np.zeros(len(threshold_values))
+    # store precision and recall for different confidence thresholds
+    for i, thresh in enumerate(threshold_values):
+        # get first index where confidence is above threshold
+        index = np.argmin(confidence_values[confidence_values > thresh]) if confidence_values[confidence_values > thresh].size > 0 else None
+        if index is None:
+            precisions_at_thresholds[i] = np.nan
+            recalls_at_thresholds[i] = np.nan
+        else:
+            precisions_at_thresholds[i] = precision[index]
+            recalls_at_thresholds[i] = recall[index]
+    return precision[-1], recall[-1], precisions_at_thresholds, recalls_at_thresholds
+
+# TODO: move to bbox_matching.py
+def compute_hits(pred_boxes, gt_boxes, threshold, matching_method):
     count_gt = 0
     hit = []
     # For each image, determine each prediction is a hit of not
@@ -148,18 +131,19 @@ def compute_prec_rec(pred_boxes, gt_boxes, threshold_values):
         M, N = len(pred), len(gt)
 
         # (M, 4), (M) (N, 4)
+
         pred = np.array(pred)
         pred, conf = pred[:, :4], pred[:, -1]
         gt = np.array(gt)
 
         # (M, N)
-        mis_align = compute_misalignment(pred, gt)
+        matching_scores = matching_method(pred, gt)
         # (M,)
-        best_indices = np.argmax(mis_align, axis=1)
+        best_indices = np.argmax(matching_scores, axis=1)
         # (M,)
-        best_mis_align = mis_align[np.arange(M), best_indices]
+        best_matching_scores = matching_scores[np.arange(M), best_indices]
         # (N,), thresholding results
-        valid = best_mis_align > threshold
+        valid = best_matching_scores > threshold
         used = [False] * N
 
         for i in range(M):
@@ -169,27 +153,5 @@ def compute_prec_rec(pred_boxes, gt_boxes, threshold_values):
                 used[best_indices[i]] = True
             else:
                 hit.append((False, conf[i]))
-
-    hit = sorted(hit, key=lambda x: -x[-1]) # sort by confidence (descending)
-    confidence_values = np.array([x[1] for x in hit])
-    hit = [x[0] for x in hit] # remove confidence
-    hit_cum = np.cumsum(hit)
-    num_cum = np.arange(len(hit)) + 1.0
-    precision = hit_cum / num_cum
-    recall = hit_cum / count_gt
-    if len(precision) == 0 or len(recall) == 0:
-        return 0.0, 0.0, np.array([0.0]), np.array([0.0]), np.array([0.0])
     
-    precisions_at_thresholds = np.zeros(len(threshold_values))
-    recalls_at_thresholds = np.zeros(len(threshold_values))
-    # store precision and recall for different confidence thresholds
-    for i, threshold in enumerate(threshold_values):
-        # get first index where confidence is above threshold
-        index = np.argmin(confidence_values[confidence_values > threshold]) if confidence_values[confidence_values > threshold].size > 0 else None
-        if index is None:
-            precisions_at_thresholds[i] = np.nan
-            recalls_at_thresholds[i] = np.nan
-        else:
-            precisions_at_thresholds[i] = precision[index]
-            recalls_at_thresholds[i] = recall[index]
-    return precision[-1], recall[-1], precisions_at_thresholds, recalls_at_thresholds
+    return hit, count_gt

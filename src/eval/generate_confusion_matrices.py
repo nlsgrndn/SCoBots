@@ -1,4 +1,3 @@
-# TODO move to eval folder and integrate somehow with eval.py
 from sklearn.metrics import confusion_matrix
 from dataset.atari_labels import label_list_for
 from collections import Counter
@@ -21,7 +20,8 @@ def confusion_matrix_visualization(labels: List[np.ndarray], predicted: List[np.
     return cm
 
 if __name__ == "__main__":
+    FILTERED_PREDICTED_BBS = True
     game = "boxing"
     labels = np.load(f"labeled/{game}/actual_bbs_test.npz")
-    predicted = np.load(f"labeled/{game}/predicted_bbs_test.npz")
+    predicted = np.load(f"labeled/{game}/predbboxs_predlabels_gtlabels_z_whats_test_{'filtered' if FILTERED_PREDICTED_BBS else 'unfiltered'}.npz")
     print(confusion_matrix_visualization(list(labels.values()), list(predicted.values()), label_list_for(game)))

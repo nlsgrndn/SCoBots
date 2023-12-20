@@ -10,6 +10,15 @@ def z_where_to_bb_format(width, height, center_x, center_y):
     y_max = center_y + height / 2
     return y_min, y_max, x_min, x_max
 
+def bb_to_z_where_format(y_min, y_max, x_min, x_max):
+    width = x_max - x_min
+    height = y_max - y_min
+    center_x = x_min + width / 2
+    center_y = y_min + height / 2
+    center_x = center_x * 2.0 - 1.0
+    center_y = center_y * 2.0 - 1.0
+    return width, height, center_x, center_y
+
 
 def convert_to_boxes(z_where, z_pres, z_pres_prob, with_conf=False):
     """

@@ -33,8 +33,11 @@ class SpaceEval:
         self.eval_file_path = f'{cfg.logdir}/{cfg.exp_name}/metrics.csv'
         self.relevant_object_hover_path = f'{cfg.logdir}/{cfg.exp_name}/hover'
         self.first_eval = True
+        self.data_subset_modes = ['all','relevant']
         self.tb_writer = tb_writer
-        self.file_writer = EvalWriter(cfg, tb_writer)
+        self.file_writer = EvalWriter(cfg, tb_writer, self.data_subset_modes)
+        self.cfg = cfg
+        
 
     def set_and_make_directories(self, eval_file_path, relevant_object_hover_path):
         if os.path.exists(eval_file_path):
@@ -60,7 +63,8 @@ class SpaceEval:
             self.set_and_make_directories(self.eval_file_path, self.relevant_object_hover_path)
             self.file_writer.write_header()
 
-        _, logs = self.apply_model(dataset, device, model, global_step)
+        #_, logs = self.apply_model(dataset, device, model, global_step)
+        logs = [] # TODO undo this
         results = self.core_eval_code(dataset, bb_path, global_step, cfg, logs)
         return results
 
@@ -127,8 +131,8 @@ class SpaceEval:
         Evaluate ap and accuracy during training
         :return: result_dict
         """
-        result_dict = ApAndAccEval().eval_ap_and_acc(logs, valset, bb_path)
-        for class_name in ['all', 'moving', 'relevant']:
+        result_dict = ApAndAccEval().eval_ap_and_acc(logs, valset, bb_path, self.data_subset_modes, self.cfg)
+        for class_name in self.data_subset_modes:
             APs = result_dict[f'APs_{class_name}']
             
             # only logging
@@ -172,7 +176,7 @@ class SpaceEval:
         :return: result_dict
         """
         print('Computing clustering and few-shot linear classifiers...')
-        results = ClusteringEval(cfg, self.relevant_object_hover_path).eval_clustering(logs, valset, global_step)
+        results = ClusteringEval(cfg, self.relevant_object_hover_path).eval_clustering(logs, valset, global_step, self.data_subset_modes)
         if (None, None, None) in results.values():
             results = self.ap_results_none_dict
         for name, (result_dict, img_path, few_shot_accuracy) in results.items():
@@ -192,10 +196,11 @@ class SpaceEval:
         return results
 
 class EvalWriter:
-    def __init__(self, cfg, tb_writer: SummaryWriter):
+    def __init__(self, cfg, tb_writer: SummaryWriter, data_subset_modes):
         self.eval_file_path = f'{cfg.logdir}/{cfg.exp_name}/metrics.csv'
         self.relevant_object_hover_path = f'{cfg.logdir}/{cfg.exp_name}/hover'
         self.tb_writer = tb_writer
+        self.data_subset_modes = data_subset_modes
 
     def write_metric(self, tb_label, value, global_step, use_writer=True, make_sep=True):
         if use_writer:
@@ -230,7 +235,7 @@ class EvalWriter:
     def get_cluster_header(self):
         column_endings = [f"few_shot_accuracy_with_{train_objects_per_class}" for train_objects_per_class in [1, 4, 16, 64]] \
                 + ['few_shot_accuracy_cluster_nn', 'adjusted_mutual_info_score', 'adjusted_rand_score']
-        column_starts = ['all', 'moving', 'relevant']
+        column_starts = self.data_subset_modes
         columns = [f"{class_name}_{column_ending}" for class_name in column_starts for column_ending in column_endings]
         columns.append(f'relevant_bayes_accuracy') # special case only for relevant
         return columns
@@ -240,6 +245,6 @@ class EvalWriter:
             ['accuracy', 'perfect', 'overcount', 'undercount', 'error_rate', 'precision', 'recall'] + \
             [f"precision_{thres:.2f}" for thres in ApAndAccEval.PREC_REC_CONF_THRESHOLDS] + \
             [f"recall_{thres:.2f}" for thres in ApAndAccEval.PREC_REC_CONF_THRESHOLDS]
-        column_starts = ['all', 'moving', 'relevant']
+        column_starts = self.data_subset_modes
         columns = [f"{class_name}_{column_ending}" for class_name in column_starts for column_ending in column_endings]
         return columns

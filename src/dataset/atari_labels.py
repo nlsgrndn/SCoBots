@@ -85,25 +85,37 @@ def filter_relevant_boxes(game, boxes_batch, boxes_gt):
     else:
         raise ValueError(f"Game {game} could not be found in labels")
     
+def filter_relevant_boxes_masks(game, boxes_batch, boxes_gt):
+    if "Pong" in game:
+        # ensure that > 21/128 and < 110/128
+        return [(box_bat[:, 1] > 21 / 128) & (box_bat[:, 0] > 4 / 128) for box_bat in boxes_batch]
+    elif "Boxing" in game:
+        return [(box_bat[:, 0] > 19 / 128) * (box_bat[:, 1] < 110 / 128) for box_bat in boxes_batch]
+    elif "Skiing" in game:
+        return [box_bat[:, 0] > -1000 for box_bat in boxes_batch] # TODO: Find helpful rules if necessary (currently trivial condition such that mask is always true)
+    else:
+        raise ValueError(f"filter_relevant_boxes_masks for game {game} not implemented")
+    
 
 def get_moving_indices(game):
-    if "MsPacman" in game:
+    game = game.lower()
+    if "mspacman" in game:
         return moving_indices_mspacman
-    elif "Carnival" in game:
+    elif "carnival" in game:
         return moving_indices_carnival
-    elif "SpaceInvaders" in game:
+    elif "space" in game and "invaders" in game:
         return moving_indices_space_invaders
-    elif "Pong" in game:
+    elif "pong" in game:
         return moving_indices_pong
-    elif "Boxing" in game:
+    elif "boxing" in game:
         return moving_indices_boxing
-    elif "Airraid" in game:
+    elif "air" in game and "raid" in game:
         return ValueError("Moving indices for Airraid not implemented")
-    elif "Riverraid" in game:
+    elif "riverraid" in game:
         return moving_indices_riverraid
-    elif "Tennis" in game:
+    elif "tennis" in game:
         return moving_indices_tennis
-    elif "Skiing" in game:
+    elif "skiing" in game:
         return moving_indices_skiing
     else:
         raise ValueError(f"Game {game} could not be found in labels")

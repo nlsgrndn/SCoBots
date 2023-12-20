@@ -6,28 +6,23 @@ from .motion_processing import process_motion_to_latents, save_motion
 from .mode_util import vector_mode
 
 
-def save(trail, output_path, visualizations=None, mode=None, space_frame=None):
+def save(trail, output_path, visualizations=None, mode=None, space_frame=None, n_last_frames=4):
     """
-    Computes the flow from the last 4 images in the stack
+    Computes the flow from the last N images in the stack
     :param trail: [>=10, H, W, 3] array
     :param output_path: a path to the numpy data file to write
     :param visualizations: List[ProcessingVisualization] for visualizations
     :param mode: Optional[nd.array<H, W>] if the mode is known from other sources than the trail
     :param space_frame: [>=10, H_2, W_2, 3] array resized for SPACE
     """
+
     if mode is None:
         mode = np.apply_along_axis(lambda x: vector_mode(x), axis=0,
-                                   arr=np.moveaxis(trail[:-4], 3, 1).reshape(-1, *trail.shape[1:3]))
+                                   arr=np.moveaxis(trail[:-n_last_frames], 3, 1).reshape(-1, *trail.shape[1:3]))
         mode = np.moveaxis(mode, 0, 2)
-    for i, frame in enumerate(trail[-4:]):
+    for i, frame in enumerate(trail[-n_last_frames:]):
         save_frame(frame, mode, output_path.format(i), visualizations=visualizations, space_frame=space_frame[i])
 
-
-def save_coinrun(trail, output_path, visualizations=None, space_frame=None):
-    frame_modes = [align(frame, prev) for frame, prev in zip(trail[-4:], trail[-5:])]
-
-    for i, (frame, frame_mode) in enumerate(zip(trail[-4:], frame_modes)):
-        save_frame(frame, frame_mode, output_path.format(i), visualizations=visualizations, space_frame=space_frame[i])
 
 import matplotlib.pyplot as plt
 def show_image(im):

@@ -8,6 +8,7 @@ from engine.video_splitter import split_videos
 from engine.flow_example import test_flow
 from engine.train_classifier import train_classifier
 from engine.load_model import load_model
+from create_latent_dataset import create_latent_dataset
 
 
 if __name__ == '__main__':
@@ -22,6 +23,7 @@ if __name__ == '__main__':
         'multi_train': multi_train,
         'train_classifier': train_classifier,
         'load_model': load_model,
+        'create_latent_dataset': create_latent_dataset,
     }
     cfg, task = get_config()
     assert task in task_dict

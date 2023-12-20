@@ -55,6 +55,7 @@ class ZWhatEvaluator:
         k_means = ZWhatClassifierCreator(self.cfg).create_k_means(train_x, relevant_labels)
         # Create NN classifier
         nn_class, centroids, centroid_label= ZWhatClassifierCreator(self.cfg).nn_clf_based_on_k_means_centroids(k_means, train_x, train_y, relevant_labels)
+        ZWhatClassifierCreator(self.cfg).save_classifier(nn_class, self.cfg.resume_ckpt.split("/")[-1][:-4])
 
         # Eval
         few_shot_accuracy = ZWhatClassifierEvaluator(self.cfg).evaluate_ridge_classifiers_few_shot_accuracy(test_x, test_y, ridge_classifers)

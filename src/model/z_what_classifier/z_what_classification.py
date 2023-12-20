@@ -48,11 +48,11 @@ class ZWhatClassifierCreator:
         k_means.fit(z_what)
         return k_means
 
-    def save_classifier(self, clf, model_name):
+    def save_classifier(self, clf, model_name, clf_name = "unnamed"):
         folder = f'{self.cfg.logdir}/{self.cfg.exp_name}/{model_name}'
         if not os.path.exists(folder):
             os.makedirs(folder)
-        filename = 'z_what-classifier_{type(clf)}.joblib.pkl'
+        filename = f'z_what-classifier_{clf_name}.joblib.pkl'
         path = os.path.join(folder, filename)
         joblib.dump(clf, path)
 
@@ -84,34 +84,14 @@ class ZWhatClassifierCreator:
         nn_class.fit(centroids, centroid_label)
         return nn_class, centroids, centroid_label
 
-    def create_x_means(self, sample, seed):
+    def create_x_means(self, sample, kmax=20):
         amount_initial_centers = 2
-        initial_centers = kmeans_plusplus_initializer(sample, amount_initial_centers, random_state=seed).initialize()
+        initial_centers = kmeans_plusplus_initializer(sample, amount_initial_centers).initialize()
         # Create instance of X-Means algorithm. The algorithm will start analysis from 2 clusters, the maximum
         # number of clusters that can be allocated is 20.
-        xmeans_instance = xmeans(sample, initial_centers, kmax=20)
+        xmeans_instance = xmeans(sample, initial_centers, kmax=kmax)
         xmeans_instance.process()
-        # Extract clustering results: clusters and their centers
-        clusters = xmeans_instance.get_clusters()
-        centers = xmeans_instance.get_centers()
-        # Print total sum of metric errors
-        print("Total WCE:", xmeans_instance.get_total_wce())
-        # Visualize clustering results
-        visualizer = cluster_visualizer()
-        sample, centers, dim_name = self.perform_dimensionality_reduction(sample, centers)
-        visualizer.append_clusters(clusters, sample)
-        visualizer.append_cluster(centers, None, marker='*', markersize=10)
-        visualizer.save('xmeans.png')
+        return xmeans_instance
 
-        return xmeans_instance, centers, clusters
-
-    def perform_dimensionality_reduction(self, z_what, centroids,):
-        # perform PCA or TSNE
-        print("Running PCA...")
-        pca = PCA(n_components=2)
-        z_what_emb = pca.fit_transform(z_what)
-        centroid_emb = pca.transform(np.array(centroids))
-        dim_name = "PCA"
-        return z_what_emb, centroid_emb, dim_name
 
     

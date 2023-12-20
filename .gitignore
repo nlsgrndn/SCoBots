@@ -175,3 +175,5 @@ Boxing_ROM
 Pong_ROM
 final_test_results*
 *.png
+consecutive_atari_data/
+src/results_kalman/
