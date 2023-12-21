@@ -9,6 +9,7 @@ from engine.flow_example import test_flow
 from engine.train_classifier import train_classifier
 from engine.load_model import load_model
 from create_latent_dataset import create_latent_dataset
+from motrackers.script import execute as motrackers_main
 
 
 if __name__ == '__main__':
@@ -24,6 +25,7 @@ if __name__ == '__main__':
         'train_classifier': train_classifier,
         'load_model': load_model,
         'create_latent_dataset': create_latent_dataset,
+        'motrackers': motrackers_main,
     }
     cfg, task = get_config()
     assert task in task_dict
