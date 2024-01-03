@@ -56,8 +56,14 @@ def convert_to_boxes(z_where, z_pres, z_pres_prob, with_conf=False):
 
 def retrieve_latent_repr_from_logs(logs):
     z_where, z_pres_prob, z_what = logs['z_where'], logs['z_pres_prob'], logs['z_what']
-    z_where = z_where.detach().cpu()
-    z_pres_prob = z_pres_prob.detach().cpu().squeeze(-1)
-    z_what = z_what.detach().cpu()
+    z_where = z_where.detach()
+    z_pres_prob = z_pres_prob.detach().squeeze(-1)
+    z_what = z_what.detach()
     z_pres = z_pres_prob > 0.5
     return z_where, z_pres, z_pres_prob, z_what
+
+def latent_to_boxes_and_z_whats(latent_logs_dict):
+    z_where, z_pres, z_pres_prob, z_what = retrieve_latent_repr_from_logs(latent_logs_dict)
+    bboxes = convert_to_boxes(z_where, z_pres, z_pres_prob)
+    z_whats = z_what[z_pres]
+    return bboxes, z_whats

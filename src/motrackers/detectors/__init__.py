@@ -1,1 +1,1 @@
-from motrackers.detectors.spoc import SPOC
+from motrackers.detectors.spoc import SPOCDummy, SPOC

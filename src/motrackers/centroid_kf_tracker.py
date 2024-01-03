@@ -48,7 +48,7 @@ class CentroidKF_Tracker(Tracker):
         bbox_tracks = np.array([self.tracks[track_id].predict() for track_id in track_ids]) # predict step of kalman filter
         return bbox_tracks
 
-    def update(self, bboxes, detection_scores, class_ids, bbox_tracks, probabilities): #TODO bbox_tracks and probabilties were added; maybe delete them
+    def update(self, bboxes, detection_scores, class_ids, bbox_tracks, probabilities = None, z_whats = None, classifier = None): #TODO bbox_tracks and probabilties were added; maybe delete them
         self.frame_count += 1
         bbox_detections = np.array(bboxes, dtype='int')
 
@@ -74,8 +74,14 @@ class CentroidKF_Tracker(Tracker):
                 bbox = bboxes[d, :]
                 cid = class_ids[d]
                 confidence = detection_scores[d]
-                probabilities_for_track = probabilities[d]
-                kwargs = {"probabilities_for_track": probabilities_for_track}
+                kwargs = {}
+                if probabilities is not None:
+                    probabilities_for_track = probabilities[d]
+                    kwargs["probabilities_for_track"] = probabilities_for_track
+                if z_whats is not None and classifier is not None:
+                    z_whats_for_track = z_whats[d]
+                    kwargs["z_whats_for_track"] = z_whats_for_track
+                    kwargs["classifier"] = classifier
                 self._update_track(track_id, self.frame_count, bbox, confidence, cid, lost=0, **kwargs)
 
 
@@ -83,8 +89,14 @@ class CentroidKF_Tracker(Tracker):
                 bbox = bboxes[d, :]
                 cid = class_ids[d]
                 confidence = detection_scores[d]
-                probabilities_for_track = probabilities[d]
-                kwargs = {"probabilities_for_track": probabilities_for_track}
+                kwargs = {}
+                if probabilities is not None:
+                    probabilities_for_track = probabilities[d]
+                    kwargs["probabilities_for_track"] = probabilities_for_track
+                if z_whats is not None and classifier is not None:
+                    z_whats_for_track = z_whats[d]
+                    kwargs["z_whats_for_track"] = z_whats_for_track
+                    kwargs["classifier"] = classifier
                 self._add_track(self.frame_count, bbox, confidence, cid, **kwargs)
 
             for t in unmatched_tracks:

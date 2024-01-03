@@ -20,7 +20,7 @@ from utils.bbox_matching import match_bbs
 
 
 class Atari(Dataset):
-    def __init__(self, cfg, dataset_mode):
+    def __init__(self, cfg, dataset_mode, nr_consecutive_frames=4):
         assert dataset_mode in ['train', 'val', 'test'], f'Invalid dataset mode "{dataset_mode}"'
         dataset_mode = 'validation' if dataset_mode == 'val' else dataset_mode
 
@@ -35,7 +35,7 @@ class Atari(Dataset):
         self.motion = cfg.arch.motion
         self.motion_kind = cfg.arch.motion_kind
         self.image_fn_count = len([True for img in os.listdir(self.image_path) if img.endswith(".png")])
-        self.T = 4 # number of consecutive frames per sample
+        self.T = nr_consecutive_frames
 
     @property
     def bb_path(self):

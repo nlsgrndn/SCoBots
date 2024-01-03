@@ -17,71 +17,18 @@ from torchvision.utils import draw_bounding_boxes as draw_bb
 from utils.bbox_matching import match_bbs, match_bounding_boxes_v2
 from dataset.atari_labels import label_list_for, no_label_str, filter_relevant_boxes_masks, get_moving_indices
 from model.space.postprocess_latent_variables import convert_to_boxes, retrieve_latent_repr_from_logs
-
-
-#class Atari_All(Dataset):
-#    def __init__(self, cfg, dataset_mode):
-#        self.game = cfg.gamelist[0]
-#
-#        dataset_mode = 'validation' if dataset_mode == 'val' else dataset_mode
-#        self.dataset_mode = dataset_mode
-#
-#        self.label_subset_type = "all" # "all", "moving", "relevant
-#        self.T = 128 # number of consecutive frames per sample
-#        self.labels = label_list_for(cfg.gamelist[0])
-#
-#        self.motion_kind = cfg.arch.motion_kind # "mode" or "flow"
-#
-#        # folder paths
-#        img_folder = "space_like"
-#        self.image_base_path = osp.join(cfg.dataset_roots.ATARI, self.game, img_folder)
-#        self.motion_base_path = osp.join(cfg.dataset_roots.ATARI, self.game, self.motion_kind)
-#        self.bb_base_path = osp.join(cfg.dataset_roots.ATARI, self.game, "bb")
-#        self.latent_base_path = osp.join(cfg.dataset_roots.ATARI, self.game, "latents")
-#
-#
-#        self.image_fn_count = len([True for img in os.listdir(self.image_path) if img.endswith(".png")])
-#
-#
-#
-#    def __getitem__(self, stack_idx): # (T, ...) where T is number of consecutive frames and ... represents the actual dimensions of the data
-#        imgs = torch.stack([transforms.ToTensor()(self.read_img(stack_idx, i)) for i in range(self.T)])
-#        gt_bbs = self.get_gt_bbs(stack_idx * self.T, (stack_idx + 1) * self.T)
-#        gt_labels = self.get_labels(gt_bbs, imgs)
-#        predicted_bbs = torch.stack([self.read_tensor(stack_idx, i) for i in range(self.T)])
-#        z_whats_of_predicted_bbs = torch.stack([self.read_tensor(stack_idx, i, "z_what") for i in range(self.T)])
-#        # problem: 3rd dimension of gt_bbs, gt_labels, predicted_bbs, z_whats_of_predicted_bbs can all vary internally -> Tensors cannot be stacked
-#        # solution: maybe pad with nan or something
-#        return imgs, gt_bbs, gt_labels, predicted_bbs, z_whats_of_predicted_bbs
-#
-#    def __len__(self):
-#        return self.image_fn_count // self.T
-#
-#    def read_img(self, stack_idx, i):
-#        path = os.path.join(self.image_base_path, self.dataset_mode, f'{stack_idx:05}_{i}.png')
-#        return np.array(Image.open(path).convert('RGB'))
-#
-#    def read_tensor(self, stack_idx, i, postfix=None):
-#        path = os.path.join(self.motion_path,
-#                            f'{stack_idx:05}_{i}_{postfix}.pt'
-#                            if postfix else f'{stack_idx:05}_{i}.pt')
-#        return torch.load(path)
     
 class Atari_Z_What(Dataset):
-    def __init__(self, cfg, dataset_mode, boxes_subset="all", return_keys=None):
+    def __init__(self, cfg, dataset_mode, boxes_subset="all", return_keys=None, nr_consecutive_frames=4):
         self.game = cfg.gamelist[0]
 
         self.return_keys = return_keys
-
-        #self.gt_boxes_subset = #"all" # "all", "moving"
-        #self.label_subset_type = #"all+no_label" # "moving+no_label", "moving"
-        #self.filter_predicted_bbs = #False # True, False
 
         dataset_mode = 'validation' if dataset_mode == 'val' else dataset_mode
         self.dataset_mode = dataset_mode
 
         self.boxes_subset = boxes_subset # "all", "relevant"
-        self.T = 4 # number of consecutive frames per sample
+        self.T = nr_consecutive_frames
         self.labels = label_list_for(cfg.gamelist[0])
 
         # folder paths

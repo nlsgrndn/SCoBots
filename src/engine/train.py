@@ -110,6 +110,7 @@ def train(cfg, rtpt_active=True):
 
             # eval on validation set
             if (global_step % cfg.train.eval_every == 0 or never_evaluated) and cfg.train.eval_on:
+                checkpointer.save_last(model, optimizer_fg, optimizer_bg, epoch, global_step)
                 never_evaluated = False
                 print('Validating...')
                 start = time.perf_counter()

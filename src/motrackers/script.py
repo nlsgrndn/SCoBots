@@ -1,5 +1,5 @@
 import cv2 as cv
-from motrackers.detectors import SPOC
+from motrackers.detectors import SPOCDummy
 from motrackers import CentroidTracker, CentroidKF_Tracker
 from motrackers.utils import draw_tracks
 import numpy as np
@@ -14,77 +14,15 @@ from engine.utils import get_config
 # [4.0, 6.0, 2.0, 3.0]
 skiing_labels_to_id = {0: 4, 1: 6, 2: 2, 3: 3}
 
-
-#def main(model, tracker, data, actual_bbs_and_labels):
-#    i = 0
-#    # make results dir if it doesn't exist
-#    os.makedirs('results_kalman', exist_ok=True)
-#
-#    pred_label_collector = []
-#    gt_label_collector = []
-#    while i < len(data):
-#        #if i >= 10:
-#        #    break
-#        
-#        predbboxs_predlabels_gtlabels_z_whats = data[i]
-#        curr_actual_bbs_and_labels = actual_bbs_and_labels[i]
-#        mask = np.isin(curr_actual_bbs_and_labels[:, 4], [2,3,4,6])
-#        curr_actual_bbs_and_labels = curr_actual_bbs_and_labels[mask]
-#        labels = predbboxs_predlabels_gtlabels_z_whats[:, 5]
-#        image = cv.imread(f"../consecutive_atari_data/Skiing-v0/space_like/test/00000_{i}.png")
-#        image = cv.resize(image, (128, 128))
-#        
-#        bboxes, confidences, class_ids, probabilities = model.detect(predbboxs_predlabels_gtlabels_z_whats)
-#        bboxes_pred_kf = tracker.predict()
-#        #print_tracks(tracker)
-#        #import ipdb; ipdb.set_trace()
-#        #predicted_kf_image = model.draw_bboxes(image.copy(), bboxes_pred_kf , confidences, class_ids)
-#        #cv.imwrite('results_kalman/' + str(i) + '_predicted_kf.jpg', predicted_kf_image)
-#
-#        tracks = tracker.update(bboxes, confidences, class_ids, bboxes_pred_kf, probabilities)
-#        #print_tracks(tracker)
-#        #import ipdb; ipdb.set_trace()
-#        #tracks_bbox = np.array([np.stack((track[2], track[3], track[4], track[5])) for track in tracks])
-#        #tracks_image = model.draw_bboxes(predicted_kf_image, tracks_bbox , confidences, class_ids)
-#        #cv.imwrite('results_kalman/' + str(i) + 'predictedkf_vs_updated.jpg', tracks_image)
-#
-#        tracks_bbox = np.array([np.stack(track) for track in tracks])
-#        tracks_bbox = inverse_transform_bbox_format(tracks_bbox)
-#        tracks_bbox[:, :4] = tracks_bbox[:, :4] / 128
-#        tracks_bbox[:, 4] = np.array([skiing_labels_to_id[int(label)] for label in tracks_bbox[:, 4]])
-#        # match tracks with actual bbs
-#        gt_labels = match_bounding_boxes_v2(curr_actual_bbs_and_labels, tracks_bbox)
-#        pred_labels = tracks_bbox[:, 4]
-#        gt_label_collector.extend(gt_labels)
-#        pred_label_collector.extend(pred_labels)
-#        updated_image = model.draw_bboxes(image.copy(), bboxes , confidences, class_ids)
-#
-#        updated_image = draw_tracks(updated_image, tracks)
-#
-#        # save image with cv
-#        cv.imwrite('results_kalman/' + str(i) + '.jpg', updated_image)
-#        i += 1
-#
-#        #import ipdb; ipdb.set_trace()
-#    # calculate accuracy
-#        
-#    # for all tracks print counter of self.prob_history_classification and self.class_id_history
-#    tracks = list(tracker.tracks.values())
-#    for track in tracks:
-#        print(f"Track {track.id}: {Counter(track.prob_history_classification)}, {Counter(track.class_id_history)}")
-#
-#    gt_label_collector = np.array(gt_label_collector)
-#    pred_label_collector = np.array(pred_label_collector)
-#    accuracy = np.sum(gt_label_collector == pred_label_collector) / len(gt_label_collector)
-#    print(f"Accuracy: {accuracy}")
-
-def main(model, tracker, dataloader):
+def main(model, tracker, dataloader, classifier):
     os.makedirs('results_kalman', exist_ok=True)
 
-    pred_label_collector = []
-    gt_label_collector = []
+    kf_pred_label_collector = []
+    kf_gt_label_collector = []
+    raw_pred_label_collector = []
+    raw_gt_label_collector = []
     for i, data in enumerate(dataloader):
-        if i==0: # skip first batch
+        if i<=0: # skip first batch
             continue
         
         # T signifies that the data is in time format (batch_size, seq_len, ...)
@@ -98,42 +36,56 @@ def main(model, tracker, dataloader):
         imgs_T = imgs_T.numpy().transpose(0, 2, 3, 1)
 
         
-        for pred_boxes, z_whats, gt_labels_for_pred_boxes, gt_bbs_and_labels, img in zip(pred_boxes_T, z_whats_T, gt_labels_for_pred_boxes_T, gt_bbs_and_labels_T, imgs_T):
+        for j, (pred_boxes, z_whats, gt_labels_for_pred_boxes, gt_bbs_and_labels, img)  in enumerate(zip(pred_boxes_T, z_whats_T, gt_labels_for_pred_boxes_T, gt_bbs_and_labels_T, imgs_T)):
         
             bboxes, confidences, class_ids, probabilities = model.detect(pred_boxes, z_whats)
+            mask = filter_bboxes_close_to_border(bboxes)
+            bboxes = bboxes[mask]
+            confidences = confidences[mask]
+            class_ids = class_ids[mask]
+            probabilities = probabilities[mask]
+            z_whats = z_whats[mask]
+
+
+            # get pred labels for raw predictions and store
+
+            raw_pred_labels = np.array([skiing_labels_to_id[int(label)] for label in class_ids])
+            raw_pred_label_collector.extend(raw_pred_labels)
+
+            # get gt labels for kf predictions and store
+            raw_pred_bbox = bboxes.copy().astype(float)
+            raw_pred_bbox = inverse_transform_bbox_format(raw_pred_bbox)
+            raw_pred_bbox[:, :4] = raw_pred_bbox[:, :4] / 128.0
+            raw_gt_labels = match_bounding_boxes_v2(gt_bbs_and_labels, raw_pred_bbox)
+            raw_gt_label_collector.extend(raw_gt_labels)
+
             bboxes_pred_kf = tracker.predict()
-            tracks = tracker.update(bboxes, confidences, class_ids, bboxes_pred_kf, probabilities)
+            tracks = tracker.update(bboxes, confidences, class_ids, bboxes_pred_kf, probabilities, z_whats, classifier)
             image = img.copy() * 255
             #updated_image = model.draw_bboxes(image, bboxes , confidences, class_ids)
             tracks_bbox = np.array([np.stack(track) for track in tracks])
             updated_image = model.draw_bboxes(image, (tracks_bbox[:, :4]).astype(int) , tracks_bbox[:, 5], tracks_bbox[:, 4])
             updated_image = draw_tracks(updated_image, tracks)
 
+            # get pred labels for kf predictions
+            tracks_bbox[:, 4] = np.array([skiing_labels_to_id[int(label)] for label in tracks_bbox[:, 4]])
+            pred_labels = tracks_bbox[:, 4]
+            kf_pred_label_collector.extend(pred_labels)
 
-            
+            # get gt labels for kf predictions and store
             tracks_bbox = inverse_transform_bbox_format(tracks_bbox)
             tracks_bbox[:, :4] = tracks_bbox[:, :4] / 128
-            tracks_bbox[:, 4] = np.array([skiing_labels_to_id[int(label)] for label in tracks_bbox[:, 4]])
-            # match tracks with gt bbs
             gt_labels = match_bounding_boxes_v2(gt_bbs_and_labels, tracks_bbox)
-            pred_labels = tracks_bbox[:, 4]
-            gt_label_collector.extend(gt_labels)
-            pred_label_collector.extend(pred_labels)
-            
-
+            kf_gt_label_collector.extend(gt_labels)
 
             # save image with cv
-            cv.imwrite('results_kalman/' + str(i) + '.jpg', updated_image)
+            cv.imwrite('results_kalman/' + str(j) + '.jpg', updated_image)
 
-            gt_labels = np.array(gt_labels)
-            pred_labels = np.array(pred_labels)
-            accuracy = np.sum(gt_labels == pred_labels) / len(gt_labels)
-            print(f"Accuracy: {accuracy}")
-            # print track infos
-            print(tracker._get_tracks(tracker.tracks))
-            #import ipdb; ipdb.set_trace()
 
-            i += 1
+            #print_accuracy(gt_labels, pred_labels, dataset_name="KF")
+            #print_accuracy(raw_gt_labels, raw_pred_labels, dataset_name="raw")
+
+
 
         # for all tracks print counter of self.prob_history_classification and self.class_id_history
         tracks = list(tracker.tracks.values())
@@ -142,10 +94,37 @@ def main(model, tracker, dataloader):
 
         break
 
-    gt_label_collector = np.array(gt_label_collector)
-    pred_label_collector = np.array(pred_label_collector)
-    accuracy = np.sum(gt_label_collector == pred_label_collector) / len(gt_label_collector)
-    print(f"Accuracy: {accuracy}")
+    print_accuracy(kf_gt_label_collector, kf_pred_label_collector, dataset_name="KF")
+    print_accuracy(raw_gt_label_collector, raw_pred_label_collector, dataset_name="raw")
+
+
+def print_accuracy(gt_labels, pred_labels, dataset_name=""):
+    gt_labels = np.array(gt_labels)
+    pred_labels = np.array(pred_labels)
+    accuracy = np.sum(gt_labels == pred_labels) / len(gt_labels)
+    print(f"Accuracy {dataset_name}: {accuracy}")
+
+def filter_bboxes_close_to_border(bboxes, border_x_threshold = 20):
+    """
+    Filter bboxes that are close to the border of the image.
+
+    return: numpy mask of bboxes that are not close to the border
+    """
+    #import ipdb ; ipdb.set_trace()
+    mask = np.ones(len(bboxes), dtype=bool)
+    image_width, image_height = 128, 128
+    for i, bbox in enumerate(bboxes):
+        x_min, y_min, width, height = bbox
+        center_x = x_min + width / 2
+        center_y = y_min + height / 2
+        if center_x < border_x_threshold or center_x > image_width - border_x_threshold:
+            mask[i] = False
+    return mask
+
+
+
+
+    
 
 def squeeze_all(*args):
     results = []
@@ -171,42 +150,6 @@ def inverse_transform_bbox_format( bboxes):
     new_format_bboxes[:, 3] = bboxes[:, 0] + bboxes[:, 2]
     return new_format_bboxes
 
-
-#def get_data_for_kalman():
-#    FILTERED_PREDICTED_BBS = True
-#    filter_str = "filtered" if FILTERED_PREDICTED_BBS else "unfiltered"
-#
-#    game = "skiing"
-#
-#    # pong [2.0, 1.0, 4.0]
-#    # skiing [4.0, 2.0, 6.0, 3.0]
-#    #k_means_centroid_ids_to_labels = {"skiing": {0: 4.0, 1: 2.0, 2: 6.0, 3: 3.0},
-#    #                                    "boxing": {0: 2.0, 1: 6.0, 2: 4.0, 3: 3.0}, #TODO: change to correct labels
-#    #                                    "pong": {0: 2.0, 1: 1.0, 2: 4.0,}}
-#
-#
-#    z_classifier_path = f"../output/logs/{game}/model_000005001/z_what-classifier_{filter_str}.joblib.pkl"
-#    z_what_classifier = joblib.load(z_classifier_path)
-#
-#    folder = "test"
-#    data = np.load(f"labeled/{game}/predbboxs_predlabels_gtlabels_z_whats_{folder}_{filter_str}.npz")
-#    actual_bbs_and_labels = np.load(f"labeled/{game}/actual_bbs_and_label_{folder}.npz")
-#    #image_refs = pd.read_csv(f"labeled/{game}/image_refs_{folder}_{filter_str}.csv", header=None).iloc[:, 0].values
-#    observations_tmp = []
-#    actual_bbs_and_label_collector = []
-#
-#    for i, key in enumerate(list(data.keys())):
-#        predbboxs_predlabels_gtlabels_z_whats = data["arr_" + str(i)]
-#        actual_bbs_and_label_collector.append(actual_bbs_and_labels["arr_" + str(i)])
-#        #predbboxs = predbboxs_predlabels_gtlabels_z_whats[:, 0:4]
-#        #predbboxs = np.stack(inverse_z_where_to_bb_format(predbboxs[:, 0], predbboxs[:, 1], predbboxs[:, 2], predbboxs[:, 3]), axis=1)
-#        #predbboxs_predlabels_gtlabels_z_whats[:, 0:4] = predbboxs
-#        observations_tmp.append(predbboxs_predlabels_gtlabels_z_whats)
-#        if i>= 127: #TODO change i%128 == 127 to allow for multiple sequences (image_refs then also needs to be changed)
-#            break 
-#
-#    
-#    return z_what_classifier, observations_tmp, actual_bbs_and_label_collector
 
 def get_data_for_kalman(cfg):
     FILTERED_PREDICTED_BBS = True
@@ -251,7 +194,7 @@ def execute(cfg, args = None):
                          tracker_output_format='my_format') # max_lost was 0
 
     classifier, dataloader= get_data_for_kalman(cfg)
-    model = SPOC(
+    model = SPOCDummy(
         classifier=classifier,
         object_names= {k:str(k) for k in range(4)},
         confidence_threshold=0.4,
@@ -259,7 +202,7 @@ def execute(cfg, args = None):
         draw_bboxes=True,
     )
     
-    main(model, tracker, dataloader)
+    main(model, tracker, dataloader, classifier)
 
 if __name__ == '__main__':
     import argparse

@@ -39,6 +39,12 @@ def compute_iou(pred, gt): #from ap.py
     :param gt: (N, 4)
     :return: (M, N)
     """
+
+    if type(pred) != torch.Tensor:
+        pred = torch.Tensor(pred)
+    if type(gt) != torch.Tensor:
+        gt = torch.Tensor(gt)
+
     compute_area = lambda b: (b[:, 1] - b[:, 0]) * (b[:, 3] - b[:, 2])
 
     area_pred = compute_area(pred)[:, None]

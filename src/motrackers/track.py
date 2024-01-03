@@ -1,6 +1,7 @@
 import numpy as np
 from motrackers.kalman_tracker import KalmanFilter2DConstantAcc, KalmanFilter2DConstantVel
 from collections import Counter 
+import torch
 
 class Track:
     """
@@ -152,6 +153,9 @@ class KFTrackCentroid(Track):
         self.kf = KalmanFilter2DConstantAcc(c, process_noise_scale=process_noise_scale, measurement_noise_scale=measurement_noise_scale)
         self.prob_history = []
         self.prob_history_classification = []
+        self.z_what_history = []
+        self.z_what_history_classification = []
+        self.classifier_for_z_what = None
         self.class_id_history = []
         super().__init__(track_id, frame_id, bbox, detection_confidence, class_id=class_id, lost=lost,
                          iou_score=iou_score, data_output_format=data_output_format, **kwargs)
@@ -184,10 +188,21 @@ class KFTrackCentroid(Track):
         if 'probabilities_for_track' in kwargs:
             self.prob_history.append(kwargs['probabilities_for_track'])
             del kwargs['probabilities_for_track']
-
+        if 'z_whats_for_track' in kwargs:
+            self.z_what_history.append(kwargs['z_whats_for_track'])
+            del kwargs['z_whats_for_track']
+        if 'classifier' in kwargs:
+            self.classifier_for_z_what = kwargs['classifier']
+            del kwargs['classifier']
         self.class_id_history.append(class_id)
         class_id_with_max_prob_history = np.array(self.prob_history).sum(axis=0).argmax()
         self.prob_history_classification.append(class_id_with_max_prob_history)
+        
+        if self.classifier_for_z_what:
+            average_z_what = torch.mean(torch.stack(self.z_what_history), dim=0).reshape(1, -1)
+            class_id_of_average_z_what = self.classifier_for_z_what.predict(average_z_what)
+            self.z_what_history_classification.append(class_id_of_average_z_what.item())
+
         super().update(
             frame_id, bbox, detection_confidence, class_id=class_id, lost=lost, iou_score=iou_score, **kwargs)
         #print(self.centroid)
@@ -204,6 +219,6 @@ class KFTrackCentroid(Track):
         #if len(self.prob_history) > 10:
         #    import ipdb; ipdb.set_trace()
         mot_tuple = (
-            self.bbox[0], self.bbox[1], self.bbox[2], self.bbox[3], self.prob_history_classification[-1], self.detection_confidence,
+            self.bbox[0], self.bbox[1], self.bbox[2], self.bbox[3], self.class_id, self.detection_confidence,
         )
         return mot_tuple

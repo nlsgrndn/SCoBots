@@ -10,6 +10,7 @@ from torch.utils.tensorboard import SummaryWriter
 from PIL import Image
 import os
 import pprint
+from create_latent_dataset import create_latent_dataset
 
 
 
@@ -65,6 +66,8 @@ class SpaceEval:
 
         #_, logs = self.apply_model(dataset, device, model, global_step)
         logs = [] # TODO undo this
+        if not os.path.exists(f"{cfg.dataset_roots.ATARI}/{cfg.gamelist[0]}/latents/test/") or len(os.listdir(f"{cfg.dataset_roots.ATARI}/{cfg.gamelist[0]}/latents/test/")) == 0:
+            create_latent_dataset(cfg, "test")
         results = self.core_eval_code(dataset, bb_path, global_step, cfg, logs)
         return results
 
