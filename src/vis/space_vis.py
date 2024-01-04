@@ -240,7 +240,8 @@ def draw_image_bb(model, cfg, dataset, global_step, num_batch):
     indices = np.random.choice(len(dataset), size=num_batch, replace=False)
     dataset = Subset(dataset, indices)
     dataloader = DataLoader(dataset, batch_size=len(indices), shuffle=False)
-    data, motion_z_pres, motion_z_where = next(iter(dataloader))
+    data_dict = next(iter(dataloader))
+    data, motion_z_pres, motion_z_where = data_dict["imgs"], data_dict["motion_z_pres"], data_dict["motion_z_where"]
     data = data.to(cfg.device)
     motion_z_pres = motion_z_pres.to(cfg.device)
     motion_z_where = motion_z_where.to(cfg.device)

@@ -1,17 +1,11 @@
 from model.z_what_classifier.z_what_classification import ZWhatClassifierCreator
 import numpy as np
 from collections import Counter
-from eval.space_eval import SpaceEval
-from dataset import get_dataset
 from model import get_model
-from eval.space_eval import SpaceEval
-from dataset import get_dataset, get_dataloader
 from utils.checkpointer import Checkpointer
 import os
 import os.path as osp
 from torch import nn
-from eval.clustering_eval import ClusteringEval
-from eval.classify_z_what import ZWhatEvaluator
 import torch
 from eval.utils import flatten
 from sklearn.decomposition import PCA
@@ -120,35 +114,6 @@ def collect_data_using_dataloader(cfg, data_category):
     #images = torch.stack(images, dim=0)
     return relevant_labels, test_x, test_y, train_x, train_y #, images[:len(train_x)], images[len(train_x):]
 
-#def collect_data_using_eval_classes(cfg, model, dataset, global_step, data_category):
-#    print("Collecting data using eval classes")
-#    # SpaceEval
-#    log_path = os.path.join(cfg.logdir, cfg.exp_name)
-#    global_step = 100000
-#    tb_writer = SummaryWriter(log_dir=log_path, flush_secs=30,
-#                           purge_step=global_step) # tb refers to tensorboard
-#    evaluator = SpaceEval(cfg, tb_writer)
-#    _, logs = evaluator.apply_model(dataset, cfg.device, model, global_step = None, use_global_step=False)
-#    # ClusteringEval
-#    clustering_eval = ClusteringEval(cfg, "dummy")
-#    data, _, _= clustering_eval.collect_z_what_data(logs, dataset, global_step = None)
-#    relevant_labels, test_x, test_y, train_x, train_y = data[data_category]
-#    return relevant_labels, test_x, test_y, train_x, train_y
-
-#def collect_data_using_files(cfg, data_category):
-#    print("Collecting data using files")
-#    data_category ="filtered" if data_category == "relevant" else "unfiltered"
-#    consecutive_str = "" if "consecutive" in cfg.dataset_roots.ATARI else "_randomorder"
-#    game = cfg.exp_name
-#    labels = np.load(f"labeled/{game}/labels_test_{data_category}{consecutive_str}.npy")
-#    z_whats = np.load(f"labeled/{game}/z_whats_test_{data_category}{consecutive_str}.npy")
-#    image_refs = pd.read_csv(f"labeled/{game}/image_refs_test_{data_category}{consecutive_str}.csv", header=None)
-#    image_refs = image_refs.iloc[:, 0].tolist()
-#    relevant_labels, test_x, test_y, train_x, train_y = prepare_data(torch.tensor(z_whats), torch.tensor(labels))
-#    image_refs_train = image_refs[:len(train_x)]
-#    image_refs_test = image_refs[len(train_x):]
-#    return relevant_labels, test_x, test_y, train_x, train_y, image_refs_train, image_refs_test
-#
 def prepare_data(z_what, labels,):
     c = Counter(labels.tolist() if labels is not None else [])
     # Initialization stuff

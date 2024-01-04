@@ -6,11 +6,11 @@ import numpy as np
 
 class ClusteringEval:
 
-    def __init__(self, cfg, relevant_object_hover_path,):
+    def __init__(self, cfg):
         self.cfg = cfg
-        self.relevant_object_hover_path = relevant_object_hover_path
+
     @torch.no_grad()
-    def eval_clustering(self, logs, dataset, global_step, data_subset_modes):
+    def eval_clustering(self, data_subset_modes, dataset_mode):
         """
         Evaluate clustering metrics
 
@@ -20,9 +20,13 @@ class ClusteringEval:
         :return metrics: for all classes of evaluation many metrics describing the clustering,
             based on different ground truths
         """
-        #data, z_encs_relevant, labels_relevant_unflattened = \
-        #    ZWhatDataCollector(self.cfg, self.relevant_object_hover_path).collect_z_what_data(logs, dataset, global_step,)
-        data = ZWhatDataCollector(self.cfg, self.relevant_object_hover_path).collect_z_what_data(logs, dataset, global_step, self.cfg)
+        
+        data = ZWhatDataCollector(self.cfg).collect_z_what_data(self.cfg, dataset_mode, data_subset_modes)
+        for key in data: #TODO improve this
+            relevant_labels, test_x, test_y, train_x, train_y = data[key]
+            if test_x is not None and test_y is not None and train_x is not None and train_y is not None:
+                test_x, test_y, train_x, train_y = test_x.cpu(), test_y.cpu(), train_x.cpu(), train_y.cpu()
+            data[key] = (relevant_labels, test_x, test_y, train_x, train_y)
         results = {}
         for data_subset_mode in data_subset_modes:
             relevant_labels, test_x, test_y, train_x, train_y = data[data_subset_mode]

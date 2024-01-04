@@ -2,7 +2,6 @@ import numpy as np
 import torch
 
 from model.space.postprocess_latent_variables import convert_to_boxes, retrieve_latent_repr_from_logs
-from .eval_cfg import eval_cfg
 from .ap import compute_ap, compute_counts, compute_prec_rec
 from eval.data_reading import read_boxes, read_boxes_object_type_dict
 from dataset.z_what import Atari_Z_What
@@ -13,7 +12,7 @@ class ApAndAccEval():
     PREC_REC_CONF_THRESHOLDS = np.append(np.arange(0.5, 0.95, 0.05), np.arange(0.95, 1.0, 0.01))
 
     @torch.no_grad()
-    def eval_ap_and_acc(self, logs, dataset, bb_path, data_subset_modes, cfg):
+    def eval_ap_and_acc(self, data_subset_modes, cfg, dataset_mode):
         """
         Evaluate average precision and accuracy
         :param logs: the model output
@@ -22,39 +21,12 @@ class ApAndAccEval():
         :return ap: a list of average precisions, corresponding to each iou_thresholds
         """
         print('Computing error rates, counts and APs...')
-        data = self.get_bbox_data_via_dataloader(cfg, data_subset_modes) #self.get_bbox_data(logs, dataset, bb_path)#TODO remove comment
+        data = self.get_bbox_data_via_dataloader(cfg, data_subset_modes, dataset_mode) #self.get_bbox_data(logs, dataset, bb_path)#TODO remove comment
         results = self.compute_metrics(data)
         return results
     
-    #def get_bbox_data(self, logs, dataset, bb_path,):
-    #    # read ground truth bounding boxes
-#
-    #    num_samples = min(len(dataset), eval_cfg.train.num_samples.ap)
-    #    num_batches = num_samples // eval_cfg.train.batch_size
-#
-    #    indices = list(range(num_samples))
-    #    boxes_gt_types = ['all', 'moving', 'relevant']
-    #    boxes_gts = {k: v for k, v in zip(boxes_gt_types, read_boxes(bb_path, indices=indices))} # boxes_gts['moving'] and boxes_gts['relevant'] are actually equivalent
-    #    
-    #    # collect and generate predicted bounding boxes
-    #    boxes_pred = []
-    #    boxes_pred_relevant = []
-    #    for img in logs[:num_batches]:
-    #        z_where, z_pres, z_pres_prob, _ = retrieve_latent_repr_from_logs(img)
-    #        boxes_batch = convert_to_boxes(z_where, z_pres, z_pres_prob, with_conf=True)
-    #        boxes_pred.extend(boxes_batch)
-    #        boxes_pred_relevant.extend(dataset.filter_relevant_boxes(boxes_batch, boxes_gts['all'])) # uses handcrafted rules to filter out irrelevant boxes for every game; boxes_gt['all'] is only used for one game
-#
-    #    data = {"all": (boxes_gts['all'], boxes_pred),
-    #            "moving": (boxes_gts['moving'], boxes_pred),
-    #            "relevant": (boxes_gts['relevant'], boxes_pred_relevant)}
-    #    
-    #    import ipdb; ipdb.set_trace()
-    #    return data
-    
-    def get_bbox_data_via_dataloader(self, cfg, data_subset_modes):
-        dataset_mode = "test" #TODO: pass as argument or get from cfg in some way
-        data = {} 
+    def get_bbox_data_via_dataloader(self, cfg, data_subset_modes, dataset_mode):
+        data = {}
         for boxes_subset in data_subset_modes:
             atari_z_what_dataset = Atari_Z_What(cfg, dataset_mode, boxes_subset, return_keys = ["pred_boxes", "gt_bbs_and_labels"])
             atari_z_what_dataloader = DataLoader(atari_z_what_dataset, batch_size=1, shuffle=False, num_workers=0) #batch_size must be 1

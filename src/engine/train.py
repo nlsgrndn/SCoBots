@@ -19,6 +19,7 @@ from torch.utils.data import Subset, DataLoader
 import matplotlib.pyplot as plt
 import numpy as np
 from model.space.time_consistency import MOCLoss
+from dataset.z_what import Atari_Z_What
 
 
 def print_train_info(cfg):
@@ -58,8 +59,8 @@ def train(cfg, rtpt_active=True):
         rtpt.start()
 
     # data loading
-    dataset = get_dataset(cfg, 'train')
-    trainloader = get_dataloader(cfg, 'train')
+    dataset = Atari_Z_What(cfg, 'train', return_keys = ["imgs", "motion", "motion_z_pres", "motion_z_where"])
+    trainloader = get_dataloader(cfg, 'train', dataset)
 
     # model loading
     model = get_model(cfg)
@@ -88,9 +89,7 @@ def train(cfg, rtpt_active=True):
     vis_logger = get_vislogger(cfg)
     metric_logger = MetricLogger()
     if cfg.train.eval_on:
-        valset = get_dataset(cfg, 'val')
-        # valloader = get_dataloader(cfg, 'val')
-        evaluator = SpaceEval(cfg, tb_writer)
+        evaluator = SpaceEval(cfg, tb_writer, eval_mode="val")
     
     # initialize variables for training loop
     print(f'Start training, Global Step: {global_step}, Start Epoch: {start_epoch} Max: {cfg.train.max_steps}')
@@ -98,24 +97,24 @@ def train(cfg, rtpt_active=True):
     end_flag = False
     start_log = global_step + 1
     base_global_step = global_step
+
     for epoch in range(start_epoch, cfg.train.max_epochs):
         if end_flag:
             break
 
         start = time.perf_counter()
-        for (img_stacks, motion, motion_z_pres, motion_z_where) in tqdm(trainloader, desc=f"Epoch {epoch}"):
+        for data_dict in tqdm(trainloader, desc=f"Epoch {epoch}"):
 
             end = time.perf_counter()
             data_time = end - start
 
             # eval on validation set
             if (global_step % cfg.train.eval_every == 0 or never_evaluated) and cfg.train.eval_on:
-                checkpointer.save_last(model, optimizer_fg, optimizer_bg, epoch, global_step)
                 never_evaluated = False
                 print('Validating...')
                 start = time.perf_counter()
                 eval_checkpoint = [model, optimizer_fg, optimizer_bg, epoch, global_step]
-                results = evaluator.eval(model, valset, valset.bb_path, global_step, cfg.device, cfg)
+                results = evaluator.eval(model, global_step, cfg)
                 checkpointer.save_best("precision_relevant", results["precision_relevant"], eval_checkpoint, min_is_better=False)
                 print('Validation takes {:.4f}s.'.format(time.perf_counter() - start))
             
@@ -123,6 +122,7 @@ def train(cfg, rtpt_active=True):
             start = time.perf_counter()
             model.train()
 
+            img_stacks, motion, motion_z_pres, motion_z_where = data_dict["imgs"], data_dict["motion"], data_dict["motion_z_pres"], data_dict["motion_z_where"]
             # move to device
             img_stacks, motion, motion_z_pres, motion_z_where = img_stacks.to(cfg.device), motion.to(cfg.device), motion_z_pres.to(cfg.device), motion_z_where.to(cfg.device)
             base_loss, log = model(img_stacks, global_step)
@@ -166,8 +166,7 @@ def train(cfg, rtpt_active=True):
                 if cfg.train.eval_on:
                     print('Final evaluation on validation set...')
                     start = time.perf_counter()
-                    evaluator.eval(model, valset, valset.bb_path, global_step,
-                                              cfg.device, cfg)
+                    evaluator.eval(model, global_step, cfg)
                     print('Validation takes {:.4f}s.'.format(time.perf_counter() - start))
                 
                 break

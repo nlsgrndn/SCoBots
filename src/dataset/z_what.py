@@ -22,28 +22,66 @@ class Atari_Z_What(Dataset):
     def __init__(self, cfg, dataset_mode, boxes_subset="all", return_keys=None, nr_consecutive_frames=4):
         self.game = cfg.gamelist[0]
 
-        self.return_keys = return_keys
-
+        assert dataset_mode in ['train', 'val', 'test'], f'Invalid dataset mode "{dataset_mode}"'
         dataset_mode = 'validation' if dataset_mode == 'val' else dataset_mode
         self.dataset_mode = dataset_mode
 
-        self.boxes_subset = boxes_subset # "all", "relevant"
         self.T = nr_consecutive_frames
-        self.labels = label_list_for(cfg.gamelist[0])
 
         # folder paths
         img_folder = "space_like"
         self.image_base_path = osp.join(cfg.dataset_roots.ATARI, self.game, img_folder)
         self.bb_base_path = osp.join(cfg.dataset_roots.ATARI, self.game, "bb")
+        self.motion_base_path = osp.join(cfg.dataset_roots.ATARI, cfg.gamelist[0], cfg.arch.motion_kind)
         self.latents_base_path = osp.join(cfg.dataset_roots.ATARI, self.game, "latents")
 
         self.image_fn_count = len([True for img in os.listdir(self.image_path) if img.endswith(".png")])
+
+        self.boxes_subset = boxes_subset # "all", "relevant"
+        self.return_keys = return_keys
+
+        self.arch = cfg.arch
+
+    @property
+    def bb_path(self):
+        return osp.join(self.bb_base_path, self.dataset_mode)
+    
+    @property
+    def image_path(self):
+        return osp.join(self.image_base_path, self.dataset_mode)
+    
+    @property
+    def latents_path(self):
+        return osp.join(self.latents_base_path, self.dataset_mode)
+    
+    @property
+    def motion_path(self):
+        return osp.join(self.motion_base_path, self.dataset_mode)
 
     def __getitem__(self, stack_idx): # (T, ...) where T is number of consecutive frames and ... represents the actual dimensions of the data
         
         base_path = self.image_path
         imgs = torch.stack([transforms.ToTensor()(self.read_img(stack_idx, i, base_path)) for i in range(self.T)])
         
+        if self.return_keys == ["imgs"]:
+            return {"imgs": imgs}
+
+        base_path = self.motion_path
+        motion = torch.stack([self.read_tensor(stack_idx, i, base_path, postfix=f'{self.arch.img_shape[0]}') for i in range(self.T)])
+        motion = (motion > motion.mean() * 0.1).float()
+        motion_z_pres = torch.stack([self.read_tensor(stack_idx, i, base_path, postfix="z_pres") for i in range(self.T)])
+        motion_z_where = torch.stack([self.read_tensor(stack_idx, i, base_path, postfix="z_where") for i in range(self.T)])
+        
+        # TODO improve this part of implementation
+        # early return if only imgs, motion, motion_z_pres, motion_z_where are requested
+        if set(self.return_keys) == set(["imgs", "motion", "motion_z_pres", "motion_z_where"]):
+            return {
+                "imgs": imgs,
+                "motion": motion,
+                "motion_z_pres": motion_z_pres,
+                "motion_z_where": motion_z_where
+            }
+
         base_path = self.latents_path
         z_whats = torch.stack([self.read_tensor(stack_idx, i, base_path, "z_what") for i in range(self.T)])
         z_pres_probs = torch.stack([self.read_tensor(stack_idx, i, base_path, "z_pres_prob") for i in range(self.T)])
@@ -82,6 +120,9 @@ class Atari_Z_What(Dataset):
 
         data = {
             "imgs": imgs,
+            "motion": motion,
+            "motion_z_pres": motion_z_pres,
+            "motion_z_where": motion_z_where,
             "z_whats": z_whats,
             "z_pres_probs": z_pres_probs,
             "z_wheres": z_wheres,
@@ -95,18 +136,6 @@ class Atari_Z_What(Dataset):
         else:
             return data
 
-    @property
-    def bb_path(self):
-        return osp.join(self.bb_base_path, self.dataset_mode)
-    
-    @property
-    def image_path(self):
-        return osp.join(self.image_base_path, self.dataset_mode)
-    
-    @property
-    def latents_path(self):
-        return osp.join(self.latents_base_path, self.dataset_mode)
-
     def __len__(self):
         return self.image_fn_count // self.T
 
@@ -118,9 +147,6 @@ class Atari_Z_What(Dataset):
         path = os.path.join(base_path,
                             f'{stack_idx:05}_{i}_{postfix}.pt'
                             if postfix else f'{stack_idx:05}_{i}.pt')
-        #path = os.path.join(base_path,
-        #                    f'{prefix}_{stack_idx:05}_{i}.pt'
-        #                    if prefix else f'{stack_idx:05}_{i}.pt')
         return torch.load(path)
     
     def read_csv(self, stack_idx, i, base_path):

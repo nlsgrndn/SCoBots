@@ -30,25 +30,18 @@ class SpaceEval:
                           'few_shot_accuracy_with_64': np.nan, 'few_shot_accuracy_cluster_nn': np.nan, 'bayes_accuracy': np.nan})
         }
 
-    def __init__(self, cfg, tb_writer):
-        self.eval_file_path = f'{cfg.logdir}/{cfg.exp_name}/metrics.csv'
-        self.relevant_object_hover_path = f'{cfg.logdir}/{cfg.exp_name}/hover'
+    def __init__(self, cfg, tb_writer, eval_mode):
+        self.eval_mode = eval_mode
+        self.eval_file_path = f'{cfg.logdir}/{cfg.exp_name}/{eval_mode}_metrics.csv'
         self.first_eval = True
         self.data_subset_modes = ['all','relevant']
         self.tb_writer = tb_writer
-        self.file_writer = EvalWriter(cfg, tb_writer, self.data_subset_modes)
+        self.file_writer = EvalWriter(cfg, tb_writer, self.data_subset_modes, self.eval_mode, self.eval_file_path)
         self.cfg = cfg
-        
-
-    def set_and_make_directories(self, eval_file_path, relevant_object_hover_path):
-        if os.path.exists(eval_file_path):
-            os.remove(eval_file_path)
-        os.makedirs(relevant_object_hover_path, exist_ok=True)
-        os.makedirs(os.path.join(relevant_object_hover_path, "img"), exist_ok=True)
-
+    
     @torch.no_grad()
     # @profile
-    def eval(self, model, dataset, bb_path, global_step, device, cfg):
+    def eval(self, model, global_step, cfg,):
         """
         Evaluation. This includes:
             - mse evaluated on dataset
@@ -56,67 +49,35 @@ class SpaceEval:
             - cluster metrics evaluated on dataset
         :return:
         """
-        print("##################################################")
-        print("dataset length: ", len(dataset), "number of images", len(dataset) * 4)
-        print("##################################################")
         if self.first_eval:
             self.first_eval = False
-            self.set_and_make_directories(self.eval_file_path, self.relevant_object_hover_path)
+            if os.path.exists(self.eval_file_path):
+                os.remove(self.eval_file_path)
             self.file_writer.write_header()
 
-        #_, logs = self.apply_model(dataset, device, model, global_step)
-        logs = [] # TODO undo this
-        if not os.path.exists(f"{cfg.dataset_roots.ATARI}/{cfg.gamelist[0]}/latents/test/") or len(os.listdir(f"{cfg.dataset_roots.ATARI}/{cfg.gamelist[0]}/latents/test/")) == 0:
-            create_latent_dataset(cfg, "test")
-        results = self.core_eval_code(dataset, bb_path, global_step, cfg, logs)
+        create_latent_dataset(cfg, self.eval_mode, model=model)
+        
+        results = self.core_eval_code(global_step, cfg,)
         return results
 
-    @torch.no_grad()
-    def apply_model(self, dataset, device, model, global_step, use_global_step=False):
-        print('Applying the model for evaluation...')
-        model.eval()
-        if eval_cfg.train.num_samples:
-            num_samples = min(len(dataset),max(eval_cfg.train.num_samples.values()))
-        else:
-            num_samples = len(dataset)
-        batch_size = eval_cfg.train.batch_size
-        num_workers = eval_cfg.train.num_workers
-        data_subset = Subset(dataset, indices=range(num_samples))
-        dataloader = DataLoader(data_subset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
-        losses = []
-        logs = []
-        with torch.no_grad():
-            for imgs, motion, motion_z_pres, motion_z_where in dataloader:
-                imgs = imgs.to(device)
-                loss, log = model(imgs, global_step if use_global_step else 1000000000)
-                for key in ['imgs', 'y', 'log_like', 'elbo_loss', 'fg', 'z_pres_prob_pure',
-                            'prior_z_pres_prob', 'o_att', 'alpha_att_hat', 'alpha_att', 'alpha_map', 'alpha_map_pure',
-                            'importance_map_full_res_norm', 'kl_z_what', 'kl_z_pres', 'kl_z_scale', 'kl_z_shift',
-                            'kl_z_depth', 'kl_z_where', 'comps', 'masks', 'bg', 'kl_bg']:
-                    del log[key]
-                losses.append(loss)
-                logs.append(log)
-        model.train()
-        return losses, logs
-
-    def core_eval_code(self, valset, bb_path, global_step, cfg, logs,):
+    def core_eval_code(self, global_step, cfg):
         results_collector = {}
         with open(self.eval_file_path, "a") as file:
             self.file_writer.write_metric(None, global_step, global_step, use_writer=False)
-            if 'cluster' in eval_cfg.train.metrics:
-                results = self.train_eval_clustering(logs, valset, global_step, cfg)
+            if 'cluster' in eval_cfg.get(self.eval_mode).metrics:
+                results = self.eval_clustering(global_step, cfg, self.eval_mode)
                 results_collector.update(results)
                 if cfg.train.log:
                     pp = pprint.PrettyPrinter(depth=2)
                     for res in results:
                         print("Cluster Result:")
                         pp.pprint(results[res])
-            if 'mse' in eval_cfg.train.metrics:
-                mse = self.train_eval_mse(logs, global_step)
-                print("MSE result: ", mse)
-                results_collector.update({'mse': mse})
-            if 'ap' in eval_cfg.train.metrics:
-                results = self.train_eval_ap_and_acc(logs, valset, bb_path, global_step)
+            #if 'mse' in eval_cfg.get(self.eval_mode).metrics: #TODO make work again, currently broken because logs was removed
+            #    mse = self.eval_mse(logs, global_step)
+            #    print("MSE result: ", mse)
+            #    results_collector.update({'mse': mse})
+            if 'ap' in eval_cfg.get(self.eval_mode).metrics:
+                results = self.eval_ap_and_acc(global_step, self.eval_mode)
                 results_collector.update(results)
                 if cfg.train.log:
                     results = {k2: v2[len(v2) // 4] if isinstance(v2, list) or isinstance(v2, np.ndarray) else v2 for
@@ -129,12 +90,12 @@ class SpaceEval:
         return results_collector
 
     @torch.no_grad()
-    def train_eval_ap_and_acc(self, logs, valset, bb_path, global_step):
+    def eval_ap_and_acc(self, global_step, eval_mode):
         """
-        Evaluate ap and accuracy during training
+        Evaluate ap and accuracy
         :return: result_dict
         """
-        result_dict = ApAndAccEval().eval_ap_and_acc(logs, valset, bb_path, self.data_subset_modes, self.cfg)
+        result_dict = ApAndAccEval().eval_ap_and_acc(self.data_subset_modes, self.cfg, eval_mode)
         for class_name in self.data_subset_modes:
             APs = result_dict[f'APs_{class_name}']
             
@@ -159,12 +120,12 @@ class SpaceEval:
         return result_dict
 
     @torch.no_grad()
-    def train_eval_mse(self, logs, global_step):
+    def eval_mse(self, logs, global_step):
         """
-        Evaluate MSE during training
+        Evaluate MSE
         """
         print('Computing MSE...')
-        num_batches = eval_cfg.train.num_samples.mse // eval_cfg.train.batch_size
+        num_batches = eval_cfg.get(self.eval_mode).num_samples.mse // eval_cfg.get(self.eval_mode).batch_size
         metric_logger = MetricLogger()
         for log in logs[:num_batches]:
             metric_logger.update(mse=torch.mean(log['mse']))
@@ -173,13 +134,13 @@ class SpaceEval:
         return mse
 
     @torch.no_grad()
-    def train_eval_clustering(self, logs, valset, global_step, cfg):
+    def eval_clustering(self, global_step, cfg, eval_mode):
         """
-        Evaluate clustering during training
+        Evaluate clustering
         :return: result_dict
         """
         print('Computing clustering and few-shot linear classifiers...')
-        results = ClusteringEval(cfg, self.relevant_object_hover_path).eval_clustering(logs, valset, global_step, self.data_subset_modes)
+        results = ClusteringEval(cfg).eval_clustering(self.data_subset_modes, eval_mode)
         if (None, None, None) in results.values():
             results = self.ap_results_none_dict
         for name, (result_dict, img_path, few_shot_accuracy) in results.items():
@@ -199,11 +160,11 @@ class SpaceEval:
         return results
 
 class EvalWriter:
-    def __init__(self, cfg, tb_writer: SummaryWriter, data_subset_modes):
-        self.eval_file_path = f'{cfg.logdir}/{cfg.exp_name}/metrics.csv'
-        self.relevant_object_hover_path = f'{cfg.logdir}/{cfg.exp_name}/hover'
+    def __init__(self, cfg, tb_writer: SummaryWriter, data_subset_modes, eval_mode, eval_file_path):
         self.tb_writer = tb_writer
         self.data_subset_modes = data_subset_modes
+        self.eval_mode = eval_mode
+        self.eval_file_path = eval_file_path
 
     def write_metric(self, tb_label, value, global_step, use_writer=True, make_sep=True):
         if use_writer:
@@ -227,11 +188,11 @@ class EvalWriter:
 
     def generate_header_list(self):
         columns = ['global_step']
-        if 'cluster' in eval_cfg.train.metrics:
+        if 'cluster' in eval_cfg.get(self.eval_mode).metrics:
             columns.extend(self.get_cluster_header())
-        if 'mse' in eval_cfg.train.metrics:
+        if 'mse' in eval_cfg.get(self.eval_mode).metrics:
             columns.append('mse')
-        if 'ap' in eval_cfg.train.metrics:
+        if 'ap' in eval_cfg.get(self.eval_mode).metrics:
             columns.extend(self.get_ap_header())
         return columns
 
