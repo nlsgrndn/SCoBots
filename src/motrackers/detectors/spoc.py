@@ -87,8 +87,10 @@ class SPOC(Detector):
         draw_bboxes (bool): If true, draw bounding boxes on the image is possible.
     """
 
-    def __init__(self, classifier, spoc, object_names, confidence_threshold, nms_threshold, draw_bboxes=True):
+    def __init__(self, game_name, classifier, classifier_id_dict, spoc, object_names, confidence_threshold, nms_threshold, draw_bboxes=True):
+        self.game_name = game_name
         self.classifier = classifier
+        self.classifier_id_dict = classifier_id_dict
         self.spoc = spoc
         super().__init__(object_names, confidence_threshold, nms_threshold, draw_bboxes)
 
@@ -121,12 +123,19 @@ class SPOC(Detector):
         """
         latent_logs_dict = self.forward(image)
         predbboxs, z_whats = latent_to_boxes_and_z_whats(latent_logs_dict)
+        mask = filter_relevant_boxes_masks(self.game_name, predbboxs, None)[0]
+        predbboxs = predbboxs[0][mask]
+        z_whats = z_whats[mask]
+        z_whats = z_whats.to("cpu")
+        if len(predbboxs) == 0:
+            return np.array([]), np.array([]), np.array([]), np.array([])
         bboxes = self.transform_bbox_format(predbboxs)
         bboxes = np.array(bboxes * 128).astype(np.int32)
         #class_ids = self.classifier.predict(z_whats)
         distances = self.classifier.transform(z_whats)
         probabilities = softmax(-distances)
         class_ids = np.argmax(probabilities, axis=1)
+        class_ids = np.array([self.classifier_id_dict[class_id] for class_id in class_ids])
         confidences = np.max(probabilities, axis=1)
         
         return bboxes, confidences, class_ids, probabilities
@@ -143,3 +152,14 @@ class SPOC(Detector):
         new_format_bboxes[:, 3] = bboxes[:, 1] - bboxes[:, 0]
         return new_format_bboxes
     
+def filter_relevant_boxes_masks(game, boxes_batch, boxes_gt):
+    game = game.lower()
+    if "pong" in game:
+        # ensure that > 21/128 and < 110/128
+        return [(box_bat[:, 1] > 21 / 128) & (box_bat[:, 0] > 4 / 128) for box_bat in boxes_batch]
+    elif "boxing" in game:
+        return [(box_bat[:, 0] > 19 / 128) * (box_bat[:, 1] < 110 / 128) for box_bat in boxes_batch]
+    elif "skiing" in game:
+        return [box_bat[:, 0] > -1000 for box_bat in boxes_batch] # TODO: Find helpful rules if necessary (currently trivial condition such that mask is always true)
+    else:
+        raise ValueError(f"filter_relevant_boxes_masks for game {game} not implemented")

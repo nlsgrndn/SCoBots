@@ -48,8 +48,9 @@ class ZWhatClassifierCreator:
         k_means.fit(z_what)
         return k_means
 
-    def save_classifier(self, clf, model_name, clf_name = "unnamed"):
-        folder = f'{self.cfg.logdir}/{self.cfg.exp_name}/{model_name}'
+    def save_classifier(self, clf, model_name, clf_name = "unnamed", folder=None):
+        if folder is None:
+            folder = f'{self.cfg.logdir}/{self.cfg.exp_name}/{model_name}'
         if not os.path.exists(folder):
             os.makedirs(folder)
         filename = f'z_what-classifier_{clf_name}.joblib.pkl'

@@ -16,8 +16,8 @@ class Detector:
 
     def __init__(self, object_names, confidence_threshold, nms_threshold, draw_bboxes=True):
         self.object_names = object_names
-        self.confidence_threshold = confidence_threshold
-        self.nms_threshold = nms_threshold
+        #self.confidence_threshold = confidence_threshold
+        #self.nms_threshold = nms_threshold
         self.height = None
         self.width = None
 
@@ -51,32 +51,34 @@ class Detector:
                 - class_ids (numpy.ndarray): Class_ids or label_ids of detected objects with shape (n, 4)
 
         """
-        if self.width is None or self.height is None:
-            (self.height, self.width) = image.shape[:2]
+        raise NotImplemented
+        #if self.width is None or self.height is None:
+        #    (self.height, self.width) = image.shape[:2]
 
-        detections = self.forward(image).squeeze(axis=0).squeeze(axis=0)
+        #detections = self.forward(image).squeeze(axis=0).squeeze(axis=0)
 
-        bboxes, confidences, class_ids = [], [], []
+        #bboxes, confidences, class_ids = [], [], []
 
-        for i in range(detections.shape[0]):
-            detection = detections[i, :]
-            class_id = detection[1]
-            confidence = detection[2]
+        #for i in range(detections.shape[0]):
+        #    detection = detections[i, :]
+        #    class_id = detection[1]
+        #    confidence = detection[2]
 
-            if confidence > self.confidence_threshold:
-                bbox = detection[3:7] * np.array([self.width, self.height, self.width, self.height])
-                bboxes.append(bbox.astype("int"))
-                confidences.append(float(confidence))
-                class_ids.append(int(class_id))
+        #    if confidence > self.confidence_threshold:
+        #        bbox = detection[3:7] * np.array([self.width, self.height, self.width, self.height])
+        #        bboxes.append(bbox.astype("int"))
+        #        confidences.append(float(confidence))
+        #        class_ids.append(int(class_id))
 
-        if len(bboxes):
-            bboxes = xyxy2xywh(np.array(bboxes)).tolist()
-            class_ids = np.array(class_ids).astype('int')
-            indices = cv.dnn.NMSBoxes(bboxes, confidences, self.confidence_threshold, self.nms_threshold).flatten()
-            return np.array(bboxes)[indices, :], np.array(confidences)[indices], class_ids[indices]
-        else:
-            return np.array([]), np.array([]), np.array([])
-
+        #if len(bboxes):
+        #    bboxes = xyxy2xywh(np.array(bboxes)).tolist()
+        #    class_ids = np.array(class_ids).astype('int')
+        #    indices = cv.dnn.NMSBoxes(bboxes, confidences, self.confidence_threshold, self.nms_threshold).flatten()
+        #    return np.array(bboxes)[indices, :], np.array(confidences)[indices], class_ids[indices]
+        #else:
+        #    return np.array([]), np.array([]), np.array([])
+    
+    # TODO: move somewhere else e.g. utils
     def draw_bboxes(self, image, bboxes, confidences, class_ids):
         """
         Draw the bounding boxes about detected objects in the image.

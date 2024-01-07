@@ -1,6 +1,7 @@
 import cv2 as cv
 from motrackers.detectors import SPOCDummy
-from motrackers import CentroidTracker, CentroidKF_Tracker
+from motrackers.tracking.centroid_kf_tracker import CentroidKF_Tracker
+from motrackers.tracking.centroid_tracker import CentroidTracker
 from motrackers.utils import draw_tracks
 import numpy as np
 import pandas as pd
@@ -59,8 +60,7 @@ def main(model, tracker, dataloader, classifier):
             raw_gt_labels = match_bounding_boxes_v2(gt_bbs_and_labels, raw_pred_bbox)
             raw_gt_label_collector.extend(raw_gt_labels)
 
-            bboxes_pred_kf = tracker.predict()
-            tracks = tracker.update(bboxes, confidences, class_ids, bboxes_pred_kf, probabilities, z_whats, classifier)
+            tracks = tracker.update(bboxes, confidences, class_ids, probabilities, z_whats, classifier)
             image = img.copy() * 255
             #updated_image = model.draw_bboxes(image, bboxes , confidences, class_ids)
             tracks_bbox = np.array([np.stack(track) for track in tracks])

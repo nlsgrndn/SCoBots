@@ -2,8 +2,8 @@ from collections import OrderedDict
 import numpy as np
 from scipy.spatial import distance
 from scipy.optimize import linear_sum_assignment
-from motrackers.tracker import Tracker
-from motrackers.track import KFTrackCentroid
+from motrackers.tracking.tracker import Tracker
+from motrackers.tracking.track import KFTrackCentroid
 from motrackers.utils.misc import get_centroid
 
 class CentroidKF_Tracker(Tracker):
@@ -43,17 +43,12 @@ class CentroidKF_Tracker(Tracker):
         )
         self.next_track_id += 1
 
-    def predict(self):
-        track_ids = list(self.tracks.keys())
-        bbox_tracks = np.array([self.tracks[track_id].predict() for track_id in track_ids]) # predict step of kalman filter
-        return bbox_tracks
-
-    def update(self, bboxes, detection_scores, class_ids, bbox_tracks, probabilities = None, z_whats = None, classifier = None): #TODO bbox_tracks and probabilties were added; maybe delete them
+    def update(self, bboxes, detection_scores, class_ids, probabilities = None, z_whats = None, classifier = None): #TODO bbox_tracks and probabilties were added; maybe delete them
         self.frame_count += 1
         bbox_detections = np.array(bboxes, dtype='int')
 
         track_ids = list(self.tracks.keys())
-        #bbox_tracks = np.array([self.tracks[track_id].predict() for track_id in track_ids]) # predict step of kalman filter
+        bbox_tracks = np.array([self.tracks[track_id].predict() for track_id in track_ids]) # predict step of kalman filter
         if len(bboxes) == 0:
             for i in range(len(bbox_tracks)):
                 track_id = track_ids[i]
@@ -147,10 +142,17 @@ def assign_tracks2detection_centroid_distances(bbox_tracks, bbox_detections, dis
     detection_centroids = get_centroid(bbox_detections)
     centroid_distances = distance.cdist(estimated_track_centroids, detection_centroids)
 
+    # add distance based on class id: if class id is same, add 0, else add 15
+    class_distances = np.zeros((centroid_distances.shape[0], centroid_distances.shape[1]))
+    for i in range(centroid_distances.shape[0]):
+        for j in range(centroid_distances.shape[1]):
+            if bbox_tracks[i, -1] != bbox_detections[j, -1]:
+                class_distances[i, j] = 25
+    total_distances = centroid_distances + class_distances
 
-    assigned_tracks, assigned_detections = linear_sum_assignment(centroid_distances)
 
 
+    assigned_tracks, assigned_detections = linear_sum_assignment(total_distances) #TODO check whether uisng class_distances is a good idea
 
     unmatched_detections, unmatched_tracks = [], []
 
