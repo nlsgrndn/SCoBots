@@ -12,7 +12,7 @@ from tqdm import tqdm
 from dataset import get_dataloader
 from dataset.z_what import Atari_Z_What
 
-def create_latent_dataset(cfg, dataset_mode, model=None):
+def create_latent_dataset(cfg, dataset_mode = "test", model=None):
     game = cfg.gamelist[0]
     if model is None:
         model = get_model(cfg)

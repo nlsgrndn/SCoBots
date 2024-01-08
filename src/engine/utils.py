@@ -81,3 +81,7 @@ def get_config():
     np.random.seed(cfg.seed)
 
     return cfg, args.task
+
+
+def get_config_v2(game_name, config_path):
+    cfg.merge_from_file(config_path)

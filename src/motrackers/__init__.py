@@ -15,7 +15,7 @@ import joblib
 from model.space.space import Space
 from utils.checkpointer import Checkpointer
 import os.path as osp
-from engine.utils import get_config
+from engine.utils import get_config_v2
 import pandas as pd
 
 base_path = "final_detect_models"
@@ -27,7 +27,8 @@ def load_classifier(game_name):
     centroid_labels_dict = centroid_labels.iloc[:,0].to_dict()
     return classifier, centroid_labels_dict
 def load_space_model(game_name):
-    cfg = get_config() # get config must be called because it updates e.g. arch.G which is set differently in different scobi.config
+    config_path = f"src/configs/my_atari_{game_name}_gpu.yaml" #TODO specify config path in a better way
+    cfg = get_config_v2(game_name, config_path) # get config must be called because it updates e.g. arch.G which is set differently in different scobi.config
     device = "cuda"
     model_path = osp.join(base_path, game_name, "space_weights", "model_000005001.pth")
     model = Space()

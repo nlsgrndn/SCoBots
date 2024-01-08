@@ -24,8 +24,12 @@ def get_dataloader(cfg, dataset_mode, dataset, no_shuffle_overwrite = False):
     assert dataset_mode in ['train', 'val', 'test']
 
     # get batch size and num_workers (either from specified in cfg or in eval_cfg)
-    batch_size = getattr(cfg, dataset_mode).batch_size
-    num_workers = getattr(cfg, dataset_mode).num_workers
+    if dataset_mode =="train":
+        batch_size = getattr(cfg, dataset_mode).batch_size
+        num_workers = getattr(cfg, dataset_mode).num_workers
+    elif dataset_mode =="val" or dataset_mode =="test":
+        batch_size = cfg.eval_cfg.get(dataset_mode).batch_size
+        num_workers = cfg.eval_cfg.get(dataset_mode).num_workers
 
     shuffle = True if dataset_mode == 'train' else False
     if no_shuffle_overwrite:
