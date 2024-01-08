@@ -13,7 +13,7 @@ This repository contains the code for MOC. Here you can train discovery models t
 	- Training
 	- Evaluation
   	- Usage
-- Few Shot Object Classification:
+- Object Classification:
   	- Loading the model
 	- Training
 	- Evaluation
@@ -29,7 +29,7 @@ This repository contains the code for MOC. Here you can train discovery models t
 - use python 3.8.12 or similar
 - install requirements.txt
 - for installation with cuda usage on remote cluster of tu darmstadt:pip3 install torch==1.10.0+cu113 torchvision==0.11.1+cu113  -f  https://download.pytorch.org/whl/cu113/torch_stable.html
-- when running eval.py protobuf issue, the solution is to downgrade to 3.20
+- if you get a protobuf issue when running eval.py, the solution is to downgrade to 3.20
 
 **Dataset Creation**
 
@@ -44,6 +44,8 @@ Then a dataset for each dataset_mode can be created.
 Generally, mode should be used instead of median (but this is already set as default, so this nothing to worry about).
 The parameter --vis optionally creates also visualizations that can help to understand whether the data generation was successful.
 The folders median, flow, rgb and vis are not required tor the training or evaluation. The sizes of train, validation and test set are specified in the python file but can easily be modified.
+
+If consecutive images should be created, follow the same steps but use the create_consecutive_dataset.py instead.
 
 **Config Files**
 
@@ -90,65 +92,35 @@ gamelist: [
 
 Like all methods from files within src, the code should be executed while being in the src directory and via the main file.
 
-The model is loaded with `Checkpointer` in `src/utils.py`, while the config in `src/configs`
-(e.g. `atari_mspacman.yaml`) control which model is loaded. Usage can be seen in `train.py`. However, note that get_config() must before somewhere:
+The model is loaded with `Checkpointer` in `src/utils/checkpointer.py`, while the config in `src/configs` (e.g. `my_atari_pong_gpu.yaml`) controls which model is loaded. Note that get_config() must called before somewhere!!!:
 
 ```python
+# model loading
 model = get_model(cfg)
 model = model.to(cfg.device)
-
-checkpointer = Checkpointer(osp.join(cfg.checkpointdir, cfg.exp_name), max_num=cfg.train.max_ckpt,
-                            load_time_consistency=cfg.load_time_consistency, add_flow=cfg.add_flow)
-model.train()
-
 optimizer_fg, optimizer_bg = get_optimizers(cfg, model)
-
-if cfg.resume:
-    checkpoint = checkpointer.load_last(cfg.resume_ckpt, model, optimizer_fg, optimizer_bg, cfg.device)
-    if checkpoint:
-        start_epoch = checkpoint['epoch']
-        global_step = checkpoint['global_step'] + 1
+checkpointer = Checkpointer(osp.join(cfg.checkpointdir, cfg.exp_name), max_num=cfg.train.max_ckpt,)
+start_epoch = 0
+global_step = 0
+if cfg.resume: # whether to resume training from a checkpoint
+	checkpoint = checkpointer.load_last(cfg.resume_ckpt, model, optimizer_fg, optimizer_bg, cfg.device)
+	if checkpoint:
+		start_epoch = checkpoint['epoch']
+		global_step = checkpoint['global_step'] + 1
 if cfg.parallel:
-    model = nn.DataParallel(model, device_ids=cfg.device_ids)
+	model = nn.DataParallel(model, device_ids=cfg.device_ids)
 ```
-
-For Space-Time the flags for `load_time_consistency` and `add_flow` are set to `True`, so the model loads properly, but that should be already present in the respective config. Also `resume`should be set when loading a model.
-
-**Usage for downstream-task**
-
-`model.space` then retrieves the included `Space` model. `Space` exposes a method `scene_description` for retrieving the knowledge of a scene:
-
-```python
-space = model.space
-# x is the image on device as a Tensor, z_classifier accepts the latents,
-# only_z_what control if only the z_what latent should be used (see docstring)
-scene = space.scene_description(x, z_classifier=z_classifier, only_z_what=True)
-# scene now contains a dict[int (the label) -> list[(int, int)]
-# (the positions of the object in the domain (-1, 1) that can be mapped into (0, H)
-# by using zwhere_to_box (see Appendix in paper).
-#
-# The label index can be converted into a string label using the index
-# of `label_list_*` that are defined in `src/dataset/labels.py`.
-```
-
-During evaluation a new only_z_what-style-classifier using `RidgeRegression` is trained with validation data in a few-shot setting and saved along the checkpoints as `z_what-classifier_{samples_per_class}.joblib.pkl`. Here `samples_per_class are the amount of samples from each label class the classifier is trained with.
-
-It can be loaded as:
-
-```python
-joblib.load(filename)
-```
+Note that some steps (e.g. passing the optimizers) are only necessary for training.
 
 **Training the model**
 
 Training a single model can be done with `train.py`:
 
-`python main.py --task train --config configs/atari_riverraid.yaml --arch-type +moc`
-
+`python3 main.py --task train --config configs/config_file_name.yaml`
 
 Training multiple models (with different seeds/parameters) can be done with `multi_train.py`:
 
-`python main.py --task multi_train --config configs/atari_riverraid.yaml --arch-type +moc`
+`python main.py --task multi_train --config configs/config_file_name.yaml`
 
 `multi_train` refers to `src/engine/multi_train.py` that enables running multiple trainings/experiments sequentially.
 There (following the many commented-out examples) configs that should be altered (relative to the `.yaml`) can be noted.
@@ -170,14 +142,26 @@ Evaluation is run alongside training if the config `train.eval_on` is set to Tru
 For running the baseline SPACE with the current evaluation and dataset framework please switch to branch `space_upstream`,
 where these usage instructions similarly apply.
 
-**AIML Lab specific notes**
+**Evaluating the model**
 
-The models and datasets will be stored in `/storage-01/ml-trothenbacher/space-time/`, but are currently still stored in my user folder `~/SPACE` distributed over DGX-B, DGX-C and DGX-D as I did not know of the storage option and loading from storage was still really slow at the time. Some configs and steps might not translate directly to the new file structure.
+`python3 main.py --task eval --config configs/config_file_name.yaml`
 
+The file `src/eval/eval_cfg.py` specifies which metrics are used in the evaluation.
 
-## Loading the model for RL task
-There is an example `load_model.py` that allows to load and give a look at the SPACE-time model easily. You can launch the following command from the `src` folder:
-`python3 load_model.py --config configs/atari_pong_classifier.yaml`
+**Object Classification**
+
+**Training the classifier**
+First, a dataset of the latent variable z_what of the space model for the images in dataset needs to be created:
+`python3 main.py --task create_latent_dataset --config configs/config_file_name.yaml`
+Then, the classifier can created using
+`python3 main.py --task train_classifier --config configs/config_file_name.yaml`
+This saves a classifier and a csv-file which specifies the mapping from the enumerated class labels to the index postion OC_ATARI lists.
+These are saved in the folder where the space model weights for creating the latent dataset are stored.
+
+**Evaluating a classifier**
+The classifier is evaluated qualitatively via visualizing the clusters.
+The clusters are visualized in the folder `src/classifier_vis`.
+
 
 # SPACE
 
