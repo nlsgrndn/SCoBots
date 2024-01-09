@@ -1,5 +1,4 @@
 import torch
-from .kalman_filter import classify_encodings
 from .classify_z_what import ZWhatEvaluator
 from eval.create_z_what_dataset import ZWhatDataCollector
 import numpy as np
@@ -31,11 +30,7 @@ class ClusteringEval:
         for data_subset_mode in data_subset_modes:
             relevant_labels, test_x, test_y, train_x, train_y = data[data_subset_mode]
             mutual_info_scores_dict, self.dim_red_path, few_shot_accuracy_dict = ZWhatEvaluator(self.cfg, title= data_subset_mode,).evaluate_z_what(train_x, train_y, test_x, test_y, relevant_labels)
-            if data_subset_mode == 'relevant' and few_shot_accuracy_dict is not None: #TODO uncomment or remove
-            #    # add bayes accuracy metric for relevant objects based on Kalman filter
-            #    bayes_accuracy = classify_encodings(self.cfg, z_encs_relevant, labels_relevant_unflattened)
-            #    few_shot_accuracy_dict['bayes_accuracy'] = bayes_accuracy
-                 few_shot_accuracy_dict['bayes_accuracy'] = np.nan
+
             results[data_subset_mode] = (mutual_info_scores_dict, self.dim_red_path, few_shot_accuracy_dict)
         return results
 

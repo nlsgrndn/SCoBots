@@ -27,7 +27,7 @@ class SpaceEval:
             'relevant': ({'adjusted_mutual_info_score': np.nan, 'adjusted_rand_score': np.nan}, "dummy_path",
                          {'few_shot_accuracy_with_1': np.nan, 'few_shot_accuracy_with_4': np.nan,
                           'few_shot_accuracy_with_16': np.nan,
-                          'few_shot_accuracy_with_64': np.nan, 'few_shot_accuracy_cluster_nn': np.nan, 'bayes_accuracy': np.nan})
+                          'few_shot_accuracy_with_64': np.nan, 'few_shot_accuracy_cluster_nn': np.nan})
         }
 
     def __init__(self, cfg, tb_writer, eval_mode):
@@ -154,9 +154,6 @@ class SpaceEval:
                 + ['few_shot_accuracy_cluster_nn', 'adjusted_mutual_info_score', 'adjusted_rand_score']
             combined_dict = {**result_dict, **few_shot_accuracy}
             self.file_writer.write_metrics(metrics, name, combined_dict, global_step, class_name_part_of_key=False)
-            if "relevant" in name:
-                self.file_writer.write_metric(f'{name}/bayes_accuracy',
-                                  few_shot_accuracy[f'bayes_accuracy'], global_step)
         return results
 
 class EvalWriter:
@@ -201,7 +198,6 @@ class EvalWriter:
                 + ['few_shot_accuracy_cluster_nn', 'adjusted_mutual_info_score', 'adjusted_rand_score']
         column_starts = self.data_subset_modes
         columns = [f"{class_name}_{column_ending}" for class_name in column_starts for column_ending in column_endings]
-        columns.append(f'relevant_bayes_accuracy') # special case only for relevant
         return columns
 
     def get_ap_header(self):

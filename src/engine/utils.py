@@ -1,7 +1,7 @@
 import os
 import argparse
 from argparse import ArgumentParser
-from config import cfg
+from configs.config import cfg
 
 
 def get_config():

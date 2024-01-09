@@ -1,6 +1,6 @@
-from .atari import Atari
+#from .atari import Atari
 from .z_what import Atari_Z_What
-from .obj3d import Obj3D
+#from .obj3d import Obj3D
 from torch.utils.data import DataLoader
 from .atari_labels import label_list_for
 import torch.utils.data as data_utils
@@ -14,10 +14,10 @@ def get_dataset(cfg, dataset_mode):
     assert dataset_mode in ['train', 'val', 'test']
     if cfg.dataset == 'ATARI':
         return Atari_Z_What(cfg, dataset_mode)
-    elif cfg.dataset == 'OBJ3D_SMALL':
-        return Obj3D(cfg.dataset_roots.OBJ3D_SMALL, dataset_mode)
-    elif cfg.dataset == 'OBJ3D_LARGE':
-        return Obj3D(cfg.dataset_roots.OBJ3D_LARGE, dataset_mode)
+    #elif cfg.dataset == 'OBJ3D_SMALL':
+    #    return Obj3D(cfg.dataset_roots.OBJ3D_SMALL, dataset_mode)
+    #elif cfg.dataset == 'OBJ3D_LARGE':
+    #    return Obj3D(cfg.dataset_roots.OBJ3D_LARGE, dataset_mode)
 
 
 def get_dataloader(cfg, dataset_mode, dataset, no_shuffle_overwrite = False):
