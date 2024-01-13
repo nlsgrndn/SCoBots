@@ -47,6 +47,12 @@ The folders median, flow, rgb and vis are not required tor the training or evalu
 
 If consecutive images should be created, follow the same steps but use the create_consecutive_dataset.py instead.
 
+If a trained model exists, a dataset of the latent variables that this model produces can be created:
+
+`python3 main.py --task create_latent_dataset --config configs/config_file_name.yaml`
+
+Currently, this creates the latent dataset only for the "test" dataset_mode. #TODO: add option to configure for which dataset_mode to create the latent dataset
+
 **Config Files**
 
 Files used for config:
@@ -165,8 +171,6 @@ The clusters are visualized in the folder `src/classifier_vis`.
 
 # SPACE
 
-This is the AIML Rework of the SPACE model presented in the following paper:
-
 > [SPACE: Unsupervised Object-Oriented Scene Representation via Spatial Attention and Decomposition](https://arxiv.org/abs/2001.02407)  
 
 ![spaceinv_with_bbox](figures/spaceinvaders.png)
@@ -178,22 +182,13 @@ This is the AIML Rework of the SPACE model presented in the following paper:
 Project directories:
 
 * `src`: source code
-* `data`: where you should put the datasets
 * `output`: anything the program outputs will be saved here. These include
   * `output/checkpoints`: training checkpoints. Also, model weights with the best performance will be saved here
   * `output/logs`: tensorboard event files
   * `output/eval`: quantitative evaluation results
-  * `output/demo`: demo images
 * `scripts`: some useful scripts for downloading things and showing demos
-* `pretrained`: where to put downloaded pretrained models
 
-This project uses [YACS](https://github.com/rbgirshick/yacs) for managing experiment configurations. Configurations are specified with YAML files. These files are in `src/configs`. We provide five YAML files that correspond to the figures in the paper:
-
-* `3d_room_large.yaml`: for the 3D Room Large dataset
-* `3d_room_small.yaml`: for 3D Room Small dataset
-* `atari_spaceinvaders.yaml`: for the Space Invaders game
-* `atari_riverraid.yaml`: for the River Raid game
-* `atari_joint.yaml`: for joint training on 10 Atari games
+This project uses [YACS](https://github.com/rbgirshick/yacs) for managing experiment configurations. Configurations are specified with YAML files. These files are in `src/configs`.
 
 ## Dependencies
 
@@ -205,46 +200,7 @@ pip3 install -U pip
 pip3 install -r requirements.txt
 ```
 
-## Quick demo with pretrained models
-
-To download pretrained models, two options are available:
-
-* **Download with scripts**. Run the following script to download pretrained models:
-
-  ```
-  sh scripts/download_data_atari.sh  # for atari data only
-  ```
-or
-  ```
-  sh scripts/download_pretrained.sh  # for all data
-  ```
-
-  Pretrained models will be downloaded to the `pretrained` directory and decompressed.
-
-To generate the image of the atari game with the bounding box:
-```
-sh scripts/show_atari_spaceinvaders.sh 'cuda:0'  # if you have a GPU
-sh scripts/show_atari_spaceinvaders.sh 'cpu'  # otherwise
-```
-
-## :space_invader: AIML SCRIPTS :space_invader:
-
-We have our own scripts:
-* To create a dataset for the game pong (`train` folder) from root folder: <br/>
-`python3 create_dataset.py -f train -g Pong`
-
-* To create a dataset for the game Tennis (`train` folder) and make the data i.i.d.: <br/>
-`python3 create_dataset.py -f train -g Tennis --random`
-
-All of the following is also called during eval stage when training. Check out train.py and the src/configs to configure.
-
-* To extract images for a game from src folder: <br/>
-`python3 post_eval/extract_bb.py --config configs/atari_spaceinvaders.yaml resume True resume_ckpt ../pretrained/atari_spaceinvaders.pth device cuda:0 `
-
-* To create a PCA (or tsne) and visualize in a plot from src: (only available for MsPacman yet) also always check the parameter descriptions of argparse <br/>
-`python3 post_eval/classify_z_what.py`
-
-## Training and Evaluation
+## General Usage
 
 **First, `cd src`.  Make sure you are in the `src` directory for all commands in this section. All paths referred to are also relative to `src`**.
 
@@ -254,28 +210,7 @@ The general command to run the program is (assuming you are in the `src` directo
 python main.py --task [TASK] --config [PATH TO CONFIG FILE] [OTHER OPTIONS TO OVERWRITE DEFAULT YACS CONFIG...]
 ```
 
-Detailed instructions will be given below.
-
-**Training**. Run one or more of the following to train the model on the datasets you want:
-
-* River Raid:
-
-  ```
-  python main.py --task train --config configs/atari_riverraid.yaml resume True device 'cuda:0'
-  ```
-
-* Space Invaders:
-
-  ```
-  python main.py --task train --config configs/atari_spaceinvaders.yaml resume True device 'cuda:0'
-  ```
-
-* Joint training on 10 Atari games:
-
-  ```
-  python main.py --task train --config configs/atari_joint.yaml resume True device 'cuda:0'
-  ```
-
+Example usage of "[OTHER OPTIONS TO OVERWRITE DEFAULT YACS CONFIG...]":
 These start training with GPU 0 (`cuda:0`). There some useful options that you can specify. For example, if you want to use GPU 5, 6, 7, and 8 and resume from checkpoint `../output/checkpoints/3d_room_large/model_000008001.pth`, you can run the following:
 
 ```
@@ -283,7 +218,6 @@ python main.py --task train --config configs/3d_room_large.yaml \
 	resume True resume_ckpt '../output/checkpoints/3d_room_large/model_000008001.pth' \
 	parallel True device 'cuda:5' device_ids '[5, 6, 7, 8]'
 ```
-
 Other available options are specified in `config.py`.
 
 **Training visualization**. Run the following
