@@ -36,19 +36,12 @@ def print_train_info(cfg):
         print('Device ids:', cfg.device_ids)
 
 def print_training_games_info(cfg):
-    if len(cfg.gamelist) >= 10:
-        print("Training on every game")
-        suffix = 'all'
-    elif len(cfg.gamelist) == 1:
+    if len(cfg.gamelist) == 1:
         suffix = cfg.gamelist[0]
         print(f"Training on {suffix}")
-    elif len(cfg.gamelist) == 2:
-        suffix = cfg.gamelist[0] + "_" + cfg.gamelist[1]
-        print(f"Training on {suffix}")
     else:
-        print("Can't train")
+        print(f"cfg.gamelist, {cfg.gamelist}, must include exactly one game name. Exiting.")
         exit(1)
-    return suffix # Remark: suffix was not used anywhere in original code, but I added as a return value just in case.
 
 def train(cfg, rtpt_active=True):
     print_train_info(cfg)

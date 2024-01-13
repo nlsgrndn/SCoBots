@@ -3,7 +3,7 @@ import cv2 as cv
 from motrackers.detectors.detector import Detector
 from motrackers.utils.misc import load_labelsjson
 from model.space.postprocess_latent_variables import latent_to_boxes_and_z_whats
-
+import torch
 
 # with temperature
 def softmax(x, temperature=1):
@@ -87,11 +87,11 @@ class SPOC(Detector):
         draw_bboxes (bool): If true, draw bounding boxes on the image is possible.
     """
 
-    def __init__(self, game_name, classifier, classifier_id_dict, spoc, object_names, confidence_threshold, nms_threshold, draw_bboxes=True):
+    def __init__(self, game_name, classifier, classifier_id_dict, wrapped_spoc, object_names, confidence_threshold, nms_threshold, draw_bboxes=True):
         self.game_name = game_name
         self.classifier = classifier
         self.classifier_id_dict = classifier_id_dict
-        self.spoc = spoc
+        self.wrapped_spoc = wrapped_spoc
         super().__init__(object_names, confidence_threshold, nms_threshold, draw_bboxes)
 
     def forward(self, image):
@@ -104,8 +104,10 @@ class SPOC(Detector):
         Returns:
             numpy.ndarray: detections
         """
-        _, latent_logs_dict = self.spoc(image)
-        return latent_logs_dict
+        self.wrapped_spoc.eval()
+        with torch.no_grad():
+            latent_logs_dict_wrapped = self.wrapped_spoc.forward(image)
+        return latent_logs_dict_wrapped
 
     def detect(self, image):
         """
@@ -121,25 +123,30 @@ class SPOC(Detector):
                 - class_ids (numpy.ndarray): Class_ids or label_ids of detected objects with shape (n, 4)
 
         """
+
         latent_logs_dict = self.forward(image)
         predbboxs, z_whats = latent_to_boxes_and_z_whats(latent_logs_dict)
+        if len(z_whats) == 0:
+            return np.array([]), np.array([]), np.array([]), np.array([])
         mask = filter_relevant_boxes_masks(self.game_name, predbboxs, None)[0]
+        if not torch.any(mask):
+            return np.array([]), np.array([]), np.array([]), np.array([])
         predbboxs = predbboxs[0][mask]
         z_whats = z_whats[mask]
-        z_whats = z_whats.to("cpu")
-        if len(predbboxs) == 0:
-            return np.array([]), np.array([]), np.array([]), np.array([])
+        predbboxs = predbboxs.to("cpu").numpy()
+        z_whats = z_whats.to("cpu").numpy()
+
         bboxes = self.transform_bbox_format(predbboxs)
         bboxes = np.array(bboxes * 128).astype(np.int32)
-        #class_ids = self.classifier.predict(z_whats)
-        distances = self.classifier.transform(z_whats)
+
+        distances = self.classifier.transform(z_whats) #TODO: generalize this to other classifiers
         probabilities = softmax(-distances)
+
         class_ids = np.argmax(probabilities, axis=1)
         class_ids = np.array([self.classifier_id_dict[class_id] for class_id in class_ids])
         confidences = np.max(probabilities, axis=1)
-        
-        return bboxes, confidences, class_ids, probabilities
 
+        return bboxes, confidences, class_ids, probabilities
 
     def transform_bbox_format(self, bboxes):
         """

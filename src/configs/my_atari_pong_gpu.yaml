@@ -3,22 +3,10 @@ model: 'space'
 exp_name: pong
 resume: false
 save_relevant_objects: false
-resume_ckpt: ''
-#'../old_models/actually_new_model_000005041.pth'
-# ''
-# ../old_models/model_000005001.pth
-#resume_ckpt: '../output/checkpoints/tmp/model_pretrained.pth'
-# '../output/checkpoints/mid/mspacman_pt_seed0_aow0.0/model_000160101.pth'
-# '../output/checkpoints/mspacman_atari_pretrained/model.pth'
-#
-# '../output/checkpoints/mspacman_atari+z_what_1e-2/model_000162501.pth'
-#'../output/checkpoints/mspacman_atari+z_area_object_1e1/model_000186501.pth'
-# '../output/checkpoints/mspacman_baseline/model_000177001.pth'
-# 'result_checkpoints/base_z_what_model_000078001.pth'
-# 'output/checkpoints/atari_mspacman/model_000079001.pth'
-# '../pretrained/atari_joint.pth'
+
+resume_ckpt: '../downloaded_models/pong/model_000005001.pth'
 parallel: true
-device_ids: [0,1,2,3]
+device_ids: [0, 1, 2, 3]
 device: 'cuda:0'
 
 logdir: '../output/logs/'
@@ -30,7 +18,7 @@ dataset_style: ''
 dataset_roots:
   OBJ3D_SMALL: '../data/OBJ3D_SMALL'
   OBJ3D_LARGE: '../data/OBJ3D_LARGE'
-  ATARI: '../aiml_atari_data'
+  ATARI: '../aiml_atari_data_temp'
 
 train:
   log: true
@@ -43,7 +31,7 @@ train:
   clip_norm: 1.0
   max_ckpt: 4
   eval_on: true
-  eval_every: 200
+  eval_every: 100
   solver:
     fg:
       optim: 'RMSprop'

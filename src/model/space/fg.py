@@ -416,6 +416,8 @@ class ImgEncoderFg(nn.Module):
         return z_pres, z_depth, z_scale, z_shift, z_where, \
                z_pres_logits, z_depth_post, z_scale_post, z_shift_post, z_pres_logits_pure, \
                z_where_pure
+        # note z_where_pure = z_where
+
 
 
 class ZWhatEnc(nn.Module):
