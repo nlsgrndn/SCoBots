@@ -1,0 +1,235 @@
+ENVIRONMENT: Asterix-v5
+AVAILABLE_CONCEPTS:
+  objects:
+  - Player1
+  - Reward1
+  - Reward2
+  - Reward3
+  - Reward4
+  - Reward5
+  - Reward6
+  - Reward7
+  - Reward8
+  - Enemy1
+  - Enemy2
+  - Enemy3
+  - Enemy4
+  - Enemy5
+  - Enemy6
+  - Enemy7
+  - Enemy8
+  - Consumable1
+  - Consumable2
+  - Consumable3
+  - Consumable4
+  - Consumable5
+  - Consumable6
+  - Consumable7
+  - Consumable8
+  actions:
+  - NOOP
+  - UP
+  - RIGHT
+  - LEFT
+  - DOWN
+  - UPRIGHT
+  - UPLEFT
+  - DOWNRIGHT
+  - DOWNLEFT
+  properties:
+  - POSITION:
+      in:
+      - OBJECT
+      description: get the position for given object
+  - POSITION_HISTORY:
+      in:
+      - OBJECT
+      description: get the current and last position for given object
+  - ORIENTATION:
+      in:
+      - OBJECT
+      description: get the orientation for given object
+  - RGB:
+      in:
+      - OBJECT
+      description: get the rgb value for given object
+  functions:
+  - LINEAR_TRAJECTORY:
+      in:
+      - POSITION
+      - POSITION_HISTORY
+      description: x, y distance to trajectory
+  - DISTANCE:
+      in:
+      - POSITION
+      - POSITION
+      description: distance between two coordinates
+  - EUCLIDEAN_DISTANCE:
+      in:
+      - POSITION
+      - POSITION
+      description: euclidean distance between two coordinates
+  - CENTER:
+      in:
+      - POSITION
+      - POSITION
+      description: center position of two objects
+  - VELOCITY:
+      in:
+      - POSITION_HISTORY
+      description: velocity of object
+  - DIR_VELOCITY:
+      in:
+      - POSITION_HISTORY
+      description: directional velocity of object
+  - COLOR:
+      in:
+      - RGB
+      description: Index of colorname
+SELECTION:
+  objects:
+  - Player1
+  - Enemy1
+  - Enemy2
+  - Enemy3
+  - Enemy4
+  - Enemy5
+  - Enemy6
+  - Enemy7
+  - Enemy8
+  - Consumable1
+  - Consumable2
+  - Consumable3
+  - Consumable4
+  - Consumable5
+  - Consumable6
+  - Consumable7
+  - Consumable8
+  actions:
+  - NOOP
+  - UP
+  - RIGHT
+  - LEFT
+  - DOWN
+  - UPRIGHT
+  - UPLEFT
+  - DOWNRIGHT
+  - DOWNLEFT
+  properties:
+  - POSITION: Player1
+  - POSITION: Enemy1
+  - POSITION: Enemy2
+  - POSITION: Enemy3
+  - POSITION: Enemy4
+  - POSITION: Enemy5
+  - POSITION: Enemy6
+  - POSITION: Enemy7
+  - POSITION: Enemy8
+  - POSITION: Consumable1
+  - POSITION: Consumable2
+  - POSITION: Consumable3
+  - POSITION: Consumable4
+  - POSITION: Consumable5
+  - POSITION: Consumable6
+  - POSITION: Consumable7
+  - POSITION: Consumable8
+  - POSITION_HISTORY: Player1
+  - POSITION_HISTORY: Enemy1
+  - POSITION_HISTORY: Enemy2
+  - POSITION_HISTORY: Enemy3
+  - POSITION_HISTORY: Enemy4
+  - POSITION_HISTORY: Enemy5
+  - POSITION_HISTORY: Enemy6
+  - POSITION_HISTORY: Enemy7
+  - POSITION_HISTORY: Enemy8
+  - POSITION_HISTORY: Consumable1
+  - POSITION_HISTORY: Consumable2
+  - POSITION_HISTORY: Consumable3
+  - POSITION_HISTORY: Consumable4
+  - POSITION_HISTORY: Consumable5
+  - POSITION_HISTORY: Consumable6
+  - POSITION_HISTORY: Consumable7
+  - POSITION_HISTORY: Consumable8
+  functions:
+  - DISTANCE:
+    - POSITION: Player1
+    - POSITION: Enemy1
+  - DISTANCE:
+    - POSITION: Player1
+    - POSITION: Enemy2
+  - DISTANCE:
+    - POSITION: Player1
+    - POSITION: Enemy3
+  - DISTANCE:
+    - POSITION: Player1
+    - POSITION: Enemy4
+  - DISTANCE:
+    - POSITION: Player1
+    - POSITION: Enemy5
+  - DISTANCE:
+    - POSITION: Player1
+    - POSITION: Enemy6
+  - DISTANCE:
+    - POSITION: Player1
+    - POSITION: Enemy7
+  - DISTANCE:
+    - POSITION: Player1
+    - POSITION: Enemy8
+  - DISTANCE:
+    - POSITION: Player1
+    - POSITION: Consumable1
+  - DISTANCE:
+    - POSITION: Player1
+    - POSITION: Consumable2
+  - DISTANCE:
+    - POSITION: Player1
+    - POSITION: Consumable3
+  - DISTANCE:
+    - POSITION: Player1
+    - POSITION: Consumable4
+  - DISTANCE:
+    - POSITION: Player1
+    - POSITION: Consumable5
+  - DISTANCE:
+    - POSITION: Player1
+    - POSITION: Consumable6
+  - DISTANCE:
+    - POSITION: Player1
+    - POSITION: Consumable7
+  - DISTANCE:
+    - POSITION: Player1
+    - POSITION: Consumable8
+  - DIR_VELOCITY:
+    - POSITION_HISTORY: Player1
+  - DIR_VELOCITY:
+    - POSITION_HISTORY: Enemy1
+  - DIR_VELOCITY:
+    - POSITION_HISTORY: Enemy2
+  - DIR_VELOCITY:
+    - POSITION_HISTORY: Enemy3
+  - DIR_VELOCITY:
+    - POSITION_HISTORY: Enemy4
+  - DIR_VELOCITY:
+    - POSITION_HISTORY: Enemy5
+  - DIR_VELOCITY:
+    - POSITION_HISTORY: Enemy6
+  - DIR_VELOCITY:
+    - POSITION_HISTORY: Enemy7
+  - DIR_VELOCITY:
+    - POSITION_HISTORY: Enemy8
+  - DIR_VELOCITY:
+    - POSITION_HISTORY: Consumable1
+  - DIR_VELOCITY:
+    - POSITION_HISTORY: Consumable2
+  - DIR_VELOCITY:
+    - POSITION_HISTORY: Consumable3
+  - DIR_VELOCITY:
+    - POSITION_HISTORY: Consumable4
+  - DIR_VELOCITY:
+    - POSITION_HISTORY: Consumable5
+  - DIR_VELOCITY:
+    - POSITION_HISTORY: Consumable6
+  - DIR_VELOCITY:
+    - POSITION_HISTORY: Consumable7
+  - DIR_VELOCITY:
+    - POSITION_HISTORY: Consumable8
