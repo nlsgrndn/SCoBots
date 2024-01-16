@@ -41,8 +41,8 @@ else:
     data_path = "../results"
     result_path = '../results_img'
 
-def add_contrived_columns(df):
-    for style in ['relevant', 'all', 'moving']:
+def add_contrived_columns(df, styles=['relevant', 'all', 'moving']):
+    for style in styles:
         aps = df.filter(regex=f'{style}_ap')
         df[f'{style}_ap_avg'] = aps.mean(axis=1)
 
@@ -131,24 +131,81 @@ def main():
     files = os.listdir(data_path)
     files = [f for f in files if f.endswith(".csv")] # collect files from multiple seeds or games
     #file = files[0] # only one file for now
+    f_scores = {}
+    data_subset_modes = ["all", "relevant"]
     for file in files:
         print(f"Processing {file}")
         df = pd.read_csv(os.path.join(data_path, file), sep=";")
-        df = add_contrived_columns(df)
-        # drop all but the last row
+        df = add_contrived_columns(df, data_subset_modes)
+        # drop all but the last row 
         df = df.iloc[[-1]]
-        for category in ['relevant']:
+        for category in data_subset_modes:
             print(f"{category}_f_score:", df[f'{category}_f_score'].values[0])
-            # print few shot accuracy
-            for i in [1, 4, 16, 64]:
-                print(f"{category}_few_shot_accuracy_with_{i}:", df[f'{category}_few_shot_accuracy_with_{i}'].values[0])
-            print(f"{category}_few_shot_accuracy_cluster_nn:", df[f'{category}_few_shot_accuracy_cluster_nn'].values[0])
-            # print mutual information
-            print(f"{category}_adjusted_rand_score", df[f'{category}_adjusted_rand_score'].values[0])
-            print(f"{category}_adjusted_mutual_info_score", df[f'{category}_adjusted_mutual_info_score'].values[0])
 
-        plot_ap(df)
-        collect_prec_recall_data(df)
+            f_scores[file.split("_")[0]] = df[f'{category}_f_score'].values[0]
+
+            try:
+                import ipdb; ipdb.set_trace()
+                recall_values_per_object_type = [df[f'{category}_recall_label_{label}'].values[0] for label in range(6)]
+                plot_recall_per_object_type(category, recall_values_per_object_type)
+            except:
+                print("No recall values per object type available")
+
+
+            try:
+                # print few shot accuracy
+                for i in [1, 4, 16, 64]:
+                    print(f"{category}_few_shot_accuracy_with_{i}:", df[f'{category}_few_shot_accuracy_with_{i}'].values[0])
+                print(f"{category}_few_shot_accuracy_cluster_nn:", df[f'{category}_few_shot_accuracy_cluster_nn'].values[0])
+                # print mutual information
+                print(f"{category}_adjusted_rand_score", df[f'{category}_adjusted_rand_score'].values[0])
+                print(f"{category}_adjusted_mutual_info_score", df[f'{category}_adjusted_mutual_info_score'].values[0])
+            except:
+                print("No few shot accuracy or mutual information available")
+
+        #plot_ap(df)
+        #collect_prec_recall_data(df)
+    plot_f_scores(f_scores)
+
+def plot_f_scores(f_scores):
+    # Extracting the game names and their corresponding f-scores
+    games = list(f_scores.keys())
+    scores = list(f_scores.values())
+
+    # Using the object-oriented approach in Matplotlib
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.bar(games, scores, color='skyblue')
+
+    # Setting labels and title
+    ax.set_xlabel('Games')
+    ax.set_ylabel('F-Scores')
+    ax.set_title('F-Scores of Various Games')
+    ax.set_ylim(0, 1)
+
+    # save the figure
+    plt.savefig(os.path.join(result_path, "img", f'f_scores.png'))
+
+def plot_recall_per_object_type(data_subset_mode, recall_values_per_object_type):
+    # Extracting the object types and their corresponding recall values
+    
+    #filter out nan values
+    #recall_values_per_object_type = [recall_value for recall_value in recall_values_per_object_type if not np.isnan(recall_value)]
+
+    object_types = [str(i) for i in range(len(recall_values_per_object_type))]
+    recall_values = recall_values_per_object_type
+
+    # Using the object-oriented approach in Matplotlib
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.bar(object_types, recall_values, color='skyblue')
+
+    # Setting labels and title
+    ax.set_xlabel('Object Types')
+    ax.set_ylabel('Recall Values')
+    ax.set_title(f'Recall Values of {data_subset_mode} Object Types')
+    ax.set_ylim(0, 1)
+
+    # save the figure
+    plt.savefig(os.path.join(result_path, "img", f'recall_values_{data_subset_mode}.png'))
 
 if __name__ == "__main__":
     main()

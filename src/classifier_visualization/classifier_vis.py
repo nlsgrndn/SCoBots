@@ -16,6 +16,7 @@ from pyclustering.cluster import cluster_visualizer
 
 def visualize_classifier(cfg, dataset_mode, data_subset_mode, train_x, clusters, centers, clf):
     base_path = f"classifier_visualization/{cfg.exp_name}/"
+    os.makedirs(base_path, exist_ok=True)
 
     # Visualize clustering results
     visualizer = cluster_visualizer()
@@ -96,7 +97,8 @@ def create_cluster_folders(clf, images, pred_boxes, z_whats, labels, base_path):
 
 
 def create_one_grid_image_for_each_cluster(base_path):
-    cluster_folders = [osp.join(base_path, folder) for folder in os.listdir(base_path)]
+    # get all cluster folders: check whether is directory and starts with "cluster_"
+    cluster_folders = [osp.join(base_path, folder) for folder in os.listdir(base_path) if osp.isdir(osp.join(base_path, folder)) and folder.startswith("cluster_")]
     # open each folder iteratively
     for folder in cluster_folders:
         x_size, y_size = (20,20)

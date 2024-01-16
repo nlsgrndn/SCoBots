@@ -8,9 +8,9 @@ import torch
 # with temperature
 def softmax(x, temperature=1):
     return np.exp(x / temperature) / np.sum(np.exp(x / temperature), axis=1, keepdims=True)
-class SPOCDummy(Detector):
+class SPACEDummy(Detector):
     """
-    Class for dummy spoc detector.
+    Class for dummy space detector.
 
     Args:
         classifier (Classifier): Classifier to classify the objects.
@@ -75,9 +75,9 @@ class SPOCDummy(Detector):
         return new_format_bboxes
     
 
-class SPOC(Detector):
+class SPACE(Detector):
     """
-    class for detector based on SPOC
+    class for detector based on SPACE
 
     Args:
         classifier (Classifier): Classifier to classify the objects.
@@ -87,11 +87,11 @@ class SPOC(Detector):
         draw_bboxes (bool): If true, draw bounding boxes on the image is possible.
     """
 
-    def __init__(self, game_name, classifier, classifier_id_dict, wrapped_spoc, object_names, confidence_threshold, nms_threshold, draw_bboxes=True):
+    def __init__(self, game_name, classifier, classifier_id_dict, wrapped_space, object_names, confidence_threshold, nms_threshold, draw_bboxes=True):
         self.game_name = game_name
         self.classifier = classifier
         self.classifier_id_dict = classifier_id_dict
-        self.wrapped_spoc = wrapped_spoc
+        self.wrapped_space = wrapped_space
         super().__init__(object_names, confidence_threshold, nms_threshold, draw_bboxes)
 
     def forward(self, image):
@@ -104,9 +104,9 @@ class SPOC(Detector):
         Returns:
             numpy.ndarray: detections
         """
-        self.wrapped_spoc.eval()
+        self.wrapped_space.eval()
         with torch.no_grad():
-            latent_logs_dict_wrapped = self.wrapped_spoc.forward(image)
+            latent_logs_dict_wrapped = self.wrapped_space.forward(image)
         return latent_logs_dict_wrapped
 
     def detect(self, image):

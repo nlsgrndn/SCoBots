@@ -98,8 +98,10 @@ cfg = CfgNode({
 })
 
 from model.space.arch import arch
-from eval.eval_cfg import eval_cfg
+from configs.eval_cfg import eval_cfg
+from configs.dataset_size_cfg import dataset_size_cfg
 
-# For these two, please go to the corresponding file
+# For these three, please go to the corresponding file
 cfg.arch = arch
 cfg.eval_cfg = eval_cfg
+cfg.dataset_size_cfg = dataset_size_cfg

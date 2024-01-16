@@ -83,5 +83,6 @@ def get_config():
     return cfg, args.task
 
 
-def get_config_v2(game_name, config_path):
+def get_config_v2(config_path):
     cfg.merge_from_file(config_path)
+    return cfg

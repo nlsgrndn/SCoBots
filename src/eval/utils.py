@@ -26,7 +26,7 @@ def plot_confusion_matrix(cm, label_list, path):
                     horizontalalignment="center",
                     color="white" if cm[i, j] > thresh else "black")
     plt.title("Confusion Matrix")
-    plt.colorbar()
+    #plt.colorbar()
     plt.xticks(np.arange(len(label_list)), label_list, rotation=45)
     plt.yticks(np.arange(len(label_list)), label_list)
     plt.tight_layout()

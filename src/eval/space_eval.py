@@ -5,12 +5,13 @@ import numpy as np
 import torch
 import os
 from torch.utils.data import Subset, DataLoader
-from .eval_cfg import eval_cfg
+from configs.eval_cfg import eval_cfg
 from torch.utils.tensorboard import SummaryWriter
 from PIL import Image
 import os
 import pprint
 from create_latent_dataset import create_latent_dataset
+from dataset.atari_labels import get_moving_indices, label_list_for
 
 
 
@@ -55,7 +56,9 @@ class SpaceEval:
                 os.remove(self.eval_file_path)
             self.file_writer.write_header()
 
+        print('Creating latent dataset...')
         create_latent_dataset(cfg, self.eval_mode, model=model)
+        print('Done creating latent dataset.')
         
         results = self.core_eval_code(global_step, cfg,)
         return results
@@ -95,43 +98,48 @@ class SpaceEval:
         Evaluate ap and accuracy
         :return: result_dict
         """
-        result_dict = ApAndAccEval().eval_ap_and_acc(self.data_subset_modes, self.cfg, eval_mode)
-        for class_name in self.data_subset_modes:
-            APs = result_dict[f'APs_{class_name}']
+        result_dict = ApAndAccEval(self.cfg).eval_ap_and_acc(self.data_subset_modes, eval_mode)
+        for data_subset_mode in self.data_subset_modes:
+            APs = result_dict[f'APs_{data_subset_mode}']
             
             # only logging
             for ap, thres in zip(APs[1::4], ApAndAccEval.AP_IOU_THRESHOLDS[1::4]):
-                self.tb_writer.add_scalar(f'val_aps_{class_name}/ap_{thres:.1}', ap, global_step)
-            self.tb_writer.add_scalar(f'{class_name}/ap_avg_0.5', APs[len(APs) // 2], global_step)
-            self.tb_writer.add_scalar(f'{class_name}/ap_avg_up', np.mean(APs[len(APs) // 2:]), global_step)
-            self.tb_writer.add_scalar(f'{class_name}/ap_avg', np.mean(APs), global_step)
+                self.tb_writer.add_scalar(f'val_aps_{data_subset_mode}/ap_{thres:.1}', ap, global_step)
+            self.tb_writer.add_scalar(f'{data_subset_mode}/ap_avg_0.5', APs[len(APs) // 2], global_step)
+            self.tb_writer.add_scalar(f'{data_subset_mode}/ap_avg_up', np.mean(APs[len(APs) // 2:]), global_step)
+            self.tb_writer.add_scalar(f'{data_subset_mode}/ap_avg', np.mean(APs), global_step)
             
             # writing to file (and potentially logging)
             for ap in APs:
                 self.file_writer.write_metric('ignored', ap, global_step, use_writer=False)
             metrics = ['accuracy', 'perfect', 'overcount', 'undercount', 'error_rate', 'precision', 'recall']
-            self.file_writer.write_metrics(metrics, class_name, result_dict, global_step)
+            self.file_writer.write_metrics(metrics, data_subset_mode, result_dict, global_step)
+            # recall for different types of objects
+            complete_label_list = label_list_for(self.cfg.gamelist[0])
+            for label in range(len(complete_label_list)):
+                value = result_dict[f'recall_label_{label}_{data_subset_mode}'] if f'recall_label_{label}_{data_subset_mode}' in result_dict else np.nan
+                self.file_writer.write_metric(f'{data_subset_mode}/recall_label_{label}', value, global_step)
             for i, threshold in enumerate(ApAndAccEval.PREC_REC_CONF_THRESHOLDS):
-                self.file_writer.write_metric(f'{class_name}/precision_at_{threshold}', result_dict[f'precisions_{class_name}'][i], global_step)
+                self.file_writer.write_metric(f'{data_subset_mode}/precision_at_{threshold}', result_dict[f'precisions_{data_subset_mode}'][i], global_step)
             for i, threshold in enumerate(ApAndAccEval.PREC_REC_CONF_THRESHOLDS):
-                self.file_writer.write_metric(f'{class_name}/recall_at_{threshold}', result_dict[f'recalls_{class_name}'][i], global_step,
-                                  make_sep=(class_name != 'relevant') or (i != len(ApAndAccEval.PREC_REC_CONF_THRESHOLDS) - 1))
+                self.file_writer.write_metric(f'{data_subset_mode}/recall_at_{threshold}', result_dict[f'recalls_{data_subset_mode}'][i], global_step,
+                                  make_sep=(data_subset_mode != 'relevant') or (i != len(ApAndAccEval.PREC_REC_CONF_THRESHOLDS) - 1))
       
         return result_dict
 
-    @torch.no_grad()
-    def eval_mse(self, logs, global_step):
-        """
-        Evaluate MSE
-        """
-        print('Computing MSE...')
-        num_batches = eval_cfg.get(self.eval_mode).num_samples.mse // eval_cfg.get(self.eval_mode).batch_size
-        metric_logger = MetricLogger()
-        for log in logs[:num_batches]:
-            metric_logger.update(mse=torch.mean(log['mse']))
-        mse = metric_logger['mse'].global_avg
-        self.file_writer.write_metric(f'all/mse', mse, global_step=global_step)
-        return mse
+    #@torch.no_grad()
+    #def eval_mse(self, logs, global_step):
+    #    """
+    #    Evaluate MSE
+    #    """
+    #    print('Computing MSE...')
+    #    num_batches = eval_cfg.get(self.eval_mode).num_samples.mse // eval_cfg.get(self.eval_mode).batch_size
+    #    metric_logger = MetricLogger()
+    #    for log in logs[:num_batches]:
+    #        metric_logger.update(mse=torch.mean(log['mse']))
+    #    mse = metric_logger['mse'].global_avg
+    #    self.file_writer.write_metric(f'all/mse', mse, global_step=global_step)
+    #    return mse
 
     @torch.no_grad()
     def eval_clustering(self, global_step, cfg, eval_mode):
@@ -158,6 +166,7 @@ class SpaceEval:
 
 class EvalWriter:
     def __init__(self, cfg, tb_writer: SummaryWriter, data_subset_modes, eval_mode, eval_file_path):
+        self.cfg = cfg
         self.tb_writer = tb_writer
         self.data_subset_modes = data_subset_modes
         self.eval_mode = eval_mode
@@ -201,8 +210,10 @@ class EvalWriter:
         return columns
 
     def get_ap_header(self):
+        complete_label_list = label_list_for(self.cfg.gamelist[0])
         column_endings = [f"ap_{iou_t:.2f}" for iou_t in ApAndAccEval.AP_IOU_THRESHOLDS] + \
             ['accuracy', 'perfect', 'overcount', 'undercount', 'error_rate', 'precision', 'recall'] + \
+            [f"recall_label_{label}" for label in range(len(complete_label_list))] + \
             [f"precision_{thres:.2f}" for thres in ApAndAccEval.PREC_REC_CONF_THRESHOLDS] + \
             [f"recall_{thres:.2f}" for thres in ApAndAccEval.PREC_REC_CONF_THRESHOLDS]
         column_starts = self.data_subset_modes

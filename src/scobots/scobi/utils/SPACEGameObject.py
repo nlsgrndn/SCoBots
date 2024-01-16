@@ -67,7 +67,7 @@ def sorted_label_list_for(env_name):
     else:
         raise ValueError("scobi env_name not recognized")
 
-class KFandSPOCGameObject:
+class KFandSPACEGameObject:
 
     def __init__(self, x_min, y_min, w, h, class_id, confidence, game_name):
         self._number = 1
@@ -126,6 +126,10 @@ class KFandSPOCGameObject:
     @w.setter
     def w(self, w):
         self._w = w
+
+    @property
+    def xywh(self):
+        return self._x_min , self._y_min, self._w, self._h
 
     @property
     def rgb(self):

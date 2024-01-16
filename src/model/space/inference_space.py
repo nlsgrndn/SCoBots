@@ -4,10 +4,10 @@ from model.space.arch import arch
 import torch.nn as nn
 from model.space.utils import spatial_transform
 class WrappedSPACEforInference(nn.Module):
-    def __init__(self, spoc):
+    def __init__(self, space):
         super().__init__()
-        self.img_encoder = spoc.fg_module.img_encoder
-        self.z_what_net = spoc.fg_module.z_what_net
+        self.img_encoder = space.fg_module.img_encoder
+        self.z_what_net = space.fg_module.z_what_net
 
     def forward(self, x):
 
@@ -88,10 +88,12 @@ class WrappedSPACEforInference(nn.Module):
         z_what_mean, _ = self.z_what_net.enc_what(z_what_input.flatten(start_dim=1)).chunk(2, -1)
         z_what = z_what_mean
 
+        z_what = z_what.view(B, arch.G ** 2, arch.z_what_dim)
+
         result_dict = {
             "z_pres_prob": torch.sigmoid(z_pres_logits),
             "z_where": z_where,
             "z_where_pure": z_where_pure,
-            "z_what": z_what.unsqueeze(0),
+            "z_what": z_what, #TODO: here .unsqueeze(0) might be needed
         }
         return result_dict

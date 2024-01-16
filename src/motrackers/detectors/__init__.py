@@ -1,1 +1,1 @@
-from motrackers.detectors.spoc import SPOCDummy, SPOC
+from motrackers.detectors.space_detector import SPACEDummy, SPACE

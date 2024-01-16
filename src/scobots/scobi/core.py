@@ -9,9 +9,9 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 from copy import deepcopy
 from scobots.scobi.ram_object_extractor import RAMObjectExtractor
-from scobots.scobi.space_object_extractor import CentroidTrackerAndSPOCObjectExtractor
+from scobots.scobi.space_object_extractor import CentroidTrackerAndSPACEObjectExtractor
 import time
-USE_SPOC = True
+USE_SPACE = False
 COMPARE = False
 
 class Environment(Env):
@@ -21,15 +21,15 @@ class Environment(Env):
 
         # TODO: tie to em.make
         self.game_object_wrapper_1 = get_wrapper_class("OC_Atari")
-        self.game_object_wrapper_2 =  get_wrapper_class("KFandSPOC")
+        self.game_object_wrapper_2 =  get_wrapper_class("KFandSPACE")
 
         # TODO: oc envs should answer this, not the raw env
         actions = self.oc_env._env.unwrapped.get_action_meanings()
 
-        if not USE_SPOC or COMPARE:
+        if not USE_SPACE or COMPARE:
             self.object_detector_1 = RAMObjectExtractor(self.oc_env)
-        if USE_SPOC or COMPARE:
-            self.object_detector_2 = CentroidTrackerAndSPOCObjectExtractor(env_name)
+        if USE_SPACE or COMPARE:
+            self.object_detector_2 = CentroidTrackerAndSPACEObjectExtractor(env_name)
         self.oc_env.reset(seed=seed)
         max_objects = self._wrap_map_order_game_objects(self.oc_env.max_objects, env_name, reward, self.game_object_wrapper_1)
         self.did_reset = False
@@ -72,28 +72,29 @@ class Environment(Env):
             self.logger.GeneralError("Cannot call env.step() before calling env.reset()")
         elif self.action_space.contains(action):
             obs, reward, truncated, terminated, info = self.oc_env.step(action)
-            if not USE_SPOC or COMPARE:
+            if not USE_SPACE or COMPARE:
                 start_detect_time = time.time()
                 objects_by_detector = self.object_detector_1.get_objects(obs)
                 end_detect_time = time.time()
                 #print(f"get_objects time gt: {end_detect_time - start_detect_time}")
                 objects = self._wrap_map_order_game_objects(objects_by_detector, self.focus.ENV_NAME, self.focus.REWARD_SHAPING, self.game_object_wrapper_1)
                 sco_obs, sco_reward = self.focus.get_feature_vector(objects)
-            if USE_SPOC or COMPARE:
+            if USE_SPACE or COMPARE:
                 start_detect_time = time.time()
                 objects_by_detector = self.object_detector_2.get_objects(obs)
                 end_detect_time = time.time()
-                #print(f"get_objects time spoc: {end_detect_time - start_detect_time}")
+                #print(f"get_objects time space: {end_detect_time - start_detect_time}")
                 objects_2 = self._wrap_map_order_game_objects(objects_by_detector, self.focus.ENV_NAME, self.focus.REWARD_SHAPING, self.game_object_wrapper_2)
                 sco_obs_2, sco_reward_2 = self.focus.get_feature_vector(objects_2)
                 
+                objects = objects_2
                 sco_obs = sco_obs_2 
                 sco_reward = sco_reward_2
             #self.print_objects(objects, objects_2)
 
             freeze_mask = self.focus.get_current_freeze_mask()
             if self.draw_features:
-                self._obj_obs = self._draw_objects_overlay(obs)
+                self._obj_obs = self._draw_objects_overlay(obs, objects)
                 self._rel_obs = self._draw_relation_overlay(obs, sco_obs, freeze_mask, action)
             self.original_obs = obs
             self.original_reward = reward
@@ -118,10 +119,10 @@ class Environment(Env):
         self.focus.reward_history = [0, 0]
         observation, info = self.oc_env.reset(*args, **kwargs)
         sco_obs = None
-        if COMPARE or not USE_SPOC:
+        if COMPARE or not USE_SPACE:
             objects = self._wrap_map_order_game_objects(self.object_detector_1.get_objects(observation), self.focus.ENV_NAME, self.focus.REWARD_SHAPING, self.game_object_wrapper_1)
             sco_obs, _ = self.focus.get_feature_vector(objects)
-        if COMPARE or USE_SPOC:
+        if COMPARE or USE_SPACE:
             objects_2 = self._wrap_map_order_game_objects(self.object_detector_2.get_objects(observation), self.focus.ENV_NAME, self.focus.REWARD_SHAPING, self.game_object_wrapper_2)
             sco_obs_2, _ = self.focus.get_feature_vector(objects_2)
             sco_obs = sco_obs_2
@@ -236,9 +237,9 @@ class Environment(Env):
         return result
 
 
-    def _draw_objects_overlay(self, obs_image, action=None):
+    def _draw_objects_overlay(self, obs_image, objects, action=None):
         obs_mod = deepcopy(obs_image)
-        for obj in self.oc_env.objects:
+        for obj in objects: # self.oc_env.objects:
             mark_bb(obs_mod, obj.xywh, color=obj.rgb, name=str(obj))
         return obs_mod
 

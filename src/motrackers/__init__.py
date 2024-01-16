@@ -8,7 +8,7 @@ Multi-object Trackers in Python:
 
 from motrackers.tracking.centroid_tracker import CentroidTracker
 from motrackers.tracking.centroid_kf_tracker import CentroidKF_Tracker
-from motrackers.detectors.spoc import SPOC
+from motrackers.detectors.space_detector import SPACE
 
 
 import joblib
@@ -21,15 +21,15 @@ import pandas as pd
 
 base_path = "final_detect_models"
 def load_classifier(game_name):
-    classifier_path = osp.join(base_path, game_name, "classifier", "z_what-classifier_filtered.joblib.pkl")
+    classifier_path = osp.join(base_path, game_name, "classifier", "z_what-classifier_relevant.joblib.pkl")
     classifier = joblib.load(classifier_path)
-    centroid_labels_path = osp.join(base_path, game_name, "classifier", "z_what-classifier_filtered_centroid_labels.csv")
+    centroid_labels_path = osp.join(base_path, game_name, "classifier", "z_what-classifier_relevant_centroid_labels.csv")
     centroid_labels = pd.read_csv(centroid_labels_path, header=None, index_col=0)
     centroid_labels_dict = centroid_labels.iloc[:,0].to_dict()
     return classifier, centroid_labels_dict
 def load_space_for_inference(game_name):
     config_path = f"configs/my_atari_{game_name}_gpu.yaml" #TODO specify config path in a better way
-    cfg = get_config_v2(game_name, config_path) # get config must be called because it updates e.g. arch.G which is set differently in different scobi.config
+    cfg = get_config_v2(config_path) # get config must be called because it updates e.g. arch.G which is set differently in different scobi.config
     device = "cuda"
     model_path = osp.join(base_path, game_name, "space_weights", "model_000005001.pth")
     model = Space()
@@ -38,17 +38,17 @@ def load_space_for_inference(game_name):
     checkpointer.load(model_path, model, None, None, device)
     model = WrappedSPACEforInference(model)
     return model
-def load_spoc_detector(game_name):
+def load_space_detector(game_name):
     classifier, classifier_id_dict = load_classifier(game_name)
-    wrapped_spoc = load_space_for_inference(game_name)
-    spoc_detector = SPOC(
+    wrapped_space = load_space_for_inference(game_name)
+    space_detector = SPACE(
         game_name=game_name,
         classifier=classifier,
         classifier_id_dict=classifier_id_dict,
-        wrapped_spoc = wrapped_spoc,
+        wrapped_space = wrapped_space,
         object_names= {k:str(k) for k in range(4)}, #TODO fix (probably use OCAtari MAX_NB_OBJECT stuff)
         confidence_threshold=0.4,
         nms_threshold=0.2,
         draw_bboxes=True,
     )
-    return spoc_detector
+    return space_detector

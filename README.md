@@ -152,7 +152,7 @@ where these usage instructions similarly apply.
 
 `python3 main.py --task eval --config configs/config_file_name.yaml`
 
-The file `src/eval/eval_cfg.py` specifies which metrics are used in the evaluation.
+The file `src/configs/eval_cfg.py` specifies which metrics are used in the evaluation.
 
 **Object Classification**
 

@@ -113,8 +113,20 @@ def main():
         scobi_env = env.venv.envs[0]
         img = plt.imshow(scobi_env._obj_obs)
     
-
-    os.makedirs("eval_imgs", exist_ok=True)
+    # create eval_imgs dir and remove old images
+    if not os.path.exists("eval_imgs"):
+        os.makedirs("eval_imgs")
+    else:
+        files = os.listdir("eval_imgs")
+        for file in files:
+            os.remove(os.path.join("eval_imgs", file))
+    # same code for tmp
+    if not os.path.exists("tmp"):
+        os.makedirs("tmp")
+    else:
+        files = os.listdir("tmp")
+        for file in files:
+            os.remove(os.path.join("tmp", file))
     while True:
         action, _ = model.predict(obs, deterministic=True)
         obs, reward, done, info = env.step(action)
@@ -122,7 +134,9 @@ def main():
         # save observation as image
         #plt.imsave(f"eval_imgs/obs_{current_episode}_{current_step}.png", env.envs[0].oc_env._get_obs())
         # use five digits for episode and step
-        plt.imsave(f"eval_imgs/obs_{current_episode:05d}_{current_step:05d}.png", env.envs[0].oc_env._get_obs())
+        #plt.imsave(f"eval_imgs/obs_{current_episode:05d}_{current_step:05d}.png", env.envs[0].oc_env._get_obs())
+        plt.imsave(f"tmp/obs_obj_{current_episode:05d}_{current_step:05d}.png", env.venv.envs[0]._obj_obs)
+        #plt.imsave(f"eval_imgs/obs_{current_episode:05d}_{current_step:05d}.png", env.envs[0].oc_env._get_obs())
         #import ipdb; ipdb.set_trace()
         
         current_rew += reward #scobi_env.original_reward

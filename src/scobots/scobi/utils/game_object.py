@@ -4,14 +4,14 @@
 from scobots.scobi.utils.interfaces import GameObjectInterface
 
 from ocatari.ram.game_objects import GameObject as Ocatari_GameObject
-from scobots.scobi.utils.SPOCGameObject import KFandSPOCGameObject
+from scobots.scobi.utils.SPACEGameObject import KFandSPACEGameObject
 
 def get_wrapper_class(game_object_extractor):
     if game_object_extractor == "OC_Atari":
         return OCAGameObjectWrapped
     # add other object extractors here and its wrapper classe below
-    elif game_object_extractor == "KFandSPOC":
-        return KFandSPOCGameObjectWrapped
+    elif game_object_extractor == "KFandSPACE":
+        return KFandSPACEGameObjectWrapped
 
 
 # OC Atari GameObject wrapper classes implementing scobi GameObjectInterface
@@ -82,17 +82,17 @@ class OCAGameObjectWrapped(GameObjectInterface):
         return self.ocgo.orientation
     
 
-class KFandSPOCGameObjectWrapped(GameObjectInterface):
+class KFandSPACEGameObjectWrapped(GameObjectInterface):
 
     def __init__(self, kfandspacego):
         self._number = 1
-        if issubclass(type(kfandspacego), KFandSPOCGameObject):
+        if issubclass(type(kfandspacego), KFandSPACEGameObject):
             self.kfandspacego = kfandspacego
         elif issubclass(type(kfandspacego), Ocatari_GameObject):
             self.kfandspacego = kfandspacego
         else:
             incoming_type = type(kfandspacego)
-            raise ValueError("Incompatible Wrapper, expects KFandSPOCGameObject. Got: "+str(incoming_type))
+            raise ValueError("Incompatible Wrapper, expects KFandSPACEGameObject. Got: "+str(incoming_type))
 
     @property
     def category(self):
@@ -140,7 +140,11 @@ class KFandSPOCGameObjectWrapped(GameObjectInterface):
         #elif self.category == "Enemy":
         #    return (213, 130, 74)#Boxing (0, 0, 0)  # Pong (213, 130, 74)
         #else:
-        #    return (0, 0, 0) 
+        #    return (0, 0, 0)
+    
+    @property
+    def xywh(self):
+        return self.kfandspacego.xywh
     
     @property
     def orientation(self):

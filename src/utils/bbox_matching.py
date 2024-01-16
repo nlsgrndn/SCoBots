@@ -97,39 +97,47 @@ def compute_misalignment(pred, gt): #from ap.py
 
 # matching methods
 def match_bounding_boxes(
-        labels: np.ndarray, predicted: np.ndarray, label_list: List[Union[str, int]], matching_method=compute_iou
+        labels: np.ndarray, predicted: np.ndarray, label_list: List[Union[str, int]], matching_method=compute_misalignment
         ): # from generate_confusion_matrices.py
     """
     Match bounding boxes in labels and predicted.
-    :param labels: np.ndarray of shape (n, 5) where n is the number of bounding boxes
-    :param predicted: np.ndarray of shape (m, 5) where m is the number of bounding boxes
+    :param labels: np.ndarray of shape (n, 6) where n is the number of bounding boxes
+    :param predicted: np.ndarray of shape (m, 6) where m is the number of bounding boxes
     :return: actual_list, predicted_list
     """
+    if type(labels) != np.ndarray:
+        labels = labels.numpy()
+    if type(predicted) != np.ndarray:
+        predicted = predicted.numpy()
+
     actual_list = []
     predicted_list = []
-    label_idx_used = []
-    NO_OBJECT = len(label_list)
-    THRESHOLD = 0.5
+    NOT_AN_OBJECT = float(len(label_list))
+    NOT_DETECTED = float(len(label_list) + 1)
+    THRESHOLD = 0.3
 
     # compute matching scores
     matching_scores = matching_method(predicted, labels)
+    if type(matching_scores) != np.ndarray:
+        matching_scores = matching_scores.numpy()
 
-    # match bounding boxes
+    actual_idx_used = []
+    best_actual_for_each_predicted = np.argmax(matching_scores, axis=1)
+    best_predicted_for_each_actual = np.argmax(matching_scores, axis=0)
     for i in range(predicted.shape[0]):
-        max_m_score = np.max(matching_scores[i])
-        if max_m_score > THRESHOLD:
-            actual_list.append(labels[np.argmax(matching_scores[i])][4])
-            predicted_list.append(predicted[i][4])
-            label_idx_used.append(np.argmax(matching_scores[i]))
+        if best_predicted_for_each_actual[best_actual_for_each_predicted[i]] == i:
+            actual_list.append(labels[best_actual_for_each_predicted[i]][5])
+            predicted_list.append(predicted[i][5])
+            actual_idx_used.append(best_actual_for_each_predicted[i])
         else:
-            predicted_list.append(predicted[i][4])
-            actual_list.append(NO_OBJECT)
+            actual_list.append(NOT_AN_OBJECT)
+            predicted_list.append(predicted[i][5])
 
     # add unmatched bounding boxes in labels
     for i in range(labels.shape[0]):
-        if i not in label_idx_used:
-            actual_list.append(labels[i][4])
-            predicted_list.append(NO_OBJECT)
+        if i not in actual_idx_used:
+            actual_list.append(labels[i][5])
+            predicted_list.append(NOT_DETECTED)
 
     return actual_list, predicted_list
 

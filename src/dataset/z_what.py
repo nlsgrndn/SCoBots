@@ -22,6 +22,7 @@ class Atari_Z_What(Dataset):
     def __init__(self, cfg, dataset_mode, boxes_subset="all", return_keys=None, nr_consecutive_frames=4):
         self.game = cfg.gamelist[0]
 
+
         assert dataset_mode in ['train', 'val', 'test'], f'Invalid dataset mode "{dataset_mode}"'
         dataset_mode = 'validation' if dataset_mode == 'val' else dataset_mode
         self.dataset_mode = dataset_mode
@@ -36,6 +37,17 @@ class Atari_Z_What(Dataset):
         self.latents_base_path = osp.join(cfg.dataset_roots.ATARI, self.game, "latents")
 
         self.image_fn_count = len([True for img in os.listdir(self.image_path) if img.endswith(".png")])
+
+        max_num_of_different_samples_for_dataset_mode = {
+            "train": cfg.dataset_size_cfg.max_num_of_different_samples_for_dataset_mode.train,
+            "validation": cfg.dataset_size_cfg.max_num_of_different_samples_for_dataset_mode.val, 
+            "test": cfg.dataset_size_cfg.max_num_of_different_samples_for_dataset_mode.test
+        }
+                                                         
+        self.max_num_samples = max_num_of_different_samples_for_dataset_mode[dataset_mode]
+        self.len = min(self.image_fn_count // self.T, self.max_num_samples)
+        if self.len < self.max_num_samples:
+            print(f"Warning: available number of samples for {dataset_mode} is {self.len} but max_num_samples is {self.max_num_samples}.")
 
         self.boxes_subset = boxes_subset # "all", "relevant"
         self.return_keys = return_keys
@@ -83,9 +95,9 @@ class Atari_Z_What(Dataset):
             }
 
         base_path = self.latents_path
-        z_whats = torch.stack([self.read_tensor(stack_idx, i, base_path, "z_what") for i in range(self.T)])
-        z_pres_probs = torch.stack([self.read_tensor(stack_idx, i, base_path, "z_pres_prob") for i in range(self.T)])
-        z_wheres = torch.stack([self.read_tensor(stack_idx, i, base_path, "z_where") for i in range(self.T)])
+        z_whats = self.read_tensor_of_complete_T_dim(stack_idx, base_path, "z_what")
+        z_pres_probs = self.read_tensor_of_complete_T_dim(stack_idx, base_path, "z_pres_prob")
+        z_wheres = self.read_tensor_of_complete_T_dim(stack_idx, base_path, "z_where")
         z_pres_s = z_pres_probs > 0.5
 
         base_path = self.bb_path
@@ -143,10 +155,18 @@ class Atari_Z_What(Dataset):
         path = os.path.join(base_path, f'{stack_idx:05}_{i}.png')
         return np.array(Image.open(path).convert('RGB'))
 
+    #UNUSED
     def read_tensor(self, stack_idx, i, base_path, postfix=None):
         path = os.path.join(base_path,
                             f'{stack_idx:05}_{i}_{postfix}.pt'
                             if postfix else f'{stack_idx:05}_{i}.pt')
+        return torch.load(path)
+    
+    def read_tensor_of_complete_T_dim(self, stack_idx, base_path, postfix=None):
+        infix = f"0to{self.T-1}" if self.T > 1 else "0"
+        path = os.path.join(base_path,
+                            f'{stack_idx:05}_{infix}_{postfix}.pt'
+                            if postfix else f'{stack_idx:05}_{infix}.pt')
         return torch.load(path)
     
     def read_csv(self, stack_idx, i, base_path):

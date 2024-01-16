@@ -37,7 +37,7 @@ def train_classifier(cfg):
     df.to_csv(f"{cfg.resume_ckpt.rsplit('/', 1)[0]}/z_what-classifier_{data_subset_mode}_centroid_labels.csv", header=False, index=True)
 
     ### X-MEANS ###
-    xmeans_instance, xmeans_clusters, xmeans_centers = create_x_means(cfg, train_x, data_subset_mode)
+    #xmeans_instance, xmeans_clusters, xmeans_centers = create_x_means(cfg, train_x, data_subset_mode)
 
     # select which classifier to use for visualization
     clf, clusters, centers = kmeans, kmeans_clusters, kmeans_centers
@@ -48,9 +48,8 @@ def train_classifier(cfg):
 
 def create_x_means(cfg, train_x, data_subset_mode):
     train_x = np.array(train_x)
-    image_refs = image_refs[:len(train_x)]
     xmeans_instance = ZWhatClassifierCreator(cfg).create_x_means(train_x, kmax=3)
-    ZWhatClassifierCreator(cfg).save_classifier(xmeans_instance, cfg.resume_ckpt.split("/")[-1][:-4], clf_name=f"xmeans_{data_subset_mode}")  
+    ZWhatClassifierCreator(cfg).save_classifier(xmeans_instance, cfg.resume_ckpt.split("/")[-1][:-4], clf_name=f"{data_subset_mode}", folder=cfg.resume_ckpt.rsplit('/', 1)[0]) #TODO: improve
     # Extract clustering results: clusters and their centers
     clusters = xmeans_instance.get_clusters()
     centers = xmeans_instance.get_centers()
@@ -59,7 +58,7 @@ def create_x_means(cfg, train_x, data_subset_mode):
 def create_k_means(cfg, train_x, data_subset_mode):
     # create a kmeans classifier
     k_means = ZWhatClassifierCreator(cfg).create_k_means(train_x, get_moving_indices(cfg.exp_name))
-    ZWhatClassifierCreator(cfg).save_classifier(k_means, cfg.resume_ckpt.split("/")[-1][:-4], clf_name=f"kmeans_{data_subset_mode}")  
+    ZWhatClassifierCreator(cfg).save_classifier(k_means, cfg.resume_ckpt.split("/")[-1][:-4], clf_name=f"{data_subset_mode}", folder=cfg.resume_ckpt.rsplit('/', 1)[0]) #TODO: improve
     # collect the clusters and their centers for visualizations
     clusters = []
     for label in range(len(k_means.cluster_centers_)):

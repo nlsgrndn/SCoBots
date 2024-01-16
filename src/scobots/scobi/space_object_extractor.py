@@ -6,11 +6,20 @@ import time
 import torch
 
 from scobots.scobi.object_extractor import ObjectExtractor
-from scobots.scobi.utils.SPOCGameObject import KFandSPOCGameObject
+from scobots.scobi.utils.SPACEGameObject import KFandSPACEGameObject
+
+
+from motrackers import load_space_detector
+from motrackers import CentroidKF_Tracker, CentroidTracker
 
 # from space repository
-from motrackers import load_spoc_detector
-from motrackers import CentroidKF_Tracker, CentroidTracker
+#import sys
+#import os
+#BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+#print(f"BASE_PATH: {BASE_PATH}")
+#sys.path.append(os.path.join(BASE_PATH, "moc"))
+#from src.motrackers import load_spoc_detector
+#from src.motrackers import CentroidKF_Tracker, CentroidTracker
 
 
 def get_game_name(env_name):
@@ -18,7 +27,7 @@ def get_game_name(env_name):
     game_name = game_name.lower()
     return game_name
 
-def scobi_image2spoc_image(img):
+def scobi_image2space_image(img):
     #img =  Image.fromarray(img[:, :, ::-1], 'RGB')
     #img = img.resize((128, 128), Image.LANCZOS)
     #img = transforms.ToTensor()(img).unsqueeze(0).to("cuda")
@@ -47,7 +56,7 @@ def scobi_image2spoc_image(img):
 
     return img_tensor
 
-def spoc_bboxes2scobi_bboxes(bboxes, game_name):
+def space_bboxes2scobi_bboxes(bboxes, game_name):
     if len(bboxes) == 0:
         return bboxes
 
@@ -119,14 +128,14 @@ class TrackerAndDetectorObjectExtractor(ObjectExtractor):
 
     def get_objects(self, img):
         img_trans_time_start = time.time()
-        img = scobi_image2spoc_image(img)
+        img = scobi_image2space_image(img)
         img_trans_time_end = time.time()
 
         detector_time_start = time.time()
         bboxes, confidences, class_ids, _ = self.detector.detect(img)
         #import ipdb; ipdb.set_trace()
         detector_time_end = time.time()
-        bboxes = spoc_bboxes2scobi_bboxes(bboxes, self.game_name)
+        bboxes = space_bboxes2scobi_bboxes(bboxes, self.game_name)
         tracker_time_start = time.time()
         self.tracker.update(bboxes, confidences, class_ids)
         tracker_time_end = time.time()
@@ -145,7 +154,7 @@ class TrackerAndDetectorObjectExtractor(ObjectExtractor):
             track_id = track.id
             bbox = np.array(track.bbox, dtype=np.int32)
             if track_id not in self.previous_game_objects_dict:
-                self.previous_game_objects_dict[track_id] = KFandSPOCGameObject(bbox[0], bbox[1], bbox[2], bbox[3], track.class_id, track.detection_confidence, self.game_name)
+                self.previous_game_objects_dict[track_id] = KFandSPACEGameObject(bbox[0], bbox[1], bbox[2], bbox[3], track.class_id, track.detection_confidence, self.game_name)
             else:
                 self.previous_game_objects_dict[track_id].prev_xy = self.previous_game_objects_dict[track_id].xy
                 self.previous_game_objects_dict[track_id].xy = (bbox[0], bbox[1])
@@ -161,15 +170,15 @@ class TrackerAndDetectorObjectExtractor(ObjectExtractor):
             del self.previous_game_objects_dict[track_id]
         return list(self.previous_game_objects_dict.values())
     
-class CentroidTrackerAndSPOCObjectExtractor(TrackerAndDetectorObjectExtractor):
+class CentroidTrackerAndSPACEObjectExtractor(TrackerAndDetectorObjectExtractor):
     def __init__(self, env_name):
-        detector = load_spoc_detector(get_game_name(env_name))
+        detector = load_space_detector(get_game_name(env_name))
         tracker = CentroidTracker(max_lost=0)
         super().__init__(env_name, tracker, detector)
 
-class CentroidKFTrackerAndSPOCObjectExtractor(TrackerAndDetectorObjectExtractor):
+class CentroidKFTrackerAndSPACEObjectExtractor(TrackerAndDetectorObjectExtractor):
     def __init__(self, env_name):
-        detector = load_spoc_detector(get_game_name(env_name))
+        detector = load_space_detector(get_game_name(env_name))
         tracker = CentroidKF_Tracker(max_lost=0)
         super().__init__(env_name, tracker, detector)
     

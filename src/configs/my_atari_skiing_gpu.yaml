@@ -4,7 +4,7 @@ exp_name: skiing
 resume: false
 
 z_what_classifier_path: ""
-resume_ckpt: ""
+resume_ckpt: '../downloaded_models/skiing/model_000005001.pth'
 # '../output/checkpoints/mspacman_atari_pretrained/model.pth'
 parallel: true
 device_ids: [0,1,2,3]
@@ -19,7 +19,7 @@ dataset_style: ''
 dataset_roots:
   OBJ3D_SMALL: '../data/OBJ3D_SMALL'
   OBJ3D_LARGE: '../data/OBJ3D_LARGE'
-  ATARI: 'aiml_atari_data'
+  ATARI: '../aiml_atari_data'
 
 
 train:

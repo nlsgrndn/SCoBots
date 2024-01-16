@@ -1,5 +1,5 @@
 import cv2 as cv
-from motrackers.detectors import SPOCDummy
+from motrackers.detectors import SPACEDummy
 from motrackers.tracking.centroid_kf_tracker import CentroidKF_Tracker
 from motrackers.tracking.centroid_tracker import CentroidTracker
 from motrackers.utils import draw_tracks
@@ -194,7 +194,7 @@ def execute(cfg, args = None):
                          tracker_output_format='my_format') # max_lost was 0
 
     classifier, dataloader= get_data_for_kalman(cfg)
-    model = SPOCDummy(
+    model = SPACEDummy(
         classifier=classifier,
         object_names= {k:str(k) for k in range(4)},
         confidence_threshold=0.4,
