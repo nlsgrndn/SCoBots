@@ -6,6 +6,7 @@ This repository contains the code for MOC. Here you can train discovery models t
 
 **Sections**
 - Installation
+- Integration into SCoBots Repo(https://github.com/k4ntz/SCoBots)
 - Dataset Creation
 - Config Files
 - Object Detection and Representation Model:
@@ -30,6 +31,11 @@ This repository contains the code for MOC. Here you can train discovery models t
 - install requirements.txt
 - for installation with cuda usage on remote cluster of tu darmstadt:pip3 install torch==1.10.0+cu113 torchvision==0.11.1+cu113  -f  https://download.pytorch.org/whl/cu113/torch_stable.html
 - if you get a protobuf issue when running eval.py, the solution is to downgrade to 3.20
+
+**Integration into SCoBots Repo(https://github.com/k4ntz/SCoBots)**
+
+First, clone https://github.com/k4ntz/SCoBots in the desired location. Step into the cloned repository via `cd SCoBots`.  Then clone this repository. You should rename the base folder of this cloned repo to spaceandmoc (instead of SCoBots).
+
 
 **Dataset Creation**
 
