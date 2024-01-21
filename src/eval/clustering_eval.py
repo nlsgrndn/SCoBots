@@ -1,5 +1,5 @@
 import torch
-from .classify_z_what import ZWhatEvaluator
+from .z_what_eval import ZWhatEvaluator
 from eval.create_z_what_dataset import ZWhatDataCollector
 import numpy as np
 
