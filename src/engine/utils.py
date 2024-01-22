@@ -1,7 +1,13 @@
 import os
 import argparse
 from argparse import ArgumentParser
+
+from torch import nn
+import os.path as osp
 from configs.config import cfg
+from model import get_model
+from solver import get_optimizers
+from utils.checkpointer import Checkpointer
 
 
 def get_config():
@@ -86,3 +92,44 @@ def get_config():
 def get_config_v2(config_path):
     cfg.merge_from_file(config_path)
     return cfg
+
+
+def print_info(cfg):
+    print('Experiment name:', cfg.exp_name)
+    print('Dataset:', cfg.dataset)
+    print('Model name:', cfg.model)
+    print('Resume:', cfg.resume)
+    if cfg.resume:
+        print('Checkpoint:', cfg.resume_ckpt if cfg.resume_ckpt else 'last checkpoint')
+    print('Using device:', cfg.device)
+    if 'cuda' in cfg.device:
+        print('Using parallel:', cfg.parallel)
+    if cfg.parallel:
+        print('Device ids:', cfg.device_ids)
+    suffix = cfg.gamelist[0]
+    print(f"Using Game {suffix}")
+
+
+def load_model(cfg, mode):
+    model = get_model(cfg)
+    model = model.to(cfg.device)
+    checkpointer = Checkpointer(osp.join(cfg.checkpointdir, cfg.exp_name), max_num=cfg.train.max_ckpt,)
+    checkpoint = None
+
+    if mode == "eval":
+        optimizer_fg, optimizer_bg = None, None
+        if cfg.resume_ckpt: # Note empty string is False
+            checkpoint = checkpointer.load(cfg.resume_ckpt, model, None, None, cfg.device)
+        elif cfg.eval.checkpoint == 'last':
+            checkpoint = checkpointer.load_last('', model, None, None, cfg.device)
+        elif cfg.eval.checkpoint == 'best':
+            checkpoint = checkpointer.load_best(cfg.eval.metric, model, None, None, cfg.device)
+    elif mode == "train":
+        optimizer_fg, optimizer_bg = get_optimizers(cfg, model)
+        if cfg.resume: # whether to resume training from a checkpoint
+            checkpoint = checkpointer.load_last(cfg.resume_ckpt, model, optimizer_fg, optimizer_bg, cfg.device) #loads cfg.resume_ckpt if not empty, else loads last checkpoint
+
+    
+    if cfg.parallel:
+        model = nn.DataParallel(model, device_ids=cfg.device_ids)
+    return model, optimizer_fg, optimizer_bg, checkpointer, checkpoint

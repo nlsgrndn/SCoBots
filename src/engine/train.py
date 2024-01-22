@@ -1,12 +1,8 @@
-from model import get_model
 from eval.space_eval import SpaceEval
 from dataset import get_dataset, get_dataloader
-from solver import get_optimizers
-from utils.checkpointer import Checkpointer
+from engine.utils import load_model
 from utils.metric_logger import MetricLogger
 import os
-import os.path as osp
-from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from vis import get_vislogger
 import time
@@ -20,32 +16,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 from model.space.time_consistency import MOCLoss
 from dataset.z_what import Atari_Z_What
+from engine.utils import print_info
 
 
-def print_train_info(cfg):
-    print('Experiment name:', cfg.exp_name)
-    print('Dataset:', cfg.dataset)
-    print('Model name:', cfg.model)
-    print('Resume:', cfg.resume)
-    if cfg.resume:
-        print('Checkpoint:', cfg.resume_ckpt if cfg.resume_ckpt else 'last checkpoint')
-    print('Using device:', cfg.device)
-    if 'cuda' in cfg.device:
-        print('Using parallel:', cfg.parallel)
-    if cfg.parallel:
-        print('Device ids:', cfg.device_ids)
 
-def print_training_games_info(cfg):
-    if len(cfg.gamelist) == 1:
-        suffix = cfg.gamelist[0]
-        print(f"Training on {suffix}")
-    else:
-        print(f"cfg.gamelist, {cfg.gamelist}, must include exactly one game name. Exiting.")
-        exit(1)
+
 
 def train(cfg, rtpt_active=True):
-    print_train_info(cfg)
-    print_training_games_info(cfg)
+
+    assert len(cfg.gamelist) == 1, "Only one game is supported for training."
+    print_info(cfg)
 
     if rtpt_active: # RTPT: Remaining Time to Process (library by AIML Lab used to rename your processes giving information on who is launching the process, and the remaining time for it)
         rtpt = RTPT(name_initials='TRo', experiment_name='SPACE-Time', max_iterations=cfg.train.max_epochs)
@@ -56,67 +36,54 @@ def train(cfg, rtpt_active=True):
     trainloader = get_dataloader(cfg, 'train', dataset)
 
     # model loading
-    model = get_model(cfg)
-    model = model.to(cfg.device)
-    model.train() # set model to train mode
-    optimizer_fg, optimizer_bg = get_optimizers(cfg, model)
-    checkpointer = Checkpointer(osp.join(cfg.checkpointdir, cfg.exp_name), max_num=cfg.train.max_ckpt,)
+    model, optimizer_fg, optimizer_bg, checkpointer, checkpoint = load_model(cfg, mode="train")
+    if checkpoint is not None:
+        start_epoch = checkpoint['epoch']
+        global_step = checkpoint['global_step'] + 1
+    else:
+        start_epoch = 0
+        global_step = 0
     moc_loss_instance = MOCLoss()
-    start_epoch = 0
-    global_step = 0
-    if cfg.resume: # whether to resume training from a checkpoint
-        checkpoint = checkpointer.load_last(cfg.resume_ckpt, model, optimizer_fg, optimizer_bg, cfg.device)
-        if checkpoint:
-            start_epoch = checkpoint['epoch']
-            global_step = checkpoint['global_step'] + 1
-    if cfg.parallel:
-        model = nn.DataParallel(model, device_ids=cfg.device_ids)
 
 
-    # prepare logging of training process
-    log_path = os.path.join(cfg.logdir, cfg.exp_name)
-    if os.path.exists(log_path) and len(log_path) > 15 and cfg.logdir and cfg.exp_name and str(cfg.seed):
-        shutil.rmtree(log_path)
-    tb_writer = SummaryWriter(log_dir=log_path, flush_secs=30,
-                           purge_step=global_step) #tb refers to tensorboard
-    vis_logger = get_vislogger(cfg)
-    metric_logger = MetricLogger()
+    # prepare logging
+    tb_writer, vis_logger, metric_logger = load_loggers(cfg, global_step)
+
+    # prepare evaluation
     if cfg.train.eval_on:
         evaluator = SpaceEval(cfg, tb_writer, eval_mode="val")
-    
-    # initialize variables for training loop
+
+    print(f"training on {len(dataset)} samples of {dataset.T} consecutive frames")
     print(f'Start training, Global Step: {global_step}, Start Epoch: {start_epoch} Max: {cfg.train.max_steps}')
+
+    # initialize variables for training loop
+    model.train() 
     never_evaluated = True
     end_flag = False
-    start_log = global_step + 1
-    base_global_step = global_step
-
     for epoch in range(start_epoch, cfg.train.max_epochs):
         if end_flag:
             break
 
-        start = time.perf_counter()
+        data_time_start = time.perf_counter()
         for data_dict in tqdm(trainloader, desc=f"Epoch {epoch}"):
-
-            end = time.perf_counter()
-            data_time = end - start
+            data_time_end = time.perf_counter()
+            data_time = data_time_end - data_time_start
 
             # eval on validation set
             if (global_step % cfg.train.eval_every == 0 or never_evaluated) and cfg.train.eval_on:
                 never_evaluated = False
                 print('Validating...')
-                start = time.perf_counter()
+                val_time_start = time.perf_counter()
                 eval_checkpoint = [model, optimizer_fg, optimizer_bg, epoch, global_step]
                 results = evaluator.eval(model, global_step, cfg)
                 checkpointer.save_best("precision_relevant", results["precision_relevant"], eval_checkpoint, min_is_better=False)
-                print('Validation takes {:.4f}s.'.format(time.perf_counter() - start))
+                val_time_end = time.perf_counter()
+                print('Validation takes {:.4f}s.'.format(val_time_end - val_time_start))
             
             # main training
-            start = time.perf_counter()
+            batch_time_start = time.perf_counter()
             model.train()
-
             img_stacks, motion, motion_z_pres, motion_z_where = data_dict["imgs"], data_dict["motion"], data_dict["motion_z_pres"], data_dict["motion_z_where"]
-            # move to device
             img_stacks, motion, motion_z_pres, motion_z_where = img_stacks.to(cfg.device), motion.to(cfg.device), motion_z_pres.to(cfg.device), motion_z_where.to(cfg.device)
             base_loss, log = model(img_stacks, global_step)
             moc_loss, log = moc_loss_instance.compute_loss(motion, motion_z_pres, motion_z_where, log, global_step)
@@ -124,12 +91,12 @@ def train(cfg, rtpt_active=True):
             loss = loss.mean() # In case of using DataParallel
             optimizer_fg.zero_grad(set_to_none=True)
             optimizer_bg.zero_grad(set_to_none=True)
-            end = time.perf_counter()
-            batch_time = end - start
+            batch_time_end = time.perf_counter()
+            batch_time = batch_time_end - batch_time_start
             metric_logger.update(data_time=data_time)
             metric_logger.update(batch_time=batch_time)
             metric_logger.update(loss=loss.item())
-            loss.backward()
+            loss.backward() 
             if cfg.train.clip_norm:
                 clip_grad_norm_(model.parameters(), cfg.train.clip_norm)
             optimizer_fg.step()
@@ -146,26 +113,39 @@ def train(cfg, rtpt_active=True):
 
             # checkpointing
             if global_step % cfg.train.save_every == 0: # save checkpoint
-                start = time.perf_counter()
+                checkpointing_time_start = time.perf_counter()
                 checkpointer.save_last(model, optimizer_fg, optimizer_bg, epoch, global_step)
-                print('Saving checkpoint takes {:.4f}s.'.format(time.perf_counter() - start))
+                print('Saving checkpoint takes {:.4f}s.'.format(time.perf_counter() - checkpointing_time_start))
 
-            start = time.perf_counter()
+            
             global_step += 1
+
+            # check ending condition
             if global_step > cfg.train.max_steps:
                 end_flag = True
 
                 # final evaluation on validation set
                 if cfg.train.eval_on:
                     print('Final evaluation on validation set...')
-                    start = time.perf_counter()
+                    final_eval_time_start = time.perf_counter()
                     evaluator.eval(model, global_step, cfg)
-                    print('Validation takes {:.4f}s.'.format(time.perf_counter() - start))
+                    print('Validation takes {:.4f}s.'.format(time.perf_counter() - final_eval_time_start))
                 
                 break
 
+            data_time_start = time.perf_counter()
+
         if rtpt_active:
             rtpt.step()
+
+
+def load_loggers(cfg, global_step):
+    log_path = os.path.join(cfg.logdir, cfg.exp_name)
+    tb_writer = SummaryWriter(log_dir=log_path, flush_secs=30,
+                           purge_step=global_step) #tb refers to tensorboard
+    vis_logger = get_vislogger(cfg)
+    metric_logger = MetricLogger()
+    return tb_writer, vis_logger, metric_logger
 
 def log_state(cfg, epoch, global_step, log, metric_logger):
     print()
@@ -183,3 +163,5 @@ def log_state(cfg, epoch, global_step, log, metric_logger):
             torch.sum(log['flow_loss_alpha_map']).item(),
             metric_logger['batch_time'].avg, metric_logger['data_time'].avg))
     print()
+
+

@@ -3,7 +3,6 @@ import sys
 import torch
 import numpy as np
 from torch.utils.data import Dataset
-import skvideo.io as skv
 from PIL import Image
 import PIL
 import os.path as osp
@@ -14,7 +13,7 @@ from skimage.morphology import (disk, square)
 from skimage.morphology import (erosion, dilation, opening, closing, white_tophat, skeletonize)
 from torchvision import transforms
 from torchvision.utils import draw_bounding_boxes as draw_bb
-from utils.bbox_matching import match_bbs, match_bounding_boxes_v2
+from utils.bbox_matching import match_bounding_boxes_v2
 from dataset.atari_labels import label_list_for, no_label_str, filter_relevant_boxes_masks, get_moving_indices
 from model.space.postprocess_latent_variables import convert_to_boxes, retrieve_latent_repr_from_logs
     
@@ -120,7 +119,8 @@ class Atari_Z_What(Dataset):
         
         gt_labels_for_pred_boxes = []
         for i in range(self.T):
-            #convert type of tensor from float to int: use method 
+            if isinstance(gt_bbs_and_labels[i], torch.Tensor) and gt_bbs_and_labels[i].dtype == torch.float64:
+                gt_bbs_and_labels[i] = gt_bbs_and_labels[i].to(torch.float)
             gt_labels_for_pred_boxes.append(match_bounding_boxes_v2(torch.Tensor(gt_bbs_and_labels[i]), torch.Tensor(pred_boxes[i])).reshape(-1, 1).to(torch.int)) 
 
         if self.boxes_subset == "relevant":
@@ -149,7 +149,7 @@ class Atari_Z_What(Dataset):
             return data
 
     def __len__(self):
-        return self.image_fn_count // self.T
+        return self.len
 
     def read_img(self, stack_idx, i, base_path):
         path = os.path.join(base_path, f'{stack_idx:05}_{i}.png')

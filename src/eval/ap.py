@@ -1,6 +1,5 @@
 import numpy as np
-from utils.bbox_matching import compute_iou, compute_misalignment
-
+from utils.bbox_matching import compute_iou, compute_misalignment, compute_hits, match_bounding_boxes_center_distances
 
 def compute_counts(boxes_pred, boxes_gt):
     """
@@ -112,46 +111,18 @@ def compute_prec_rec(pred_boxes, gt_boxes, threshold_values, matching_method=com
             recalls_at_thresholds[i] = recall[index]
     return precision[-1], recall[-1], precisions_at_thresholds, recalls_at_thresholds
 
-# TODO: move to bbox_matching.py
-def compute_hits(pred_boxes, gt_boxes, threshold, matching_method):
-    count_gt = 0
-    hit = []
-    # For each image, determine each prediction is a hit of not
+
+def compute_average_center_distances(pred_boxes, gt_boxes):
+    """
+    :param pred_boxes: [[y_min, y_max, x_min, x_max, conf] * N] * B
+    :param gt_boxes: [[y_min, y_max, x_min, x_max] * N] * B
+    :return: average center distance
+    """
+
+    distances = []
     for pred, gt in zip(pred_boxes, gt_boxes):
-        count_gt += len(gt)
-        # Sort predictions within an image by decreasing confidence
-        pred = sorted(pred, key=lambda x: -x[-1])
+        curr_distances = match_bounding_boxes_center_distances(gt, pred)
+        distances.extend(curr_distances)
+    return np.mean(distances)
 
-        if len(gt) == 0:
-            hit.extend((False, conf) for *_, conf in pred)
-            continue
-        if len(pred) == 0:
-            continue
 
-        M, N = len(pred), len(gt)
-
-        # (M, 4), (M) (N, 4)
-
-        pred = np.array(pred)
-        pred, conf = pred[:, :4], pred[:, -1]
-        gt = np.array(gt)
-
-        # (M, N)
-        matching_scores = matching_method(pred, gt)
-        # (M,)
-        best_indices = np.argmax(matching_scores, axis=1)
-        # (M,)
-        best_matching_scores = matching_scores[np.arange(M), best_indices]
-        # (N,), thresholding results
-        valid = best_matching_scores > threshold
-        used = [False] * N
-
-        for i in range(M):
-            # Only count first hit
-            if valid[i] and not used[best_indices[i]]:
-                hit.append((True, conf[i]))
-                used[best_indices[i]] = True
-            else:
-                hit.append((False, conf[i]))
-    
-    return hit, count_gt

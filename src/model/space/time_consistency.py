@@ -61,6 +61,8 @@ class MOCLoss():
         else:
             flow_scaling = max(0, 1 - (global_step - arch.motion_cooling_start_step) / arch.motion_cooling_end_step) # weird division by 2 removed
             area_object_scaling = 1 - flow_scaling
+            flow_scaling = torch.tensor(flow_scaling).to(motion.device)
+            area_object_scaling = torch.tensor(area_object_scaling).to(motion.device)
 
         motion_loss = (flow_loss * arch.motion_loss_weight_z_pres * flow_scaling \
             + flow_loss_alpha_map * arch.motion_loss_weight_alpha * flow_scaling \
@@ -83,8 +85,8 @@ class MOCLoss():
             'flow_loss_z_where': flow_loss_z_where,
             'flow_loss_alpha_map': flow_loss_alpha_map,
             'objects_detected': objects_detected,
-            'flow_scaling': torch.tensor(flow_scaling).to(moc_loss.device),
-            'area_object_scaling': torch.tensor(area_object_scaling).to(moc_loss.device),
+            'flow_scaling': flow_scaling,
+            'area_object_scaling': area_object_scaling,
             'total_loss': moc_loss, # TODO rename to moc_loss, and change in space_vis for logging
             'motion_loss': motion_loss,
             'motion_loss_no_flow_scaling': motion_loss / flow_scaling,

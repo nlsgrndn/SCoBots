@@ -92,7 +92,29 @@ def compute_misalignment(pred, gt): #from ap.py
     delta_bbs[:, :, [1, 2]] = delta_bbs[:, :, [2, 1]] 
     # compute diagonal of delta_bbs or equivalently distance between center of pred and center of gt
     diagonal_pair = compute_diagonal(delta_bbs.reshape((-1, 4))).reshape((len(pred), len(gt)))  
-    return np.maximum(0, 1 - diagonal_pair / diagonal_gt) 
+    return np.maximum(0, 1 - diagonal_pair / diagonal_gt)
+
+def compute_center_distance(pred, gt):
+    """
+    :param pred: (M, 4), (y_min, y_max, x_min, x_max)
+    :param gt: (N, 4)
+    :return: (M, N)
+    """
+
+    def compute_center(bbs):
+        return np.column_stack([(bbs[:, 0] + bbs[:, 1]) / 2, (bbs[:, 2] + bbs[:, 3]) / 2])
+
+    # Compute centers of bounding boxes
+    center_pred = compute_center(pred)
+    center_gt = compute_center(gt)
+    # (M, 1, 2), (1, N, 2)
+    center_pred = center_pred[:, None]
+    center_gt = center_gt[None, :]
+    # (M, N, 2)
+    delta = center_pred - center_gt
+    # (M, N)
+    distance = np.sqrt(np.sum(delta ** 2, axis=2))
+    return distance
 
 
 # matching methods
@@ -114,7 +136,7 @@ def match_bounding_boxes(
     predicted_list = []
     NOT_AN_OBJECT = float(len(label_list))
     NOT_DETECTED = float(len(label_list) + 1)
-    THRESHOLD = 0.3
+    THRESHOLD = 0.5
 
     # compute matching scores
     matching_scores = matching_method(predicted, labels)
@@ -125,7 +147,7 @@ def match_bounding_boxes(
     best_actual_for_each_predicted = np.argmax(matching_scores, axis=1)
     best_predicted_for_each_actual = np.argmax(matching_scores, axis=0)
     for i in range(predicted.shape[0]):
-        if best_predicted_for_each_actual[best_actual_for_each_predicted[i]] == i:
+        if best_predicted_for_each_actual[best_actual_for_each_predicted[i]] == i and matching_scores[i][best_actual_for_each_predicted[i]] > THRESHOLD:
             actual_list.append(labels[best_actual_for_each_predicted[i]][5])
             predicted_list.append(predicted[i][5])
             actual_idx_used.append(best_actual_for_each_predicted[i])
@@ -209,3 +231,79 @@ def match_bbs(gt_bbs, boxes_batch, label_list, no_match_label): # from labels.py
         labels.append(label)
     return torch.LongTensor([label_list.index(label) for label in labels])
 
+def compute_hits(pred_boxes, gt_boxes, threshold, matching_method):
+    count_gt = 0
+    hit = []
+    # For each image, determine each prediction is a hit of not
+    for pred, gt in zip(pred_boxes, gt_boxes):
+        count_gt += len(gt)
+        # Sort predictions within an image by decreasing confidence
+        pred = sorted(pred, key=lambda x: -x[-1])
+
+        if len(gt) == 0:
+            hit.extend((False, conf) for *_, conf in pred)
+            continue
+        if len(pred) == 0:
+            continue
+
+        M, N = len(pred), len(gt)
+
+        # (M, 4), (M) (N, 4)
+
+        pred = np.array(pred)
+        pred, conf = pred[:, :4], pred[:, -1]
+        gt = np.array(gt)
+
+        # (M, N)
+        matching_scores = matching_method(pred, gt)
+        # (M,)
+        best_indices = np.argmax(matching_scores, axis=1)
+        # (M,)
+        best_matching_scores = matching_scores[np.arange(M), best_indices]
+        # (N,), thresholding results
+        valid = best_matching_scores > threshold
+        used = [False] * N
+
+        for i in range(M):
+            # Only count first hit
+            if valid[i] and not used[best_indices[i]]:
+                hit.append((True, conf[i]))
+                used[best_indices[i]] = True
+            else:
+                hit.append((False, conf[i]))
+    
+    return hit, count_gt
+
+
+def match_bounding_boxes_center_distances(labels: np.ndarray, predicted: np.ndarray):
+    """
+    Match bounding boxes in labels and predicted.
+    :param labels: np.ndarray of shape (n, 6) where n is the number of bounding boxes
+    :param predicted: np.ndarray of shape (m, 6) where m is the number of bounding boxes
+    :return: 
+    """
+    if type(labels) != np.ndarray:
+        labels = labels.numpy()
+    if type(predicted) != np.ndarray:
+        predicted = predicted.numpy()
+
+    if len(labels) == 0 or len(predicted) == 0:
+        return []
+
+    THRESHOLD = 0.05 
+    # TODO: use of threshold is problematic because very bad detections are not punished
+
+    # compute matching scores
+    matching_scores = compute_center_distance(predicted, labels)
+    if type(matching_scores) != np.ndarray:
+        matching_scores = matching_scores.numpy()
+
+    distances_of_detected_objects = []
+
+    best_actual_for_each_predicted = np.argmin(matching_scores, axis=1)
+    best_predicted_for_each_actual = np.argmin(matching_scores, axis=0)
+    for i in range(predicted.shape[0]):
+        if best_predicted_for_each_actual[best_actual_for_each_predicted[i]] == i and matching_scores[i][best_actual_for_each_predicted[i]] < THRESHOLD:
+            distances_of_detected_objects.append(matching_scores[i][best_actual_for_each_predicted[i]])
+    
+    return distances_of_detected_objects

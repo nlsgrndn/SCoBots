@@ -3,9 +3,13 @@ import torch
 from model.space.arch import arch
 import torch.nn as nn
 from model.space.utils import spatial_transform
+from model.space.space import Space
+
 class WrappedSPACEforInference(nn.Module):
     def __init__(self, space):
         super().__init__()
+        if not isinstance(space, Space):
+            space = space.module
         self.img_encoder = space.fg_module.img_encoder
         self.z_what_net = space.fg_module.z_what_net
 

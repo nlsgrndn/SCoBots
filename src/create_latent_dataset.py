@@ -21,9 +21,7 @@ def create_latent_dataset(cfg, dataset_mode = "test", model=None):
         model = model.to(cfg.device)
         checkpointer = Checkpointer(osp.join(cfg.checkpointdir, cfg.exp_name), max_num=cfg.train.max_ckpt)
         checkpointer.load_last(cfg.resume_ckpt, model, None, None, cfg.device)
-    
-    if model is isinstance(model, torch.nn.DataParallel):
-        model = model.module
+
     model = WrappedSPACEforInference(model)
 
     dataset = Atari_Z_What(cfg, dataset_mode, return_keys = ["imgs"])

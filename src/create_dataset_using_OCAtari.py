@@ -79,7 +79,7 @@ def create_dataset_using_ocatari():
     parser.add_argument('--render', default=False, action="store_true",
                         help='renders the environment')
     parser.add_argument('-s', '--stacks', default=True, action="store_false",
-                        help='should render in correlated stacks of 4')
+                        help='should render in correlated stacks of T (defined in code) frames')
     parser.add_argument('--bb', default=True, action="store_false",
                         help='should compute bounding_boxes')
     parser.add_argument('--flow', action="store_true",
@@ -97,7 +97,9 @@ def create_dataset_using_ocatari():
     limit = folder_sizes[args.folder]
     data_base_folder = "../aiml_atari_data"
     mode_base_folder = "../aiml_atari_data"
-    REQ_CONSECUTIVE_IMAGE = 20
+    REQ_CONSECUTIVE_IMAGE = 20 # defines how many steps are taken before the last T frames are saved
+    T = 4 # number of consecutive frames, ATTENTION: most of the code is written for T=4, so it might not work for other values
+    assert T <= REQ_CONSECUTIVE_IMAGE, "T must be smaller or equal to REQ_CONSECUTIVE_IMAGE"
 
     rgb_folder, bgr_folder, flow_folder, bb_folder, vis_folder, mode_folder = \
         create_folders(args, data_base_folder)
@@ -117,7 +119,7 @@ def create_dataset_using_ocatari():
 
     agent, observation, info = configure(args)
 
-    # take some steps to not start at the beginning of the game (might unnecessary)
+    # take some steps to not start at the beginning of the game (might be unnecessary)
     for _ in range(100):
         obs, reward, done, truncated, info = take_action(agent)
         print(agent.env.objects)
@@ -126,7 +128,7 @@ def create_dataset_using_ocatari():
 
     # compute the root image i.e. mode as the background
     if args.compute_root_images:
-        root_image_limit = 100 # was 1000 before
+        root_image_limit = 500 # was 1000 before
         imgs = []
         pbar = tqdm(total=root_image_limit)
         while len(imgs) < root_image_limit:
@@ -186,10 +188,10 @@ def create_dataset_using_ocatari():
         consecutive_images_info.append(info)
         if len(consecutive_images) == REQ_CONSECUTIVE_IMAGE:
             space_stack = []
-            for frame in consecutive_images[:-4]:
+            for frame in consecutive_images[:-T]:
                 space_stack.append(frame)
             resize_stack = []
-            for i, (frame, img_info) in enumerate(zip(consecutive_images[-4:], consecutive_images_info[-4:])):
+            for i, (frame, img_info) in enumerate(zip(consecutive_images[-T:], consecutive_images_info[-T:])):
                 space_stack.append(frame)
                 frame_space = Image.fromarray(frame[:, :, ::-1], 'RGB').resize((128, 128), Image.ANTIALIAS)
                 resize_stack.append(np.array(frame_space))

@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from model.space.postprocess_latent_variables import convert_to_boxes, retrieve_latent_repr_from_logs
-from .ap import compute_ap, compute_counts, compute_prec_rec
+from .ap import compute_ap, compute_counts, compute_prec_rec, compute_average_center_distances
 from eval.data_reading import read_boxes, read_boxes_object_type_dict
 from dataset.z_what import Atari_Z_What
 from torch.utils.data import DataLoader
@@ -54,6 +54,7 @@ class ApAndAccEval():
             # A list of length 9 and P/R from low IOU level = 0.2s
             aps = compute_ap(pred_boxes, gt_boxes, self.AP_IOU_THRESHOLDS)
             precision, recall, precisions, recalls = compute_prec_rec(pred_boxes, gt_boxes, self.PREC_REC_CONF_THRESHOLDS)
+            average_distance = compute_average_center_distances(pred_boxes, gt_boxes)
 
             # store results
             result[f'error_rate_{gt_name}'] = error_rate
@@ -66,6 +67,7 @@ class ApAndAccEval():
             result[f'recall_{gt_name}'] = recall
             result[f'precisions_{gt_name}'] = precisions
             result[f'recalls_{gt_name}'] = recalls
+            result[f'average_distance_{gt_name}'] = average_distance
 
             # compute recall for object types
             for label in labels[gt_name]:

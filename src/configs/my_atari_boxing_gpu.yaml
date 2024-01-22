@@ -3,7 +3,8 @@ model: 'space'
 exp_name: boxing
 resume: false
 
-resume_ckpt: '../downloaded_models/boxing/model_000005001.pth'
+resume_ckpt: '../boxing_seed5/model_000005001.pth'
+#'../downloaded_models/boxing/model_000005001.pth'
 parallel: true
 device_ids: [0,1,2,3]
 device: 'cuda:0'
@@ -27,11 +28,11 @@ train:
   max_steps: 5000
   print_every: 100
   save_every: 100
-  num_workers: 4
+  num_workers: 8
   clip_norm: 1.0
   max_ckpt: 4
   eval_on: true
-  eval_every: 200
+  eval_every: 500
   solver:
     fg:
       optim: 'RMSprop'
