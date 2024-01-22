@@ -11,7 +11,19 @@ from engine.utils import get_config_v2
 from torch.utils.data import DataLoader
 from motrackers import load_classifier
 
-def confusion_matrix_visualization(dataloader, classifier, centroid_labels_dict, label_list: List[Union[str, int]]):
+def eval_model_and_classifier(cfg):
+    dataset_mode = "test"
+    data_subset_mode = "relevant"
+    game = cfg.exp_name.split("_")[0]
+    dataset = Atari_Z_What(cfg, dataset_mode, boxes_subset=data_subset_mode, return_keys=["gt_bbs_and_labels", "pred_boxes", "z_whats_pres_s"])
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)
+    clf, centroid_labels_dict= load_classifier(game)
+    label_list = label_list_for(game)
+    actual_labels_combined, predicted_labels_combined, label_list = get_data(dataloader, clf, centroid_labels_dict, label_list)
+    cm = confusion_matrix_visualization(actual_labels_combined, predicted_labels_combined, label_list)
+    print(cm)
+
+def get_data(dataloader, classifier, centroid_labels_dict, label_list: List[Union[str, int]]):
     actual_labels_combined = []
     predicted_labels_combined = []
     for i, data in enumerate(dataloader):
@@ -28,23 +40,24 @@ def confusion_matrix_visualization(dataloader, classifier, centroid_labels_dict,
             actual_labels, predicted_labels = match_bounding_boxes(curr_gt_bbs_and_labels, curr_pred_bbs_and_labels, label_list) # len(actual) = len(labels[i]) + # of predicted boxes that are not matched
             actual_labels_combined.extend(actual_labels)
             predicted_labels_combined.extend(predicted_labels)
-
     label_list.append("not_an_object") # add no_object for case that no bounding box is predicted or predicted bounding box is not matched
     label_list.append("not_detected") # add not_detected for case that no bounding box is predicted or predicted bounding box is not matched
+
+    return actual_labels_combined, predicted_labels_combined, label_list
+
+def confusion_matrix_visualization(actual_labels_combined, predicted_labels_combined, label_list: List[Union[str, int]]):
     cm = confusion_matrix(actual_labels_combined, predicted_labels_combined, labels=np.arange(len(label_list)))
     plot_confusion_matrix(cm, label_list, path= "confusion_matrix_detection_and_classification.png")
     return cm
 
-if __name__ == "__main__":
-    #FILTERED_PREDICTED_BBS = True
-    game = "skiing"
-    data_subset_mode = "relevant"
-    #labels = np.load(f"labeled/{game}/actual_bbs_test.npz")
-    #predicted = np.load(f"labeled/{game}/predbboxs_predlabels_gtlabels_z_whats_test_{'filtered' if FILTERED_PREDICTED_BBS else 'unfiltered'}.npz")
-    cfg = get_config_v2(f"configs/my_atari_{game}_gpu.yaml")
-    dataset = Atari_Z_What(cfg, "test", boxes_subset=data_subset_mode, return_keys=["gt_bbs_and_labels", "pred_boxes", "z_whats_pres_s"])
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)
-    clf, centroid_labels_dict= load_classifier(game)
-    label_list = label_list_for(game)
-    cm = confusion_matrix_visualization(dataloader, clf, centroid_labels_dict, label_list)
-    print(cm)
+#if __name__ == "__main__":
+#    game = "skiing"
+#    data_subset_mode = "relevant"
+#    cfg = get_config_v2(f"configs/my_atari_{game}_gpu.yaml")
+#    dataset = Atari_Z_What(cfg, "test", boxes_subset=data_subset_mode, return_keys=["gt_bbs_and_labels", "pred_boxes", "z_whats_pres_s"])
+#    dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)
+#    clf, centroid_labels_dict= load_classifier(game)
+#    label_list = label_list_for(game)
+#    actual_labels_combined, predicted_labels_combined, label_list = get_data(dataloader, clf, centroid_labels_dict, label_list)
+#    cm = confusion_matrix_visualization(actual_labels_combined, predicted_labels_combined, label_list)
+#    print(cm)
