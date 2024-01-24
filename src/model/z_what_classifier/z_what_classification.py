@@ -48,12 +48,10 @@ class ZWhatClassifierCreator:
         k_means.fit(z_what)
         return k_means
 
-    def save_classifier(self, clf, model_name, clf_name = "unnamed", folder=None):
-        if folder is None:
-            folder = f'{self.cfg.logdir}/{self.cfg.exp_name}/{model_name}'
+    def save_classifier(self, clf, folder, clf_name, data_subset_mode):
         if not os.path.exists(folder):
             os.makedirs(folder)
-        filename = f'z_what-classifier_{clf_name}.joblib.pkl'
+        filename = f'z_what-classifier_{data_subset_mode}_{clf_name}.joblib.pkl'
         path = os.path.join(folder, filename)
         joblib.dump(clf, path)
 
@@ -93,6 +91,12 @@ class ZWhatClassifierCreator:
         xmeans_instance = xmeans(sample, initial_centers, kmax=kmax)
         xmeans_instance.process()
         return xmeans_instance
+
+    #def create_gaussian_mixture(self, sample, n_components):
+    #    gmm = GaussianMixture(n_components=n_components, covariance_type='full')
+    #    gmm.fit(sample)
+    #    labels = gmm.predict(sample)
+    #    return gmm  
 
 
     

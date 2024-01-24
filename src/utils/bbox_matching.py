@@ -120,7 +120,7 @@ def compute_center_distance(pred, gt):
 # matching methods
 def match_bounding_boxes(
         labels: np.ndarray, predicted: np.ndarray, label_list: List[Union[str, int]], matching_method=compute_misalignment
-        ): # from generate_confusion_matrices.py
+        ): # from eval_model_and_classifier.py
     """
     Match bounding boxes in labels and predicted.
     :param labels: np.ndarray of shape (n, 6) where n is the number of bounding boxes
@@ -136,7 +136,7 @@ def match_bounding_boxes(
     predicted_list = []
     NOT_AN_OBJECT = float(len(label_list))
     NOT_DETECTED = float(len(label_list) + 1)
-    THRESHOLD = 0.5
+    THRESHOLD = 0.2
 
     # compute matching scores
     matching_scores = matching_method(predicted, labels)
@@ -165,7 +165,7 @@ def match_bounding_boxes(
 
 def match_bounding_boxes_v2(
         labels: np.ndarray, predicted: np.ndarray, matching_method=compute_iou
-        ): # from generate_confusion_matrices.py
+        ): # from eval_model_and_classifier.py
     """
     Match bounding boxes in labels and predicted.
     :param labels: np.ndarray of shape (n, 6) where n is the number of bounding boxes
@@ -187,7 +187,7 @@ def match_bounding_boxes_v2(
 
 def match_bounding_boxes_z_what(
         labels: np.ndarray, predicted: np.ndarray, matching_method=compute_misalignment
-        ): # from generate_confusion_matrices.py
+        ): # from eval_model_and_classifier.py
     """
     Match bounding boxes in labels and predicted.
     :param labels: np.ndarray of shape (n, 5) where n is the number of bounding boxes

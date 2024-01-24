@@ -100,23 +100,23 @@ def filter_relevant_boxes_masks(game, boxes_batch, boxes_gt):
 def get_moving_indices(game):
     game = game.lower()
     if "mspacman" in game:
-        return moving_indices_mspacman
+        return moving_indices_mspacman.copy()
     elif "carnival" in game:
-        return moving_indices_carnival
+        return moving_indices_carnival.copy()
     elif "space" in game and "invaders" in game:
-        return moving_indices_space_invaders
+        return moving_indices_space_invaders.copy()
     elif "pong" in game:
-        return moving_indices_pong
+        return moving_indices_pong.copy()
     elif "boxing" in game:
-        return moving_indices_boxing
+        return moving_indices_boxing.copy()
     elif "air" in game and "raid" in game:
-        return ValueError("Moving indices for Airraid not implemented")
+        raise ValueError("Moving indices for Airraid not implemented")
     elif "riverraid" in game:
-        return moving_indices_riverraid
+        return moving_indices_riverraid.copy()
     elif "tennis" in game:
-        return moving_indices_tennis
+        return moving_indices_tennis.copy()
     elif "skiing" in game:
-        return moving_indices_skiing
+        return moving_indices_skiing.copy()
     else:
         raise ValueError(f"Game {game} could not be found in labels")
 
@@ -137,23 +137,23 @@ def label_list_for(game):
     """
     game = game.lower()
     if "mspacman" in game:
-        return label_list_mspacman
+        return label_list_mspacman.copy()
     elif "carnival" in game:
-        return label_list_carnival
+        return label_list_carnival.copy()
     elif "pong" in game:
-        return label_list_pong
+        return label_list_pong.copy()
     elif "boxing" in game:
-        return label_list_boxing
+        return label_list_boxing.copy()
     elif "tennis" in game:
-        return label_list_tennis
+        return label_list_tennis.copy()
     elif "air" in game and "raid" in game:
-        return label_list_air_raid
+        return label_list_air_raid.copy()
     elif "riverraid" in game:
-        return label_list_riverraid
+        return label_list_riverraid.copy()
     elif "space" in game and "invaders" in game:
-        return label_list_space_invaders
+        return label_list_space_invaders.copy()
     elif "skiing" in game:
-        return label_list_skiing
+        return label_list_skiing.copy()
     else:
         raise ValueError(f"Game {game} could not be found in labels")
 

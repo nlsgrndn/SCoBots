@@ -9,6 +9,9 @@ from model import get_model
 from solver import get_optimizers
 from utils.checkpointer import Checkpointer
 
+import joblib
+import pandas as pd
+
 
 def get_config():
     parser = ArgumentParser()
@@ -133,3 +136,15 @@ def load_model(cfg, mode):
     if cfg.parallel:
         model = nn.DataParallel(model, device_ids=cfg.device_ids)
     return model, optimizer_fg, optimizer_bg, checkpointer, checkpoint
+
+def load_classifier(folder_path=None, clf_name="kmeans", data_subset_mode="relevant"):
+    classifier_path = f"{folder_path}/z_what-classifier_{data_subset_mode}_{clf_name}.joblib.pkl"
+    classifier = joblib.load(classifier_path)
+
+    centroid_labels_dict = None
+    if clf_name == "kmeans":
+        centroid_labels_path = f"{folder_path}/z_what-classifier_{data_subset_mode}_{clf_name}_centroid_labels.csv"
+        centroid_labels = pd.read_csv(centroid_labels_path, header=None, index_col=0)
+        centroid_labels_dict = centroid_labels.iloc[:,0].to_dict()
+
+    return classifier, centroid_labels_dict

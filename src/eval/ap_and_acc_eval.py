@@ -5,6 +5,7 @@ from model.space.postprocess_latent_variables import convert_to_boxes, retrieve_
 from .ap import compute_ap, compute_counts, compute_prec_rec, compute_average_center_distances
 from eval.data_reading import read_boxes, read_boxes_object_type_dict
 from dataset.z_what import Atari_Z_What
+from dataset.atari_data_collector import AtariDataCollector
 from torch.utils.data import DataLoader
 from dataset.atari_labels import get_moving_indices, label_list_for
 
@@ -26,20 +27,14 @@ class ApAndAccEval():
         :return ap: a list of average precisions, corresponding to each iou_thresholds
         """
         print('Computing error rates, counts and APs...')
-        data = self.get_bbox_data_via_dataloader(data_subset_modes, dataset_mode) #self.get_bbox_data(logs, dataset, bb_path)#TODO remove comment
+        data = self.get_bbox_data_via_dataloader(data_subset_modes, dataset_mode)
         results = self.compute_metrics(data)
         return results
     
     def get_bbox_data_via_dataloader(self, data_subset_modes, dataset_mode):
         data = {}
         for boxes_subset in data_subset_modes:
-            atari_z_what_dataset = Atari_Z_What(self.cfg, dataset_mode, boxes_subset, return_keys = ["pred_boxes", "gt_bbs_and_labels"])
-            atari_z_what_dataloader = DataLoader(atari_z_what_dataset, batch_size=1, shuffle=False, num_workers=0) #batch_size must be 1
-            boxes_pred, boxes_gt = [], []
-            for batch in atari_z_what_dataloader:
-                boxes_pred.extend([np.array(batch["pred_boxes"][i][0]) for i in range(len(batch["pred_boxes"]))]) #[0] because batch_size = 1 and dataloader implicitly adds a batch dimension
-                boxes_gt.extend([np.array(batch["gt_bbs_and_labels"][i][0]) for i in range(len(batch["gt_bbs_and_labels"]))]) #[0] because batch_size = 1 and dataloader implicitly adds a batch dimension
-            data[boxes_subset] = (boxes_gt, boxes_pred)
+            data[boxes_subset] = AtariDataCollector.collect_bbox_data(self.cfg, dataset_mode, boxes_subset, only_collect_first_image_of_consecutive_frames=False)
         return data
 
     def compute_metrics(self, data):
