@@ -9,7 +9,6 @@ from torch import nn
 import torch
 from eval.utils import flatten
 from sklearn.decomposition import PCA
-from utils.bbox_matching import match_bounding_boxes_z_what
 from dataset.atari_labels import label_list_for, get_moving_indices
 import pandas as pd
 import random
@@ -19,27 +18,29 @@ from PIL import Image
 from create_latent_dataset import create_latent_dataset
 from classifier_visualization.classifier_vis import create_cluster_folders, create_one_grid_image_for_each_cluster
 
-VISUALIZE_CLASSIFIER = True #TODO: specify somewhere else
-
 def train_classifier(cfg):
-    # TODO: specify somewhere else
-    data_subset_mode = "relevant"
-    dataset_mode = "val" # classifier should be trained on val sets (train set not used because it contains the objects for which the encodings were optimized -> biased dataset)
-    only_collect_first_image_of_consecutive_frames = True
-
+    data_subset_mode = cfg.classifier.data_subset_mode
+    dataset_mode = cfg.classifier.train_folder
+    only_collect_first_image_of_consecutive_frames = cfg.classifier.one_image_per_sequence
 
     # collect the data
     create_latent_dataset(cfg, dataset_mode=dataset_mode)
     z_whats, labels = AtariDataCollector.collect_z_what_data_reshaped(cfg, dataset_mode, data_subset_mode, only_collect_first_image_of_consecutive_frames)
     z_whats, labels = z_whats.cpu(), labels.cpu()
-    relevant_labels = get_moving_indices(cfg.gamelist[0]) #TODO assumes data_subset_mode == "relevant" FIX THIS!!!
+
+    if data_subset_mode == "relevant":
+        relevant_labels = get_moving_indices(cfg.gamelist[0])
+    elif data_subset_mode == "all":
+        relevant_labels = np.arange(1, len(label_list_for(cfg.gamelist[0])))
+    else:
+        raise ValueError(f"Invalid data_subset_mode {data_subset_mode}")
 
     print("Training classifier on", len(z_whats), "z_what encodings")
 
-    ### K-MEANS ###
+    ### K-MEANS and NN CLASSIFIER based on K-MEANS ###
     kmeans, kmeans_clusters, kmeans_centers = create_k_means(cfg, z_whats, data_subset_mode)
     # find out mapping of enumerated labels to actual labels (i.e. index in oc_atari labels)
-    nn_neighbors_clf, centroids, centroid_labels = ZWhatClassifierCreator(cfg).nn_clf_based_on_k_means_centroids(kmeans, z_whats, labels, relevant_labels)
+    nn_neighbors_clf, centroids, centroid_labels = create_nn_classifier(cfg, kmeans, z_whats, labels, relevant_labels, data_subset_mode)
     #save centroid_labels as a csv file
     df = pd.DataFrame(centroid_labels)
     df.to_csv(f"{cfg.resume_ckpt.rsplit('/', 1)[0]}/z_what-classifier_{data_subset_mode}_kmeans_centroid_labels.csv", header=False, index=True)
@@ -47,7 +48,7 @@ def train_classifier(cfg):
     ### X-MEANS ###
     xmeans_instance, xmeans_clusters, xmeans_centers = create_x_means(cfg, z_whats, data_subset_mode)
 
-    if VISUALIZE_CLASSIFIER:
+    if cfg.classifier.visualize:
         # select which classifier to use for visualization
         clf, clusters, centers = kmeans, kmeans_clusters, kmeans_centers
         visualize_classifier(cfg, dataset_mode, data_subset_mode, z_whats, labels, clusters, centers, clf, centroid_labels, relevant_labels, only_collect_first_image_of_consecutive_frames)
@@ -73,6 +74,12 @@ def create_k_means(cfg, train_x, data_subset_mode):
         clusters.append(np.where(k_means.labels_ == label)[0])
     centers = k_means.cluster_centers_
     return k_means, clusters, centers
+
+def create_nn_classifier(cfg, kmeans, train_x, train_y, relevant_labels, data_subset_mode):
+    # create a nearest neighbor classifier
+    nn_neighbors_clf, centroids, centroid_labels = ZWhatClassifierCreator(cfg).nn_clf_based_on_k_means_centroids(kmeans, train_x, train_y, relevant_labels)
+    save_classifier(cfg, nn_neighbors_clf, "nn", data_subset_mode)
+    return nn_neighbors_clf, centroids, centroid_labels
 
 def save_classifier(cfg, clf, clf_name, data_subset_mode):
     ZWhatClassifierCreator(cfg).save_classifier(

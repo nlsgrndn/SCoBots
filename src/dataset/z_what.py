@@ -13,14 +13,13 @@ from skimage.morphology import (disk, square)
 from skimage.morphology import (erosion, dilation, opening, closing, white_tophat, skeletonize)
 from torchvision import transforms
 from torchvision.utils import draw_bounding_boxes as draw_bb
-from utils.bbox_matching import match_bounding_boxes_v2
+from utils.bbox_matching import get_label_of_best_matching_gt_bbox
 from dataset.atari_labels import label_list_for, no_label_str, filter_relevant_boxes_masks, get_moving_indices
 from model.space.postprocess_latent_variables import convert_to_boxes, retrieve_latent_repr_from_logs
     
 class Atari_Z_What(Dataset):
     def __init__(self, cfg, dataset_mode, boxes_subset="all", return_keys=None, nr_consecutive_frames=4):
         self.game = cfg.gamelist[0]
-
 
         assert dataset_mode in ['train', 'val', 'test'], f'Invalid dataset mode "{dataset_mode}"'
         dataset_mode = 'validation' if dataset_mode == 'val' else dataset_mode
@@ -79,7 +78,7 @@ class Atari_Z_What(Dataset):
 
         base_path = self.motion_path
         motion = torch.stack([self.read_tensor(stack_idx, i, base_path, postfix=f'{self.arch.img_shape[0]}') for i in range(self.T)])
-        motion = (motion > motion.mean() * 0.1).float()
+        motion = (motion > motion.mean() * 0.1).float() # Why???
         motion_z_pres = torch.stack([self.read_tensor(stack_idx, i, base_path, postfix="z_pres") for i in range(self.T)])
         motion_z_where = torch.stack([self.read_tensor(stack_idx, i, base_path, postfix="z_where") for i in range(self.T)])
         
@@ -102,16 +101,17 @@ class Atari_Z_What(Dataset):
         base_path = self.bb_path
         gt_bbs_and_labels = [self.read_csv(stack_idx, i, base_path) for i in range(self.T)] # can't be stacked because of varying number of objects
         
-        if self.boxes_subset == "moving": # modify labels of static objects to "no_label"
-            for i in range(self.T):
-                mask = gt_bbs_and_labels[i][:, 4] == 0 # static objects
-                index_for_no_label = label_list_for(self.game).index(no_label_str)
-                gt_bbs_and_labels[i][mask, 5] = index_for_no_label
+        ## boxes_subset == "moving" is deprecated
+        #if self.boxes_subset == "moving": # modify labels of static objects to "no_label"
+        #    for i in range(self.T):
+        #        mask = gt_bbs_and_labels[i][:, 4] == 0 # static objects
+        #        index_for_no_label = label_list_for(self.game).index(no_label_str)
+        #        gt_bbs_and_labels[i][mask, 5] = index_for_no_label
 
         if self.boxes_subset == "relevant":  # remove non-moving gt boxes
             gt_bbs_and_labels = [gt_bbs_and_labels[i][gt_bbs_and_labels[i][:, 4] == 1] for i in range(self.T)]
 
-        pred_boxes = convert_to_boxes(z_wheres, z_pres_s, z_pres_probs, with_conf=True) # list of tensors of shape (N, 4) where N is number of objects in that frame
+        pred_boxes = convert_to_boxes(z_wheres, z_pres_s, z_pres_probs, with_conf=True) # list of arrays of shape (N, 4) where N is number of objects in that frame
 
         z_whats_pres_s = []
         for i in range(self.T):
@@ -121,7 +121,7 @@ class Atari_Z_What(Dataset):
         for i in range(self.T):
             if isinstance(gt_bbs_and_labels[i], torch.Tensor) and gt_bbs_and_labels[i].dtype == torch.float64:
                 gt_bbs_and_labels[i] = gt_bbs_and_labels[i].to(torch.float)
-            gt_labels_for_pred_boxes.append(match_bounding_boxes_v2(torch.Tensor(gt_bbs_and_labels[i]), torch.Tensor(pred_boxes[i])).reshape(-1, 1).to(torch.int)) 
+            gt_labels_for_pred_boxes.append(get_label_of_best_matching_gt_bbox(torch.Tensor(gt_bbs_and_labels[i]), torch.Tensor(pred_boxes[i])).reshape(-1, 1).to(torch.int)) 
 
         if self.boxes_subset == "relevant":
             masks = filter_relevant_boxes_masks(self.game, pred_boxes, None)
@@ -155,7 +155,6 @@ class Atari_Z_What(Dataset):
         path = os.path.join(base_path, f'{stack_idx:05}_{i}.png')
         return np.array(Image.open(path).convert('RGB'))
 
-    #UNUSED
     def read_tensor(self, stack_idx, i, base_path, postfix=None):
         path = os.path.join(base_path,
                             f'{stack_idx:05}_{i}_{postfix}.pt'

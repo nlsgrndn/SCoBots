@@ -4,6 +4,7 @@ from motrackers.detectors.detector import Detector
 from motrackers.utils.misc import load_labelsjson
 from model.space.postprocess_latent_variables import latent_to_boxes_and_z_whats
 import torch
+from dataset.atari_labels import filter_relevant_boxes_masks
 
 # with temperature
 def softmax(x, temperature=1):
@@ -87,10 +88,9 @@ class SPACE(Detector):
         draw_bboxes (bool): If true, draw bounding boxes on the image is possible.
     """
 
-    def __init__(self, game_name, classifier, classifier_id_dict, wrapped_space, object_names, confidence_threshold, nms_threshold, draw_bboxes=True):
+    def __init__(self, game_name, classifier, wrapped_space, object_names, confidence_threshold, nms_threshold, draw_bboxes=True):
         self.game_name = game_name
         self.classifier = classifier
-        self.classifier_id_dict = classifier_id_dict
         self.wrapped_space = wrapped_space
         super().__init__(object_names, confidence_threshold, nms_threshold, draw_bboxes)
 
@@ -135,18 +135,22 @@ class SPACE(Detector):
         z_whats = z_whats[mask]
         predbboxs = predbboxs.to("cpu").numpy()
         z_whats = z_whats.to("cpu").numpy()
-
         bboxes = self.transform_bbox_format(predbboxs)
-        bboxes = np.array(bboxes * 128).astype(np.int32)
+        bboxes = np.array(bboxes * 128)
+        #bboxes = bboxes.astype(np.int32)
 
-        distances = self.classifier.transform(z_whats) #TODO: generalize this to other classifiers
-        probabilities = softmax(-distances)
+        #distances = self.classifier.transform(z_whats) #TODO: generalize this to other classifiers
+        #probabilities = softmax(-distances)
+#
+        #class_ids = np.argmax(probabilities, axis=1)
+        #class_ids = np.array([self.classifier_id_dict[class_id] for class_id in class_ids])
+        #confidences = np.max(probabilities, axis=1)
 
-        class_ids = np.argmax(probabilities, axis=1)
-        class_ids = np.array([self.classifier_id_dict[class_id] for class_id in class_ids])
-        confidences = np.max(probabilities, axis=1)
+        class_ids = self.classifier.predict(z_whats)
+        confidences = np.zeros(len(class_ids))
+        #class_ids = np.array([self.classifier_id_dict[class_id] for class_id in class_ids])
 
-        return bboxes, confidences, class_ids, probabilities
+        return bboxes, confidences, class_ids
 
     def transform_bbox_format(self, bboxes):
         """
@@ -158,15 +162,3 @@ class SPACE(Detector):
         new_format_bboxes[:, 2] = bboxes[:, 3] - bboxes[:, 2]
         new_format_bboxes[:, 3] = bboxes[:, 1] - bboxes[:, 0]
         return new_format_bboxes
-    
-def filter_relevant_boxes_masks(game, boxes_batch, boxes_gt):
-    game = game.lower()
-    if "pong" in game:
-        # ensure that > 21/128 and < 110/128
-        return [(box_bat[:, 1] > 21 / 128) & (box_bat[:, 0] > 4 / 128) for box_bat in boxes_batch]
-    elif "boxing" in game:
-        return [(box_bat[:, 0] > 19 / 128) * (box_bat[:, 1] < 110 / 128) for box_bat in boxes_batch]
-    elif "skiing" in game:
-        return [box_bat[:, 0] > -1000 for box_bat in boxes_batch] # TODO: Find helpful rules if necessary (currently trivial condition such that mask is always true)
-    else:
-        raise ValueError(f"filter_relevant_boxes_masks for game {game} not implemented")

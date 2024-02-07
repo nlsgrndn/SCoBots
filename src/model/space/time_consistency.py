@@ -87,7 +87,7 @@ class MOCLoss():
             'objects_detected': objects_detected,
             'flow_scaling': flow_scaling,
             'area_object_scaling': area_object_scaling,
-            'total_loss': moc_loss, # TODO rename to moc_loss, and change in space_vis for logging
+            'total_moc_loss': moc_loss,
             'motion_loss': motion_loss,
             'motion_loss_no_flow_scaling': motion_loss / flow_scaling,
             'combined_z_what_loss': combined_z_what_loss,

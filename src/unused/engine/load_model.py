@@ -39,7 +39,7 @@ def show_scene(image, scene, i, cfg):
 
 
 def load_model(cfg):
-    space, transformation, sc, z_classifier = load_space(cfg, z_classifier_path= cfg.z_what_classifier_path)
+    space, transformation, sc, z_classifier = load_space(cfg)
     #import matplotlib; matplotlib.use("Tkagg")
     cfg.device_ids = [0]
     env_name = cfg.gamelist[0]

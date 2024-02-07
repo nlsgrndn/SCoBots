@@ -43,10 +43,6 @@ def take_action(agent):
 
 def compute_root_images(imgs, data_base_folder, game):
     img_arr = np.stack(imgs)
-    # Ensures median exists in any image at least, even images lead to averaging
-    if len(img_arr) % 2:
-        print("Removing one image for median computation to ensure P(median|game) != 0") #TODO check whether to keep this for mode
-        img_arr = img_arr[:-1]
     mode = np.apply_along_axis(lambda x: np.bincount(x).argmax(), axis=0, arr=img_arr).astype(np.uint8)
     os.makedirs(f"{data_base_folder}/{game}-v0/background", exist_ok=True)
     frame = Image.fromarray(mode)

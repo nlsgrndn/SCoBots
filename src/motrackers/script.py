@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import joblib
 import os
-from utils.bbox_matching import match_bounding_boxes_z_what, match_bounding_boxes_v2
+from utils.bbox_matching import get_label_of_best_matching_gt_bbox
 from collections import Counter
 from dataset.z_what import Atari_Z_What
 from torch.utils.data import DataLoader
@@ -39,12 +39,11 @@ def main(model, tracker, dataloader, classifier):
         
         for j, (pred_boxes, z_whats, gt_labels_for_pred_boxes, gt_bbs_and_labels, img)  in enumerate(zip(pred_boxes_T, z_whats_T, gt_labels_for_pred_boxes_T, gt_bbs_and_labels_T, imgs_T)):
         
-            bboxes, confidences, class_ids, probabilities = model.detect(pred_boxes, z_whats)
+            bboxes, confidences, class_ids = model.detect(pred_boxes, z_whats)
             mask = filter_bboxes_close_to_border(bboxes)
             bboxes = bboxes[mask]
             confidences = confidences[mask]
             class_ids = class_ids[mask]
-            probabilities = probabilities[mask]
             z_whats = z_whats[mask]
 
 
@@ -57,10 +56,10 @@ def main(model, tracker, dataloader, classifier):
             raw_pred_bbox = bboxes.copy().astype(float)
             raw_pred_bbox = inverse_transform_bbox_format(raw_pred_bbox)
             raw_pred_bbox[:, :4] = raw_pred_bbox[:, :4] / 128.0
-            raw_gt_labels = match_bounding_boxes_v2(gt_bbs_and_labels, raw_pred_bbox)
+            raw_gt_labels = get_label_of_best_matching_gt_bbox(gt_bbs_and_labels, raw_pred_bbox)
             raw_gt_label_collector.extend(raw_gt_labels)
 
-            tracks = tracker.update(bboxes, confidences, class_ids, probabilities, z_whats, classifier)
+            tracks = tracker.update(bboxes, confidences, class_ids, None, z_whats, classifier)
             image = img.copy() * 255
             #updated_image = model.draw_bboxes(image, bboxes , confidences, class_ids)
             tracks_bbox = np.array([np.stack(track) for track in tracks])
@@ -75,7 +74,7 @@ def main(model, tracker, dataloader, classifier):
             # get gt labels for kf predictions and store
             tracks_bbox = inverse_transform_bbox_format(tracks_bbox)
             tracks_bbox[:, :4] = tracks_bbox[:, :4] / 128
-            gt_labels = match_bounding_boxes_v2(gt_bbs_and_labels, tracks_bbox)
+            gt_labels = get_label_of_best_matching_gt_bbox(gt_bbs_and_labels, tracks_bbox)
             kf_gt_label_collector.extend(gt_labels)
 
             # save image with cv

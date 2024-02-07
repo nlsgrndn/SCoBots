@@ -163,7 +163,7 @@ def match_bounding_boxes(
 
     return actual_list, predicted_list
 
-def match_bounding_boxes_v2(
+def get_label_of_best_matching_gt_bbox(
         labels: np.ndarray, predicted: np.ndarray, matching_method=compute_iou
         ): # from eval_model_and_classifier.py
     """
@@ -185,51 +185,51 @@ def match_bounding_boxes_v2(
 
     return label_for_pred
 
-def match_bounding_boxes_z_what(
-        labels: np.ndarray, predicted: np.ndarray, matching_method=compute_misalignment
-        ): # from eval_model_and_classifier.py
-    """
-    Match bounding boxes in labels and predicted.
-    :param labels: np.ndarray of shape (n, 5) where n is the number of bounding boxes
-    :param predicted: np.ndarray of shape (m, 5) where m is the number of bounding boxes
-    :return: actual_list, predicted_list
-    """
-    actual_list = []
-    predicted_list = []
-    label_idx_used = []
-    THRESHOLD = 0.2
+#def match_bounding_boxes_z_what(
+#        labels: np.ndarray, predicted: np.ndarray, matching_method=compute_misalignment
+#        ): # from eval_model_and_classifier.py
+#    """
+#    Match bounding boxes in labels and predicted.
+#    :param labels: np.ndarray of shape (n, 5) where n is the number of bounding boxes
+#    :param predicted: np.ndarray of shape (m, 5) where m is the number of bounding boxes
+#    :return: actual_list, predicted_list
+#    """
+#    actual_list = []
+#    predicted_list = []
+#    label_idx_used = []
+#    THRESHOLD = 0.2
+#
+#    # compute matching scores
+#    matching_scores = matching_method(predicted, labels)
+#
+#    # match bounding boxes
+#    for i in range(predicted.shape[0]):
+#        max_m_score = np.max(matching_scores[i])
+#        if max_m_score > THRESHOLD:
+#            actual_list.append(labels[np.argmax(matching_scores[i])][4])
+#            predicted_list.append(predicted[i][4:])
+#            label_idx_used.append(np.argmax(matching_scores[i]))
+#        else:
+#            predicted_list.append(predicted[i][4:])
+#            actual_list.append(0) # 0 corresponds to no_label
+#
+#    return actual_list, predicted_list
 
-    # compute matching scores
-    matching_scores = matching_method(predicted, labels)
 
-    # match bounding boxes
-    for i in range(predicted.shape[0]):
-        max_m_score = np.max(matching_scores[i])
-        if max_m_score > THRESHOLD:
-            actual_list.append(labels[np.argmax(matching_scores[i])][4])
-            predicted_list.append(predicted[i][4:])
-            label_idx_used.append(np.argmax(matching_scores[i]))
-        else:
-            predicted_list.append(predicted[i][4:])
-            actual_list.append(0) # 0 corresponds to no_label
+#def hungarian_matching(x, obs): # from kalman_filter.py: uses just euclidean distance of the center
+#    cost = distance_matrix(x, obs)
+#    row_ind, col_ind = linear_sum_assignment(cost)
+#    return col_ind, cost[row_ind, col_ind]
 
-    return actual_list, predicted_list
-
-
-def hungarian_matching(x, obs): # from kalman_filter.py: uses just euclidean distance of the center
-    cost = distance_matrix(x, obs)
-    row_ind, col_ind = linear_sum_assignment(cost)
-    return col_ind, cost[row_ind, col_ind]
-
-def match_bbs(gt_bbs, boxes_batch, label_list, no_match_label): # from labels.py
-    labels = []
-    for bb in boxes_batch:
-        label, max_iou = max(((gt_bb[5], iou(bb, gt_bb)) for gt_bb in gt_bbs.itertuples(index=False, name=None)),
-                             key=lambda tup: tup[1])
-        if max_iou < 0.5:
-            label = no_match_label
-        labels.append(label)
-    return torch.LongTensor([label_list.index(label) for label in labels])
+#def match_bbs(gt_bbs, boxes_batch, label_list, no_match_label): # from labels.py
+#    labels = []
+#    for bb in boxes_batch:
+#        label, max_iou = max(((gt_bb[5], iou(bb, gt_bb)) for gt_bb in gt_bbs.itertuples(index=False, name=None)),
+#                             key=lambda tup: tup[1])
+#        if max_iou < 0.5:
+#            label = no_match_label
+#        labels.append(label)
+#    return torch.LongTensor([label_list.index(label) for label in labels])
 
 def compute_hits(pred_boxes, gt_boxes, threshold, matching_method):
     count_gt = 0

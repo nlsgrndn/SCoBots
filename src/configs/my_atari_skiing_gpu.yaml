@@ -3,7 +3,6 @@ model: 'space'
 exp_name: skiing
 resume: false
 
-z_what_classifier_path: ""
 resume_ckpt: '../skiing_seed5/model_000005001.pth'
 #'../downloaded_models/skiing/model_000005001.pth'
 # '../output/checkpoints/mspacman_atari_pretrained/model.pth'

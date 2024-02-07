@@ -35,8 +35,6 @@ def get_dataloader(cfg, dataset_mode, dataset, no_shuffle_overwrite = False):
     if no_shuffle_overwrite:
         shuffle = False
 
-    #dataset = get_dataset(cfg, dataset_mode)
-    #dataset = data_utils.Subset(dataset, torch.arange(dataset_size)) #TODO: check why this line was here
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
 
     return dataloader

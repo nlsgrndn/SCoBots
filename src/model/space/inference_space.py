@@ -98,6 +98,6 @@ class WrappedSPACEforInference(nn.Module):
             "z_pres_prob": torch.sigmoid(z_pres_logits),
             "z_where": z_where,
             "z_where_pure": z_where_pure,
-            "z_what": z_what, #TODO: here .unsqueeze(0) might be needed
+            "z_what": z_what,
         }
         return result_dict

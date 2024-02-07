@@ -4,8 +4,6 @@ exp_name: pong
 resume: false
 save_relevant_objects: false
 
-
-z_what_classifier_path: "../downloaded_models/pong/z_what-classifier_with_64.joblib.pkl"
 resume_ckpt: '../downloaded_models/pong/model_000005001.pth'
 #'../old_models/actually_new_model_000005041.pth'
 # ''

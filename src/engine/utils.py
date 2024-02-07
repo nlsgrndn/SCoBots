@@ -56,31 +56,27 @@ def get_config():
         cfg.merge_from_file(args.config_file)
     if args.opts:
         cfg.merge_from_list(args.opts)
-    if cfg.model.lower() in ['lrspace', "lrtcspace", "tclrspace"]:
-        cfg.arch = cfg.lr_arch
     # Use config file name as the default experiment name
     if cfg.exp_name == '':
         if args.config_file:
             cfg.exp_name = os.path.splitext(os.path.basename(args.config_file))[0]
         else:
             raise ValueError('exp_name cannot be empty without specifying a config file')
-    # add desc of arch type for eval
-    if args.arch_type is None or args.arch_type == 'baseline':
+    
+    # set arch parameters for moc loss (only relevant for training)
+    if args.arch_type == 'baseline':
         cfg.arch.area_object_weight = 0.0
         cfg.arch.motion_weight = 0.0
     elif args.arch_type == "+m": #
         cfg.arch.area_object_weight = 0.0
     elif args.arch_type == "+moc": #
         cfg.arch.area_object_weight = 10.0
+    else:
+        print(f"arch_type {args.arch_type} must be one of ['baseline', '+m', '+moc']")
+        raise NotImplementedError
 
     if args.resume_ckpt != '':
         cfg.resume_ckpt = args.resume_ckpt
-    arch_type = '' if args.arch_type == "baseline" else args.arch_type
-    cfg.arch_type = args.arch_type
-
-    #if args.resume_ckpt == '':
-    #    cfg.resume_ckpt = f"../trained_models/{cfg.exp_name}_space{arch_type}_seed{cfg.seed}.pth"
-    #    print(f"Using checkpoint from {cfg.resume_ckpt}")
 
     import torch
     torch.manual_seed(cfg.seed)
@@ -96,6 +92,14 @@ def get_config_v2(config_path):
     cfg.merge_from_file(config_path)
     return cfg
 
+def get_config_for_game(game):
+    cfg_path_for_game = {
+        "pong": "configs/my_atari_pong_gpu.yaml",
+        "boxing": "configs/my_atari_boxing_gpu.yaml",
+        "skiing": "configs/my_atari_skiing_gpu.yaml",
+    }
+    cfg = get_config_v2(cfg_path_for_game[game])
+    return cfg
 
 def print_info(cfg):
     print('Experiment name:', cfg.exp_name)

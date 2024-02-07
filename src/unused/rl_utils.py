@@ -52,7 +52,7 @@ class SceneCleaner():
             return self.last_known
 
 
-def load_space(cfg, z_classifier_path=None):   
+def load_space(cfg, z_classifier_path):   
     # get models
     spacetime_model = get_model(cfg)
     spacetime_model.eval()
@@ -69,9 +69,6 @@ def load_space(cfg, z_classifier_path=None):
             global_step = checkpoint['global_step'] + 1
 
     space = spacetime_model
-    if z_classifier_path is None:
-        z_classifier_path =  'classifiers/pong_model_000005001_z_what_classifier.joblib.pkl'
-        #f"classifiers/{cfg.exp_name}_space{cfg.arch_type_desc}_seed{cfg.seed}_z_what_classifier.joblib.pkl"
     print("Loading classifier:" , z_classifier_path)
     z_classifier = joblib.load(z_classifier_path)
     # x is the image on device as a Tensor, z_classifier accepts the latents,

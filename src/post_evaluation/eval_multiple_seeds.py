@@ -12,6 +12,7 @@ def get_dataframes_per_game(filename, csv_separator, index_col):
     folder = "../tmp_models"
     # get subfolders
     subfolders = [f.path for f in os.scandir(folder) if f.is_dir() ]
+    subfolders.sort(key=lambda x: int(x.split("seed")[-1]))
 
     # get subfolders for each game
     subfolders_per_game = defaultdict(list)
@@ -155,9 +156,10 @@ if __name__ == "__main__":
     dataframes_per_game = get_dataframes_per_game("eval_model_and_classifier.csv", csv_separator=",", index_col=0)
     merged_dataframes_per_game = merge_dataframes_per_game(dataframes_per_game)
     final_dataframe_per_game = compute_mean_and_std(merged_dataframes_per_game)
+    import ipdb; ipdb.set_trace()
     bar_plot(final_dataframe_per_game, metric="relevant_f1_score", title="Detection", ylabel="F-Score (%)")
-    bar_plot(final_dataframe_per_game, metric="precision", title="Detection", ylabel="Precision (%)")
-    bar_plot(final_dataframe_per_game, metric="recall", title="Detection", ylabel="Recall (%)")
+    bar_plot(final_dataframe_per_game, metric="relevant_precision", title="Detection", ylabel="Precision (%)")
+    bar_plot(final_dataframe_per_game, metric="relevant_recall", title="Detection", ylabel="Recall (%)")
     print("done")
 
 

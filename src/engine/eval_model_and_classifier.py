@@ -52,7 +52,9 @@ def get_data(dataloader, classifier, centroid_labels_dict, label_list: List[Unio
             curr_pred_boxes, curr_z_whats_pres_s, curr_gt_bbs_and_labels = pred_boxes[i][0], z_whats_pres_s[i][0], gt_bbs_and_labels[i][0]
             curr_pred_boxes, curr_z_whats_pres_s, curr_gt_bbs_and_labels = curr_pred_boxes.to("cpu"), curr_z_whats_pres_s.to("cpu"), curr_gt_bbs_and_labels.to("cpu")
             pred_labels = classifier.predict(curr_z_whats_pres_s)
-            pred_labels = np.array([centroid_labels_dict[label] for label in pred_labels])
+            if centroid_labels_dict is not None:
+                pred_labels = [centroid_labels_dict[label] for label in pred_labels]
+            pred_labels = np.array(pred_labels)
             curr_pred_bbs_and_labels = np.concatenate((curr_pred_boxes, pred_labels[:, np.newaxis]), axis=1)
             actual_labels, predicted_labels = match_bounding_boxes(curr_gt_bbs_and_labels, curr_pred_bbs_and_labels, label_list) # len(actual) = len(labels[i]) + # of predicted boxes that are not matched
             actual_labels_combined.extend(actual_labels)

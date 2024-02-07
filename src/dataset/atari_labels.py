@@ -55,10 +55,6 @@ label_list_skiing = [no_label_str] + sorted(list(MAX_NB_OBJECTS_ALL_SKIING.keys(
 label_list_skiing_moving = sorted(list(MAX_NB_OBJECTS_MOVING_SKIING.keys()))
 moving_indices_skiing = [label_list_skiing.index(moving_label) for moving_label in label_list_skiing_moving]
 
-
-label_list_air_raid = [no_label_str, "player", 'score', 'building', 'shot', 'enemy'] #TODO: Remove or find OCAtari labels
-
-
 def filter_relevant_boxes(game, boxes_batch, boxes_gt):
     if "MsPacman" in game:
         return [box_bat[box_bat[:, 1] < 104 / 128] for box_bat in boxes_batch]
@@ -72,8 +68,6 @@ def filter_relevant_boxes(game, boxes_batch, boxes_gt):
         return [box_bat[(box_bat[:, 1] > 21 / 128) & (box_bat[:, 0] > 4 / 128)] for box_bat in boxes_batch]
     elif "Boxing" in game:
         return [box_bat[(box_bat[:, 0] > 19 / 128) * (box_bat[:, 1] < 110 / 128)] for box_bat in boxes_batch]
-    elif "Airraid" in game:
-        return [box_bat[box_bat[:, 0] > 8 / 128] for box_bat in boxes_batch]
     elif "Riverraid" in game:
         return [box_bat[box_bat[:, 0] < 98 / 128] for box_bat in boxes_batch]  # Does not cover Fuel Gauge
     elif "Tennis" in game:
@@ -81,18 +75,19 @@ def filter_relevant_boxes(game, boxes_batch, boxes_gt):
                                       (box_bat[:, 0] > 68 / 128) * (box_bat[:, 1] < 116 / 128))]
                 for box_bat in boxes_batch]
     elif "Skiing" in game:
-        return [box_bat for box_bat in boxes_batch] #TODO Find helpful rules if necessary
+        return [box_bat for box_bat in boxes_batch]
     else:
         raise ValueError(f"Game {game} could not be found in labels")
     
 def filter_relevant_boxes_masks(game, boxes_batch, boxes_gt):
-    if "Pong" in game:
+    game = game.lower()
+    if "pong" in game:
         # ensure that > 21/128 and < 110/128
         return [(box_bat[:, 1] > 21 / 128) & (box_bat[:, 0] > 4 / 128) for box_bat in boxes_batch]
-    elif "Boxing" in game:
+    elif "boxing" in game:
         return [(box_bat[:, 0] > 19 / 128) * (box_bat[:, 1] < 110 / 128) for box_bat in boxes_batch]
-    elif "Skiing" in game:
-        return [box_bat[:, 0] > -1000 for box_bat in boxes_batch] # TODO: Find helpful rules if necessary (currently trivial condition such that mask is always true)
+    elif "skiing" in game:
+        return [box_bat[:, 0] > -1000 for box_bat in boxes_batch] #Trivial condition to always be true
     else:
         raise ValueError(f"filter_relevant_boxes_masks for game {game} not implemented")
     
@@ -109,8 +104,6 @@ def get_moving_indices(game):
         return moving_indices_pong.copy()
     elif "boxing" in game:
         return moving_indices_boxing.copy()
-    elif "air" in game and "raid" in game:
-        raise ValueError("Moving indices for Airraid not implemented")
     elif "riverraid" in game:
         return moving_indices_riverraid.copy()
     elif "tennis" in game:
@@ -146,8 +139,6 @@ def label_list_for(game):
         return label_list_boxing.copy()
     elif "tennis" in game:
         return label_list_tennis.copy()
-    elif "air" in game and "raid" in game:
-        return label_list_air_raid.copy()
     elif "riverraid" in game:
         return label_list_riverraid.copy()
     elif "space" in game and "invaders" in game:
@@ -156,39 +147,3 @@ def label_list_for(game):
         return label_list_skiing.copy()
     else:
         raise ValueError(f"Game {game} could not be found in labels")
-
-
-#  Deprecated in favor of IOU
-#def labels_for_batch(boxes_batch, entity_list, row, label_list, pieces=None):
-#    if pieces is None:
-#        pieces = {}
-#    bbs = (boxes_batch[:, :4] * (210, 210, 160, 160)).round().astype(int)
-#    for en in entity_list:
-#        if (f'{en}_visible' not in row or row[f'{en}_visible'].item()) and f'{en}_y' in row and f'{en}_x' in row:
-#            pieces[en] = (row[f'{en}_y'].item(), row[f'{en}_x'].item())
-#    return labels_for_pieces(bbs, row, pieces, label_list)
-#
-#
-#def labels_for_pieces(bbs, row, pieces, label_list):
-#    labels = []
-#    for bb in bbs:
-#        label = label_for_bb(bb, row, pieces)
-#        labels.append(label)
-#    return torch.LongTensor([label_list.index(lab) for lab in labels])
-#
-#
-#def label_for_bb(bb, row, pieces):
-#    label = min(((name, bb_dist(bb, pos)) for name, pos in pieces.items()), key=lambda tup: tup[1])
-#    if label[1] > 15:  # dist
-#        label = (no_label_str, 0)
-#    label = label[0]  # name
-#    if f'{label}_blue' in row and row[f'{label}_blue'].item():
-#        label = "blue_ghost"
-#    elif f'{label}_white' in row and row[f'{label}_white'].item():
-#        label = "white_ghost"
-#    return label
-#
-#
-## TODO: Validate mean method with proper labels
-#def bb_dist(bb, pos):
-#    return abs(bb[0] - pos[0]) + abs(bb[2] - pos[1])

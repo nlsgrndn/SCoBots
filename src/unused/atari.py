@@ -14,9 +14,7 @@ from skimage.morphology import (disk, square)
 from skimage.morphology import (erosion, dilation, opening, closing, white_tophat, skeletonize)
 from torchvision import transforms
 from torchvision.utils import draw_bounding_boxes as draw_bb
-from utils.bbox_matching import match_bbs
 from dataset.atari_labels import label_list_for, no_label_str
-from utils.bbox_matching import match_bbs
 
 # TODO: currently unused, Atari_Z_What is used instead, maybe reactivate and let Atari_Z_What inherit from this class 
 class Atari(Dataset):

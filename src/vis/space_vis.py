@@ -55,7 +55,7 @@ class SpaceVis:
         writer.add_scalar(f'{mode}/area_object_scaling', log['area_object_scaling'].mean().item(), global_step=global_step)
         
 
-        writer.add_scalar(f'losses/total_loss', torch.sum(log['total_loss']).item(), global_step=global_step)
+        writer.add_scalar(f'losses/total_moc_loss', torch.sum(log['total_moc_loss']).item(), global_step=global_step)
         # high level losses
         writer.add_scalar(f'losses/elbo_loss', torch.sum(log['elbo_loss']).item(), global_step=global_step)
         writer.add_scalar(f'losses/motion_loss', torch.sum(log['motion_loss']).item(), global_step=global_step)

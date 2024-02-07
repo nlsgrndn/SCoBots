@@ -3,7 +3,6 @@ model: 'space'
 exp_name: boxing
 resume: false
 
-z_what_classifier_path: "../downloaded_models/boxing/z_what-classifier_with_64.joblib.pkl"
 resume_ckpt: '../downloaded_models/boxing/model_000005001.pth'
 # '../output/checkpoints/mspacman_atari_pretrained/model.pth'
 #

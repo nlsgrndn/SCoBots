@@ -10,7 +10,7 @@ eval_cfg = CfgNode({
     },
     'test': {
         # What to evaluate
-        'metrics': ['ap'], #['ap', 'mse', 'cluster'],
+        'metrics': ['cluster', 'ap'], #['ap', 'mse', 'cluster'],
 
         # For dataloader
         'batch_size': 16, 

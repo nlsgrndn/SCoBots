@@ -31,7 +31,6 @@ cfg = CfgNode({
         'OBJ3D_SMALL': '../data/OBJ3D_SMALL',
     },
 
-    'z_what_classifier_path': '', # should be overwritten in respective cfg files #TODO check whether better to put in cfg or in model
     # For Atari
     'gamelist': [
         'Atlantis-v0',
@@ -100,8 +99,10 @@ cfg = CfgNode({
 from model.space.arch import arch
 from configs.eval_cfg import eval_cfg
 from configs.dataset_size_cfg import dataset_size_cfg
+from configs.classifier_cfg import classifier_cfg
 
 # For these three, please go to the corresponding file
 cfg.arch = arch
 cfg.eval_cfg = eval_cfg
 cfg.dataset_size_cfg = dataset_size_cfg
+cfg.classifier = classifier_cfg
