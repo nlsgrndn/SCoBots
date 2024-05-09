@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import joblib
 import os
-from utils.bbox_matching import get_label_of_best_matching_gt_bbox
+from space_and_moc_utils.bbox_matching import get_label_of_best_matching_gt_bbox
 from collections import Counter
 from dataset.z_what import Atari_Z_What
 from torch.utils.data import DataLoader

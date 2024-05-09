@@ -2,7 +2,7 @@ import torch
 import os
 from tqdm import tqdm
 
-from model.space.postprocess_latent_variables import convert_to_boxes, retrieve_latent_repr_from_logs
+from  space_models.space.postprocess_latent_variables import convert_to_boxes, retrieve_latent_repr_from_logs
 from PIL import Image
 import os
 import pickle

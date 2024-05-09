@@ -1,5 +1,5 @@
 import numpy as np
-from utils.bbox_matching import compute_iou, compute_misalignment, compute_hits, match_bounding_boxes_center_distances
+from space_and_moc_utils.bbox_matching import compute_iou, compute_misalignment, compute_hits, match_bounding_boxes_center_distances
 
 def compute_counts(boxes_pred, boxes_gt):
     """

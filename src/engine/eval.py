@@ -1,6 +1,6 @@
-from model import get_model
+from  space_models import get_model
 from eval.space_eval import SpaceEval
-from utils.checkpointer import Checkpointer
+from space_and_moc_utils.checkpointer import Checkpointer
 import os
 import os.path as osp
 from torch import nn

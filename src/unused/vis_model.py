@@ -1,6 +1,6 @@
 from engine.utils import get_config
-from model import get_model
-from utils.checkpointer import Checkpointer
+from  space_models import get_model
+from space_and_moc_utils.checkpointer import Checkpointer
 import os.path as osp
 import torch
 from termcolor import colored

@@ -208,8 +208,8 @@ class ZWhatPlotter:
         return z_what_emb, centroid_emb, dim_name
 
     def non_edgecolor_visualization(self, relevant_labels, label_list, y_pred, centroid_label, sorted_indices, z_what_emb, centroid_emb, dim_name):
-        fig, axs = plt.subplots(2, 1)
-        fig.set_size_inches(8, 15)
+        fig, axs = plt.subplots(1, 2)
+        fig.set_size_inches(15, 8)
         axs[0].set_title("Ground Truth Labels", fontsize=20)
         axs[1].set_title("Labels Following Clustering", fontsize=20)
         for ax in axs:

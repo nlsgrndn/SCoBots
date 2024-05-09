@@ -2,7 +2,7 @@ import numpy as np
 import cv2 as cv
 from motrackers.detectors.detector import Detector
 from motrackers.utils.misc import load_labelsjson
-from model.space.postprocess_latent_variables import latent_to_boxes_and_z_whats
+from  space_models.space.postprocess_latent_variables import latent_to_boxes_and_z_whats
 import torch
 from dataset.atari_labels import filter_relevant_boxes_masks
 

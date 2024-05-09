@@ -1,9 +1,9 @@
 
 import torch
-from model.space.arch import arch
+from  space_models.space.arch import arch
 import torch.nn as nn
-from model.space.utils import spatial_transform
-from model.space.space import Space
+from  space_models.space.utils import spatial_transform
+from  space_models.space.space import Space
 
 class WrappedSPACEforInference(nn.Module):
     def __init__(self, space):

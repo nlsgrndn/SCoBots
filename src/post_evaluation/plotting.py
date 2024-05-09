@@ -4,9 +4,8 @@ import os
 import os.path as osp
 from collections import defaultdict
 import matplotlib.pyplot as plt
+from dataset.atari_labels import label_list_for, get_moving_indices
 
-
-result_path = '../results_img'
 
 def plot_recall_per_object_type(final_dataframe_per_game):
     # Extracting the object types and their corresponding recall values
@@ -21,17 +20,22 @@ def plot_recall_per_object_type(final_dataframe_per_game):
         recall_values_per_object_type = df.values[0]
         #recall_values_per_object_type = [df[f'{category}_recall_label_{label}_mean'].values[0] for label in range(6)]
 
-        object_types = [str(i) for i in range(len(recall_values_per_object_type))]
+        #object_types = [str(i) for i in range(len(recall_values_per_object_type))]
+        object_types = label_list_for(game)
         recall_values = recall_values_per_object_type
 
+        relevant_object_types = get_moving_indices(game)
+        object_types = [object_types[i] for i in relevant_object_types]
+        recall_values = [recall_values[i] for i in relevant_object_types]
+
         # Using the object-oriented approach in Matplotlib
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.bar(object_types, recall_values, color='skyblue')
+        fig, ax = plt.subplots(figsize=(5, 6))
+        ax.bar(object_types, recall_values, color='blue', width=0.5)
 
         # Setting labels and title
-        ax.set_xlabel('Object Types')
-        ax.set_ylabel('Recall Values')
-        ax.set_title(f'Recall Values of {category} Object Types')
+        ax.set_xlabel('Object Class')
+        ax.set_ylabel('Recall')
+        ax.set_title(f'Recall per Object Class for {game.capitalize()}')
         ax.set_ylim(0, 1)
 
         # save the figure
@@ -39,13 +43,30 @@ def plot_recall_per_object_type(final_dataframe_per_game):
 
 def draw_precision_recall_curve(recalls, precisions, thresholds, save_path, game):
     fig, ax = plt.subplots()
-    ax.plot(recalls, precisions)
+    ax.plot(recalls, precisions, marker='o')
     #annotate the thresholds
     for i, threshold in enumerate(thresholds):
-        ax.annotate(np.round(threshold, decimals=2), (recalls[i], precisions[i]))
+        # # only annotate every 10th threshold to avoid clutter
+        # if i % 2 == 0:
+        #     ax.annotate(np.round(threshold, decimals=2), (recalls[i], precisions[i]))
+        # only annotate of previous value is not the same
+        if i == 0 or recalls[i] != recalls[i-1] or precisions[i] != precisions[i-1]:
+            # annotate on alternating sides of the point: either left below or right above
+            if threshold == 0.99:
+                xytext = (-4, -12)
+            else:
+                xytext = (8, 4) if i % 2 == 0 else (-12, -10)
+
+            ax.annotate(np.round(threshold, decimals=2),
+                        (recalls[i], precisions[i]),
+                        textcoords="offset points",
+                        xytext=xytext,
+                        ha='center')
+            
+              
     ax.set_xlabel('Recall')
     ax.set_ylabel('Precision')
-    ax.set_title(f'Precision-Recall Curve for {game}')
+    ax.set_title(f'Precision-Recall Curve for {game.capitalize()}')
     plt.savefig(save_path)
 
 def plot_ap(final_dataframe_per_game):
@@ -71,7 +92,7 @@ def plot_ap(final_dataframe_per_game):
     plt.savefig("aps.png")
 
 
-def bar_plot(dataframe_per_game, baseline_results = None, metric="relevant_f_score", title="Localization", ylabel="F-Score (%)"):
+def bar_plot(dataframe_per_game, baseline_results = None, metric="relevant_f_score", title="Localization", ylabel="F-score (%)"):
     if baseline_results:
         baseline_dataframe_per_game = {k: pd.DataFrame(v, index=[0]) for k, v in baseline_results.items()}
     fig, ax = plt.subplots()

@@ -6,10 +6,13 @@ import os.path as osp
 from collections import defaultdict
 import matplotlib.pyplot as plt
 # read csv files of multiple seeds
-from post_evaluation.plotting import plot_recall_per_object_type, draw_precision_recall_curve, plot_ap, plot_prec_recall_data, bar_plot
+from post_evaluation.plotting import plot_recall_per_object_type, plot_ap, plot_prec_recall_data, bar_plot
+
+FOLDER = "../scobots_spaceandmoc_detectors"
+# FOLDER = "../output/logs"
 
 def get_dataframes_per_game(filename, csv_separator, index_col):
-    folder = "../tmp_models"
+    folder = FOLDER
     # get subfolders
     subfolders = [f.path for f in os.scandir(folder) if f.is_dir() ]
     subfolders.sort(key=lambda x: int(x.split("seed")[-1]))
@@ -29,6 +32,22 @@ def get_dataframes_per_game(filename, csv_separator, index_col):
             dataframes_per_game[game].append(pd.read_csv(path, sep=csv_separator, index_col=index_col))
     return dataframes_per_game
 
+
+def get_dataframes_per_game_best_seed(filename, csv_separator, index_col, intermediate_folder=None):
+    folder = FOLDER
+    # get subfolders
+    subfolders = [f.path for f in os.scandir(folder) if f.is_dir() ]
+    games = [folder.split("/")[-1] for folder in subfolders]
+
+
+    dataframes_per_game = defaultdict(list)
+    for game in games:
+        if intermediate_folder is not None:
+            path = osp.join(folder, game, intermediate_folder, filename)
+        else:
+            path = osp.join(folder, game, filename)
+        dataframes_per_game[game].append(pd.read_csv(path, sep=csv_separator, index_col=index_col))
+    return dataframes_per_game
 
 
 def add_fscore_column(df, styles=['relevant', 'all']):
@@ -134,29 +153,38 @@ classifier_baseline_results = {
 
 if __name__ == "__main__":
     category = "relevant"
-    dataframes_per_game = get_dataframes_per_game("test_metrics.csv", csv_separator=";", index_col=None)
-    dataframes_per_game = add_contrived_columns(dataframes_per_game)
-    merged_dataframes_per_game = merge_dataframes_per_game(dataframes_per_game)
-    final_dataframe_per_game = compute_mean_and_std(merged_dataframes_per_game)
-    bar_plot(final_dataframe_per_game, baseline_results, metric="relevant_f_score", title="Localization", ylabel="F-Score (%)")
-    plot_prec_recall_data(final_dataframe_per_game)
-    plot_ap(final_dataframe_per_game)
-    plot_recall_per_object_type(final_dataframe_per_game)
-    bar_plot(final_dataframe_per_game, baseline_results, metric="relevant_adjusted_mutual_info_score", title="Mutual Information", ylabel="Mutual Information (%)")
+    # dataframes_per_game = get_dataframes_per_game("test_metrics.csv", csv_separator=";", index_col=None)
+    # dataframes_per_game = add_contrived_columns(dataframes_per_game)
+    # merged_dataframes_per_game = merge_dataframes_per_game(dataframes_per_game)
+    # final_dataframe_per_game = compute_mean_and_std(merged_dataframes_per_game)
+    # bar_plot(final_dataframe_per_game, baseline_results, metric="relevant_f_score", title="Localization", ylabel="F-Score (%)")
+    # plot_prec_recall_data(final_dataframe_per_game)
+    # plot_ap(final_dataframe_per_game)
+    # plot_recall_per_object_type(final_dataframe_per_game)
+    # bar_plot(final_dataframe_per_game, baseline_results, metric="relevant_adjusted_mutual_info_score", title="Mutual Information", ylabel="Mutual Information (%)")
+
+
+    # dataframes_per_game = get_dataframes_per_game_best_seed("test_metrics.csv", csv_separator=";", index_col=None)
+    # dataframes_per_game = add_contrived_columns(dataframes_per_game)
+    # merged_dataframes_per_game = merge_dataframes_per_game(dataframes_per_game)
+    # final_dataframe_per_game = compute_mean_and_std(merged_dataframes_per_game)
+    # plot_prec_recall_data(final_dataframe_per_game)
+    # plot_recall_per_object_type(final_dataframe_per_game)
 
 
     # eval classifier
-    dataframes_per_game = get_dataframes_per_game("eval_classifier.csv", csv_separator=",", index_col=0)
+    # dataframes_per_game = get_dataframes_per_game("eval_classifier.csv", csv_separator=",", index_col=0)
+    dataframes_per_game = get_dataframes_per_game_best_seed("eval_classifier.csv", csv_separator=",", index_col=0, intermediate_folder="classifier")
     dataframes_per_game = preprocess_eval_classifier_dataframes(dataframes_per_game)
     merged_dataframes_per_game = merge_dataframes_per_game(dataframes_per_game)
     final_dataframe_per_game = compute_mean_and_std(merged_dataframes_per_game)
     bar_plot(final_dataframe_per_game, classifier_baseline_results, metric="relevant_accuracy", title="Classifier Accuracy", ylabel="Accuracy (%)")
 
     # eval model and classifier
-    dataframes_per_game = get_dataframes_per_game("eval_model_and_classifier.csv", csv_separator=",", index_col=0)
+    # dataframes_per_game = get_dataframes_per_game("eval_model_and_classifier.csv", csv_separator=",", index_col=0)
+    dataframes_per_game = get_dataframes_per_game_best_seed("eval_model_and_classifier.csv", csv_separator=",", index_col=0, intermediate_folder="space_weights")
     merged_dataframes_per_game = merge_dataframes_per_game(dataframes_per_game)
     final_dataframe_per_game = compute_mean_and_std(merged_dataframes_per_game)
-    import ipdb; ipdb.set_trace()
     bar_plot(final_dataframe_per_game, metric="relevant_f1_score", title="Detection", ylabel="F-Score (%)")
     bar_plot(final_dataframe_per_game, metric="relevant_precision", title="Detection", ylabel="Precision (%)")
     bar_plot(final_dataframe_per_game, metric="relevant_recall", title="Detection", ylabel="Recall (%)")

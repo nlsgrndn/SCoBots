@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from typing import List, Union
 from eval.utils import plot_confusion_matrix
-from utils.bbox_matching import match_bounding_boxes
+from space_and_moc_utils.bbox_matching import match_bounding_boxes
 from dataset.z_what import Atari_Z_What
 from engine.utils import get_config_v2
 from torch.utils.data import DataLoader
@@ -13,16 +13,18 @@ from engine.utils import load_classifier
 from sklearn.metrics import classification_report
 import pandas as pd
 from create_latent_dataset import create_latent_dataset
+from dataset.atari_labels import label_list_for
 
 def eval_model_and_classifier(cfg):
     dataset_mode = "test"
     data_subset_mode = "relevant"
     game = cfg.exp_name.split("_")[0]
     base_path = cfg.resume_ckpt.rsplit('/', 1)[0]
+    folder_path = base_path.replace("space_weights", "classifier")
     create_latent_dataset(cfg, dataset_mode)
     dataset = Atari_Z_What(cfg, dataset_mode, boxes_subset=data_subset_mode, return_keys=["gt_bbs_and_labels", "pred_boxes", "z_whats_pres_s"])
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)
-    clf, centroid_labels = load_classifier(folder_path=base_path, clf_name="kmeans", data_subset_mode=data_subset_mode)
+    clf, centroid_labels = load_classifier(folder_path=folder_path, clf_name="nn", data_subset_mode=data_subset_mode)
     label_list = label_list_for(game)
     actual_labels_combined, predicted_labels_combined, label_list = get_data(dataloader, clf, centroid_labels, label_list)
     
@@ -30,7 +32,7 @@ def eval_model_and_classifier(cfg):
 
     # compute metrics
     result_dict = classification_report(actual_labels_combined, predicted_labels_combined, labels=np.arange(len(label_list)), target_names=label_list, output_dict=True)
-    conf_matrix = confusion_matrix_visualization(actual_labels_combined, predicted_labels_combined, label_list)
+    conf_matrix = confusion_matrix_visualization(actual_labels_combined, predicted_labels_combined, label_list, game)
     recall = compute_recall(actual_labels_combined, predicted_labels_combined, label_list)
     precision = compute_precision(actual_labels_combined, predicted_labels_combined, label_list)
     f1_score = compute_f1_score(recall, precision)
@@ -64,9 +66,17 @@ def get_data(dataloader, classifier, centroid_labels_dict, label_list: List[Unio
     label_list.append("not_detected") # add not_detected for case that no bounding box is predicted or predicted bounding box is not matched
     return actual_labels_combined, predicted_labels_combined, label_list
 
-def confusion_matrix_visualization(actual_labels_combined, predicted_labels_combined, label_list: List[Union[str, int]]):
+def confusion_matrix_visualization(actual_labels_combined, predicted_labels_combined, label_list: List[Union[str, int]], game: str):
     cm = confusion_matrix(actual_labels_combined, predicted_labels_combined, labels=np.arange(len(label_list)))
-    plot_confusion_matrix(cm, label_list, path= "confusion_matrix_detection_and_classification.png")
+    moving_indices = get_moving_indices(game)
+    indices_to_keep = moving_indices + [label_list.index("not_an_object"), label_list.index("not_detected")]
+    modified_label_list = [label for i, label in enumerate(label_list) if i in indices_to_keep]
+    # remove rows and columns that are not relevant
+    cm = cm[np.ix_(indices_to_keep, indices_to_keep)]
+    plot_confusion_matrix(cm,
+                          modified_label_list,
+                          path= f"confusion_matrix_detection_{game}.png",
+                          title = f"Confusion Matrix for {game.capitalize()}")
     return cm
 
 def remove_not_detected(actual_labels_combined, predicted_labels_combined, not_detected_int):

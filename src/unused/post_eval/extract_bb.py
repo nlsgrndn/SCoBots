@@ -1,7 +1,7 @@
 import os, sys
 
-from model.space.postprocess_latent_variables import convert_to_boxes
-from utils.checkpointer import Checkpointer
+from  space_models.space.postprocess_latent_variables import convert_to_boxes
+from space_and_moc_utils.checkpointer import Checkpointer
 from src_utils import open_image
 _curent_dir = os.getcwd()
 for _cd in [_curent_dir, _curent_dir + "/post_eval"]:
@@ -15,7 +15,7 @@ from engine.utils import get_config
 from engine.train import train
 from engine.eval import eval
 from engine.show import show
-from model import get_model
+from  space_models import get_model
 from vis import get_vislogger
 from dataset import get_dataset, get_dataloader
 from unused.post_eval.extract_bb_utils import show_image, save_image, \

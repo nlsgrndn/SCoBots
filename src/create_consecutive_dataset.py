@@ -11,7 +11,7 @@ from motion import mode
 from motion.motion_processing import ProcessingVisualization, BoundingBoxes, \
     ClosingMeanThreshold, IteratedCentroidSelection, Skeletonize, Identity, FlowBoundingBox, ZWhereZPres, \
     set_color_hist, set_special_color_weight
-from utils.niceprint import pprint as print
+from space_and_moc_utils.niceprint import pprint as print
 
 
 #OCAtari

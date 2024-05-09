@@ -96,7 +96,7 @@ cfg = CfgNode({
     }
 })
 
-from model.space.arch import arch
+from  space_models.space.arch import arch
 from configs.eval_cfg import eval_cfg
 from configs.dataset_size_cfg import dataset_size_cfg
 from configs.classifier_cfg import classifier_cfg

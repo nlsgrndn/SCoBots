@@ -1,8 +1,8 @@
-from utils.checkpointer import Checkpointer
+from space_and_moc_utils.checkpointer import Checkpointer
 import os.path as osp
 import os
-from model.space.space import Space
-from model.space.time_consistency import TcSpace
+from  space_models.space.space import Space
+from  space_models.space.time_consistency import TcSpace
 import torch
 
 

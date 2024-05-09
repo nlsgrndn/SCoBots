@@ -1,7 +1,7 @@
-from model import get_model
+from  space_models import get_model
 from vis import get_vislogger
 from dataset import get_dataset, get_dataloader
-from utils.checkpointer import Checkpointer
+from space_and_moc_utils.checkpointer import Checkpointer
 import os
 import os.path as osp
 from torch import nn

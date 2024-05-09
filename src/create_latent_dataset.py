@@ -1,18 +1,18 @@
 import os
 
-from model.space.postprocess_latent_variables import retrieve_latent_repr_from_logs
-from utils.checkpointer import Checkpointer
+from  space_models.space.postprocess_latent_variables import retrieve_latent_repr_from_logs
+from space_and_moc_utils.checkpointer import Checkpointer
 
 import os.path as osp
 from engine.utils import get_config
-from model import get_model
+from  space_models import get_model
 import os
 import torch
 from tqdm import tqdm
 from dataset import get_dataloader
 from dataset.z_what import Atari_Z_What
 import time
-from model.space.inference_space import WrappedSPACEforInference
+from  space_models.space.inference_space import WrappedSPACEforInference
 
 def create_latent_dataset(cfg, dataset_mode = "test", model=None):
     game = cfg.gamelist[0]

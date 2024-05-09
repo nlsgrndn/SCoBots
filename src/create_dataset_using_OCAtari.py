@@ -11,7 +11,7 @@ from motion import mode
 from motion.motion_processing import ProcessingVisualization, BoundingBoxes, \
     ClosingMeanThreshold, IteratedCentroidSelection, Skeletonize, Identity, FlowBoundingBox, ZWhereZPres, \
     set_color_hist, set_special_color_weight
-from utils.niceprint import pprint as print
+from space_and_moc_utils.niceprint import pprint as print
 
 
 #OCAtari
@@ -189,7 +189,7 @@ def create_dataset_using_ocatari():
             resize_stack = []
             for i, (frame, img_info) in enumerate(zip(consecutive_images[-T:], consecutive_images_info[-T:])):
                 space_stack.append(frame)
-                frame_space = Image.fromarray(frame[:, :, ::-1], 'RGB').resize((128, 128), Image.ANTIALIAS)
+                frame_space = Image.fromarray(frame[:, :, ::-1], 'RGB').resize((128, 128), Image.LANCZOS)
                 resize_stack.append(np.array(frame_space))
                 frame_space.save(f'{bgr_folder}/{image_count:05}_{i}.png')
                 img = Image.fromarray(frame, 'RGB')

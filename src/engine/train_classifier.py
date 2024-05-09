@@ -1,8 +1,8 @@
-from model.z_what_classifier.z_what_classification import ZWhatClassifierCreator
+from  space_models.z_what_classifier.z_what_classification import ZWhatClassifierCreator
 import numpy as np
 from collections import Counter
-from model import get_model
-from utils.checkpointer import Checkpointer
+from  space_models import get_model
+from space_and_moc_utils.checkpointer import Checkpointer
 import os
 import os.path as osp
 from torch import nn

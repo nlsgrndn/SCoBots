@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from model.space.postprocess_latent_variables import convert_to_boxes, retrieve_latent_repr_from_logs
+from  space_models.space.postprocess_latent_variables import convert_to_boxes, retrieve_latent_repr_from_logs
 from .ap import compute_ap, compute_counts, compute_prec_rec, compute_average_center_distances
 from eval.data_reading import read_boxes, read_boxes_object_type_dict
 from dataset.z_what import Atari_Z_What

@@ -2,7 +2,7 @@ import torch
 import matplotlib
 
 # matplotlib.use('agg')
-from model.space.utils import spatial_transform, inverse_spatial_transform
+from  space_models.space.utils import spatial_transform, inverse_spatial_transform
 from .color_box import boxes, gbox, rbox
 
 

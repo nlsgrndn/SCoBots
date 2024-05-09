@@ -4,7 +4,7 @@ from torchvision.utils import save_image as Simage
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from torchvision.utils import draw_bounding_boxes as draw_bb
-from utils.niceprint import pprint as print, makedirs
+from space_and_moc_utils.niceprint import pprint as print, makedirs
 
 colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255),
           (0, 255, 255), (255, 100, 100), (100, 100, 100), (100, 100, 255), (100, 200, 100)] * 100

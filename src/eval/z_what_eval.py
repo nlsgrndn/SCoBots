@@ -20,8 +20,7 @@ import numpy as np
 import joblib
 from termcolor import colored
 from sklearn.manifold import TSNE
-from eval.utils import plot_confusion_matrix
-from model.z_what_classifier.z_what_classification import ZWhatClassifierCreator
+from  space_models.z_what_classifier.z_what_classification import ZWhatClassifierCreator
 from classifier_visualization.classifier_vis import ZWhatPlotter
 
 

@@ -2,8 +2,8 @@ import joblib
 
 import os.path as osp
 
-from model import get_model
-from utils.checkpointer import Checkpointer
+from  space_models import get_model
+from space_and_moc_utils.checkpointer import Checkpointer
 from solver import get_optimizers
 from PIL import Image
 from torchvision import transforms

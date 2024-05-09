@@ -1,8 +1,8 @@
-from model.z_what_classifier.z_what_classification import ZWhatClassifierCreator
+from  space_models.z_what_classifier.z_what_classification import ZWhatClassifierCreator
 import numpy as np
 from collections import Counter
-from model import get_model
-from utils.checkpointer import Checkpointer
+from  space_models import get_model
+from space_and_moc_utils.checkpointer import Checkpointer
 import os
 import os.path as osp
 import torch
@@ -20,6 +20,8 @@ def eval_classifier(cfg):
     only_collect_first_image_of_consecutive_frames = cfg.classifier.one_image_per_sequence
 
     folder_path = cfg.resume_ckpt.rsplit('/', 1)[0]
+
+    folder_path = folder_path.replace("space_weights", "classifier")
 
     clf, centroid_labels = load_classifier(
         folder_path=folder_path,

@@ -1,7 +1,7 @@
 from eval.space_eval import SpaceEval
 from dataset import get_dataset, get_dataloader
 from engine.utils import load_model
-from utils.metric_logger import MetricLogger
+from space_and_moc_utils.metric_logger import MetricLogger
 import os
 from torch.utils.tensorboard import SummaryWriter
 from vis import get_vislogger
@@ -14,7 +14,7 @@ import shutil
 from torch.utils.data import Subset, DataLoader
 import matplotlib.pyplot as plt
 import numpy as np
-from model.space.time_consistency import MOCLoss
+from  space_models.space.time_consistency import MOCLoss
 from dataset.z_what import Atari_Z_What
 from engine.utils import print_info
 

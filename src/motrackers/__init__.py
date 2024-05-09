@@ -12,9 +12,9 @@ from motrackers.detectors.space_detector import SPACE
 
 
 import joblib
-from model.space.space import Space
-from model.space.inference_space import WrappedSPACEforInference
-from utils.checkpointer import Checkpointer
+from  space_models.space.space import Space
+from  space_models.space.inference_space import WrappedSPACEforInference
+from space_and_moc_utils.checkpointer import Checkpointer
 import os.path as osp
 from engine.utils import get_config_v2
 import pandas as pd

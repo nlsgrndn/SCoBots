@@ -5,9 +5,9 @@ from argparse import ArgumentParser
 from torch import nn
 import os.path as osp
 from configs.config import cfg
-from model import get_model
+from  space_models import get_model
 from solver import get_optimizers
-from utils.checkpointer import Checkpointer
+from space_and_moc_utils.checkpointer import Checkpointer
 
 import joblib
 import pandas as pd
@@ -141,7 +141,7 @@ def load_model(cfg, mode):
         model = nn.DataParallel(model, device_ids=cfg.device_ids)
     return model, optimizer_fg, optimizer_bg, checkpointer, checkpoint
 
-def load_classifier(folder_path=None, clf_name="kmeans", data_subset_mode="relevant"):
+def load_classifier(folder_path , clf_name="kmeans", data_subset_mode="relevant"):
     classifier_path = f"{folder_path}/z_what-classifier_{data_subset_mode}_{clf_name}.joblib.pkl"
     classifier = joblib.load(classifier_path)
 

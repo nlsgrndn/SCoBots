@@ -32,11 +32,11 @@ import argparse
 # space stuff
 import os.path as osp
 
-from model import get_model
+from  space_models import get_model
 from engine.utils import get_config
-from utils.checkpointer import Checkpointer
+from space_and_moc_utils.checkpointer import Checkpointer
 from solver import get_optimizers
-from model.space.postprocess_latent_variables import convert_to_boxes
+from  space_models.space.postprocess_latent_variables import convert_to_boxes
 
 cfg, task = get_config()
 

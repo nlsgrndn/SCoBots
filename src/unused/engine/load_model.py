@@ -6,9 +6,9 @@ import joblib
 import os.path as osp
 import os
 from engine.utils import get_config
-from model import get_model
+from  space_models import get_model
 from rl_utils import SceneCleaner, load_space
-from utils.checkpointer import Checkpointer
+from space_and_moc_utils.checkpointer import Checkpointer
 from solver import get_optimizers
 import numpy as np
 import torch
