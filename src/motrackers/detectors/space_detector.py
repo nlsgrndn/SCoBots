@@ -127,10 +127,10 @@ class SPACE(Detector):
         latent_logs_dict = self.forward(image)
         predbboxs, z_whats = latent_to_boxes_and_z_whats(latent_logs_dict)
         if len(z_whats) == 0:
-            return np.array([]), np.array([]), np.array([]), np.array([])
+            return np.array([]), np.array([]), np.array([])
         mask = filter_relevant_boxes_masks(self.game_name, predbboxs, None)[0]
         if not torch.any(mask):
-            return np.array([]), np.array([]), np.array([]), np.array([])
+            return np.array([]), np.array([]), np.array([])
         predbboxs = predbboxs[0][mask]
         z_whats = z_whats[mask]
         predbboxs = predbboxs.to("cpu").numpy()
