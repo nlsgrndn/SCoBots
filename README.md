@@ -1,8 +1,5 @@
-# MOC: Motion and Object-Continuity
-This repository contains the code for MOC. Here you can train discovery models to detect object in different Atari 2600 environments.
-
-![moc](figures/moc.svg)
-
+# SPACE+MOC:
+This repository contains the code for MOC applied to SPACE (https://arxiv.org/abs/2001.02407). Here you can train discovery models to detect object in different Atari 2600 environments.
 
 **Sections**
 - Installation
@@ -13,28 +10,27 @@ This repository contains the code for MOC. Here you can train discovery models t
 	- Loading the model
 	- Training
 	- Evaluation
-  	- Usage
-- Object Classification:
-  	- Loading the model
+- Object Classification
 	- Training
 	- Evaluation
-  	- Usage
-- RL Agents:
-	- Loading the model
-	- Training
-	- Evaluation
-  	- Usage
+- Object Tracking
 
 **Installation**
 - linux is recommended
 - use python 3.8.12 or similar
 - install requirements.txt
-- for installation with cuda usage on remote cluster of tu darmstadt:pip3 install torch==1.10.0+cu113 torchvision==0.11.1+cu113  -f  https://download.pytorch.org/whl/cu113/torch_stable.html
+- for installation with cuda usage on remote cluster of tu darmstadt, torch related packages might have to be installed separately (e.g., "pip3 install torch==1.10.0+cu113 torchvision==0.11.1+cu113  -f  https://download.pytorch.org/whl/cu113/torch_stable.html")
 - if you get a protobuf issue when running eval.py, the solution is to downgrade to 3.20
 
 **Integration into SCoBots Repo(https://github.com/k4ntz/SCoBots)**
 
-First, clone https://github.com/k4ntz/SCoBots in the desired location. Step into the cloned repository via `cd SCoBots`.  Then clone this repository. You should rename the base folder of this cloned repo to spaceandmoc (instead of SCoBots).
+Clone this repository into the desired location. You should rename the base folder of this cloned repo to space_and_moc (instead of SCoBots).
+Then, clone https://github.com/k4ntz/SCoBots into the same parent directory as space_and_moc. The folder structure should look like this:
+```
+parent_directory
+|_ space_and_moc
+|_ SCoBots
+```
 
 
 **Dataset Creation**
@@ -51,19 +47,19 @@ Generally, mode should be used instead of median (but this is already set as def
 The parameter --vis optionally creates also visualizations that can help to understand whether the data generation was successful.
 The folders median, flow, rgb and vis are not required tor the training or evaluation. The sizes of train, validation and test set are specified in the python file but can easily be modified.
 
-If consecutive images should be created, follow the same steps but use the create_consecutive_dataset.py instead.
+If consecutive images should be created (e.g., for evaluation of tracking), follow the same steps but use the create_consecutive_dataset.py instead.
 
 If a trained model exists, a dataset of the latent variables that this model produces can be created:
 
 `python3 main.py --task create_latent_dataset --config configs/config_file_name.yaml`
 
-Currently, this creates the latent dataset only for the "test" dataset_mode. #TODO: add option to configure for which dataset_mode to create the latent dataset
+Currently, this creates the latent dataset only for the "test" dataset_mode.
 
 **Config Files**
 
 Files used for config:
 - args (passed via execution command)
-- atari_<gamename>.yaml in src/configs 
+- atari_\<gamename\>.yaml in src/configs 
 - src/model/space/arch.py
 - src/config.py: includes arch.py but specifies additional values
 
@@ -163,19 +159,34 @@ The file `src/configs/eval_cfg.py` specifies which metrics are used in the evalu
 **Object Classification**
 
 **Training the classifier**
-First, a dataset of the latent variable z_what of the space model for the images in dataset needs to be created:
-`python3 main.py --task create_latent_dataset --config configs/config_file_name.yaml`
-Then, the classifier can created using
-`python3 main.py --task train_classifier --config configs/config_file_name.yaml`
+
+The classifier can be created using
+`python3 main.py --task train_classifier --config configs/config_file_name.yaml`.
 This saves a classifier and a csv-file which specifies the mapping from the enumerated class labels to the index postion OC_ATARI lists.
 These are saved in the folder where the space model weights for creating the latent dataset are stored.
 
 **Evaluating a classifier**
+
 The classifier is evaluated qualitatively via visualizing the clusters.
 The clusters are visualized in the folder `src/classifier_vis`.
 
+**Object Detection and Object Tracking**
 
-# SPACE
+The implementation of the object tracking is based on https://github.com/adipandas/multi-object-tracker. The code is integrated into the SPACE+MOC repository in the folder `src/motrackers`.
+
+## Cite us
+```bibtex
+@article{Delfosse2022BoostingOR,
+  title={Boosting Object Representation Learning via Motion and Object Continuity},
+  author={Quentin Delfosse and Wolfgang Stammer and Thomas Rothenbacher and Dwarak Vittal and Kristian Kersting},
+  journal={ArXiv},
+  year={2022},
+  volume={abs/2211.09771}
+}
+```
+
+
+# REMARKS COPIED FROM ORIGINAL SPACE REPO
 
 > [SPACE: Unsupervised Object-Oriented Scene Representation via Spatial Attention and Decomposition](https://arxiv.org/abs/2001.02407)  
 
@@ -250,17 +261,5 @@ If you want to apply SPACE to your own task (e.g., for RL), please be careful. A
 That said, we are pleased to offer discussions and pointers if you need help (especially when fine-tuning it on your own dataset). We also hope this will facilitate future works that overcome these limitations.
 
 
-## Acknowledgements
 
-Please refer to [the original model](https://github.com/zhixuan-lin/SPACE) for the SPACE base model.
 
-## Cite us
-```bibtex
-@article{Delfosse2022BoostingOR,
-  title={Boosting Object Representation Learning via Motion and Object Continuity},
-  author={Quentin Delfosse and Wolfgang Stammer and Thomas Rothenbacher and Dwarak Vittal and Kristian Kersting},
-  journal={ArXiv},
-  year={2022},
-  volume={abs/2211.09771}
-}
-```
