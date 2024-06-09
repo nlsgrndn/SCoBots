@@ -3,7 +3,7 @@ This repository contains the code for MOC applied to SPACE (https://arxiv.org/ab
 
 **Sections**
 - Installation
-- Integration into SCoBots Repo(https://github.com/k4ntz/SCoBots)
+- Trained model weights
 - Dataset Creation
 - Config Files
 - Object Detection and Representation Model:
@@ -22,16 +22,22 @@ This repository contains the code for MOC applied to SPACE (https://arxiv.org/ab
 - for installation with cuda usage on remote cluster of tu darmstadt, torch related packages might have to be installed separately (e.g., "pip3 install torch==1.10.0+cu113 torchvision==0.11.1+cu113  -f  https://download.pytorch.org/whl/cu113/torch_stable.html")
 - if you get a protobuf issue when running eval.py, the solution is to downgrade to 3.20
 
-**Integration into SCoBots Repo(https://github.com/k4ntz/SCoBots)**
+**Trained model weights**
 
-Clone this repository into the desired location. You should rename the base folder of this cloned repo to space_and_moc (instead of SCoBots).
-Then, clone https://github.com/k4ntz/SCoBots into the same parent directory as space_and_moc. The folder structure should look like this:
+You can optionally download already trained models for SPACE+MOC, which can be used for using this repo in conjunction with the SCoBots repo (https://github.com/k4ntz/SCoBots/ space_detectors branch).
+You first need to get access to the data. Then you can download the SPACE+MOC model weights and the classifier for Pong, Boxing and Skiing
+(scobots_spaceandmoc_detectors.tar.gz). 
+Downloaded SPACE model weights and classifier should be placed in a directory called scobots_spaceandmoc_detectors in the root directory of this repo. This directory should be structured as follows (the structure is most likely already given when the scobots_spaceandmoc_detectors data is extracted):
 ```
-parent_directory
-|_ space_and_moc
-|_ SCoBots
+scobots_spaceandmoc_detectors
+├── boxing
+│   ├── classifier
+│   │   └── z-what-classifier_relevant_nn.joblib.pkl
+│   └── space_weights
+│       └── model_000005001.pth
+├── pong
+└── skiing
 ```
-
 
 **Dataset Creation**
 
