@@ -16,7 +16,7 @@ scikit-video~=1.1.11
 mushroom_rl==1.6.1
 scikit-video
 filterpy~=1.4.4
-torch~=1.10.0
+torch~=1.10.0 # use pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 instead
 opencv-python~=4.3.0.36
 torchvision~=0.11.1
 pandas~=1.0.1
@@ -29,3 +29,4 @@ filterpy~=1.4.5
 NicePrinter
 ocatari
 gymnasium[atari, accept-rom-license]
+pyclustering
