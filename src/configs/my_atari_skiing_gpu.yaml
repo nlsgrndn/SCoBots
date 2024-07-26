@@ -3,7 +3,7 @@ model: 'space'
 exp_name: skiing
 resume: false
 
-resume_ckpt: '../skiing_seed5/model_000005001.pth'
+resume_ckpt: '../scobots_spaceandmoc_detectors/skiing/space_weights/model_000005001.pth'
 #'../downloaded_models/skiing/model_000005001.pth'
 # '../output/checkpoints/mspacman_atari_pretrained/model.pth'
 parallel: true
