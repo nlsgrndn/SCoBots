@@ -25,7 +25,7 @@ This repository contains the code for MOC applied to SPACE (https://arxiv.org/ab
 **Trained model weights**
 
 You can optionally download already trained models for SPACE+MOC, which can be used for using this repo in conjunction with the SCoBots repo (https://github.com/k4ntz/SCoBots/ space_detectors branch).
-You first need to get access to the data. Then you can download the SPACE+MOC model weights and the classifier for Pong, Boxing and Skiing
+You first need to get access to the data (https://hessenbox.tu-darmstadt.de/getlink/fi3BrmgYx9JyN54FokGkXwEQ/). Then you can download the SPACE+MOC model weights and the classifier for Pong, Boxing and Skiing
 (scobots_spaceandmoc_detectors.tar.gz). 
 Downloaded SPACE model weights and classifier should be placed in a directory called scobots_spaceandmoc_detectors in the root directory of this repo. This directory should be structured as follows (the structure is most likely already given when the scobots_spaceandmoc_detectors data is extracted):
 ```
