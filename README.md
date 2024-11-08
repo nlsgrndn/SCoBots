@@ -153,9 +153,6 @@ Here we iterate over five seeds respectively once for `arch.area_object_weight =
 
 Evaluation is run alongside training if the config `train.eval_on` is set to True.
 
-For running the baseline SPACE with the current evaluation and dataset framework please switch to branch `space_upstream`,
-where these usage instructions similarly apply.
-
 **Evaluating the model**
 
 `python3 main.py --task eval --config configs/config_file_name.yaml`
@@ -173,8 +170,8 @@ These are saved in the folder where the space model weights for creating the lat
 
 **Evaluating a classifier**
 
-The classifier is evaluated qualitatively via visualizing the clusters.
-The clusters are visualized in the folder `src/classifier_vis`.
+The classifier can be evaluated using
+`python3 main.py --task eval_classifier --config configs/config_file_name.yaml`.
 
 **Object Detection and Object Tracking**
 
