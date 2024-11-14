@@ -1,4 +1,3 @@
-attrdict # only used in space_vis
 imageio # only used in space_vis
 matplotlib
 numpy

@@ -5,7 +5,6 @@ import torch
 
 import matplotlib
 from .utils import bbox_in_one, colored_bbox_in_one_image
-from attrdict import AttrDict
 from torchvision.utils import make_grid
 from torch.utils.data import Subset, DataLoader
 from torchvision.utils import draw_bounding_boxes as draw_bb
@@ -82,12 +81,12 @@ class SpaceVis:
                 log[key] = value.detach().cpu()
                 if isinstance(log[key], torch.Tensor) and log[key].ndim > 0:
                     log[key] = log[key][2:num_batch * 4:4]
-        log_img = AttrDict(log)
+        log_img = dict(log)
 
-        count = log_img.z_pres.flatten(start_dim=1).sum(dim=1).mean(dim=0)
+        count = log_img['z_pres'].flatten(start_dim=1).sum(dim=1).mean(dim=0)
         writer.add_scalar(f'{mode}/count', count, global_step=global_step)
 
-        mse = (log_img.y - log_img.imgs) ** 2
+        mse = (log_img['y'] - log_img['imgs']) ** 2
         mse = mse.flatten(start_dim=1).sum(dim=1).mean(dim=0)
         writer.add_scalar(f'{mode}/mse', mse, global_step=global_step)
         writer.add_scalar(f'{mode}/log_like', log_img['log_like'].mean(), global_step=global_step)
@@ -101,20 +100,20 @@ class SpaceVis:
         ### Visualization of the images ###
         # (B, 3, H, W) TR: Changed to z_pres_prob, why sample?
         fg_box = bbox_in_one(
-            log_img.fg, log_img.z_pres_prob, log_img.z_where
+            log_img['fg'], log_img['z_pres_prob'], log_img['z_where']
         )
         # (B, 1, 3, H, W)
-        imgs = log_img.imgs[:, None]
-        fg = log_img.fg[:, None]
-        recon = log_img.y[:, None]
+        imgs = log_img['imgs'][:, None]
+        fg = log_img['fg'][:, None]
+        recon = log_img['y'][:, None]
         fg_box = fg_box[:, None]
-        bg = log_img.bg[:, None]
+        bg = log_img['bg'][:, None]
         # (B, K, 3, H, W)
-        comps = log_img.comps
+        comps = log_img['comps']
         # (B, K, 3, H, W)
-        masks = log_img.masks.expand_as(comps)
+        masks = log_img['masks'].expand_as(comps)
         masked_comps = comps * masks
-        alpha_map = log_img.alpha_map[:, None].expand_as(imgs)
+        alpha_map = log_img['alpha_map'][:, None].expand_as(imgs)
         grid = torch.cat([imgs, recon, fg, fg_box, bg, masked_comps, masks, comps, alpha_map], dim=1)
         nrow = grid.size(1)
         B, N, _, H, W = grid.size()
@@ -123,74 +122,73 @@ class SpaceVis:
         grid_image = make_grid(grid, nrow, normalize=False, pad_value=1)
         writer.add_image(f'{mode}/0-separations', grid_image, global_step)
 
-        grid_image = make_grid(log_img.imgs, 4, normalize=False, pad_value=1)
+        grid_image = make_grid(log_img['imgs'], 4, normalize=False, pad_value=1)
         writer.add_image(f'{mode}/1-image', grid_image, global_step)
 
-        grid_image = make_grid(log_img.y, 4, normalize=False, pad_value=1)
+        grid_image = make_grid(log_img['y'], 4, normalize=False, pad_value=1)
         writer.add_image(f'{mode}/2-reconstruction_overall', grid_image, global_step)
 
-        grid_image = make_grid(log_img.bg, 4, normalize=False, pad_value=1)
+        grid_image = make_grid(log_img['bg'], 4, normalize=False, pad_value=1)
         writer.add_image(f'{mode}/3-background', grid_image, global_step)
 
-        B = log_img.motion_z_pres.shape[0]
-        G = int(math.sqrt(log_img.motion_z_pres.shape[1]))
+        B = log_img['motion_z_pres'].shape[0]
+        G = int(math.sqrt(log_img['motion_z_pres'].shape[1]))
         motion_z_pres_shape = (B, 1, G, G)
-        writer.add_image(f'{mode}/4-motion', grid_mult_img(log_img.motion_z_pres, log_img.imgs, motion_z_pres_shape),
+        writer.add_image(f'{mode}/4-motion', grid_mult_img(log_img['motion_z_pres'], log_img['imgs'], motion_z_pres_shape),
                          global_step)
                          
-        grid_image = make_grid(log_img.motion, 4, normalize=False, pad_value=1)
+        grid_image = make_grid(log_img['motion'], 4, normalize=False, pad_value=1)
         writer.add_image(f'{mode}/4-1-motion_imglike', grid_image, global_step)
         
-        reshaped_motion = log_img.motion_z_pres.reshape(motion_z_pres_shape)
+        reshaped_motion = log_img['motion_z_pres'].reshape(motion_z_pres_shape)
         writer.add_image(f'{mode}/4-2-motion_z_pres', make_grid(reshaped_motion, 4, normalize=True, pad_value=1), global_step)
 
-        z_pres_grid = grid_mult_img(log_img.z_pres_prob, log_img.imgs, motion_z_pres_shape)
+        z_pres_grid = grid_mult_img(log_img['z_pres_prob'], log_img['imgs'], motion_z_pres_shape)
         writer.add_image(f'{mode}/5-z_pres', z_pres_grid, global_step)
 
-        z_pres_pure_grid = grid_mult_img(log_img.z_pres_prob_pure, log_img.imgs, motion_z_pres_shape, scaling=6)
+        z_pres_pure_grid = grid_mult_img(log_img['z_pres_prob_pure'], log_img['imgs'], motion_z_pres_shape, scaling=6)
         writer.add_image(f'{mode}/6-z_pres_pure', z_pres_pure_grid, global_step)
 
-        #writer.add_image(f'{mode}/7-z_where', grid_z_where_vis(log_img.z_where, log_img.imgs, log_img.motion_z_pres),
+        #writer.add_image(f'{mode}/7-z_where', grid_z_where_vis(log_img['z_where'], log_img['imgs'], log_img['motion_z_pres']),
         #                 global_step)
 
-        #gg_z_pres = log_img.z_pres_prob_pure.reshape(log_img.motion_z_pres.shape) > 0.5
-        #writer.add_image(f'{mode}/8-z_where_pure', grid_z_where_vis(log_img.z_where_pure, log_img.imgs, gg_z_pres),
+        #gg_z_pres = log_img['z_pres_prob_pure'].reshape(log_img['motion_z_pres'].shape) > 0.5
+        #writer.add_image(f'{mode}/8-z_where_pure', grid_z_where_vis(log_img['z_where_pure'], log_img['imgs'], gg_z_pres),
         #                                                            global_step)
 
-        alpha_map = make_grid(log_img.alpha_map, 4, normalize=False, pad_value=1)
+        alpha_map = make_grid(log_img['alpha_map'], 4, normalize=False, pad_value=1)
         writer.add_image(f'{mode}/9-alpha_map', alpha_map, global_step)
         # bb_image = draw_image_bb(model, cfg, dataset, global_step, num_batch)
         # grid_image = make_grid(bb_image, 4, normalize=False, pad_value=1)
-
 
     @torch.no_grad()
     def show_vis(self, model, dataset, indices, path, device):
         dataset = Subset(dataset, indices)
         dataloader = DataLoader(dataset, batch_size=len(indices), shuffle=False)
         data = next(iter(dataloader))
-        for i in range(len(data)): #TODO: check if this is necessary
+        for i in range(len(data)):  # TODO: check whether this is necessary
             data[i] = data[i].to(device)
         loss, log = model(*data, 100000000)
         for key, value in log.items():
             if isinstance(value, torch.Tensor):
                 log[key] = value.detach().cpu()
-        log = AttrDict(log)
+        
         # (B, 3, H, W)
         fg_box = bbox_in_one(
-            log.fg, log.z_pres, log.z_scale, log.z_shift
+            log['fg'], log['z_pres'], log['z_scale'], log['z_shift']
         )
         # (B, 1, 3, H, W)
-        imgs = log.imgs[:, None]
-        fg = log.fg[:, None]
-        recon = log.y[:, None]
+        imgs = log['imgs'][:, None]
+        fg = log['fg'][:, None]
+        recon = log['y'][:, None]
         fg_box = fg_box[:, None]
-        bg = log.bg[:, None]
+        bg = log['bg'][:, None]
         # (B, K, 3, H, W)
-        comps = log.comps
+        comps = log['comps']
         # (B, K, 3, H, W)
-        masks = log.masks.expand_as(comps)
+        masks = log['masks'].expand_as(comps)
         masked_comps = comps * masks
-        alpha_map = log.alpha_map[:, None].expand_as(imgs)
+        alpha_map = log['alpha_map'][:, None].expand_as(imgs)
         grid = torch.cat([imgs, recon, fg, fg_box, bg, masked_comps, masks, comps, alpha_map], dim=1)
         nrow = grid.size(1)
         B, N, _, H, W = grid.size()
@@ -212,23 +210,23 @@ class SpaceVis:
         for key, value in log.items():
             if isinstance(value, torch.Tensor):
                 log[key] = value.detach().cpu()
-        log = AttrDict(log)
+        
         # (B, 3, H, W)
         fg_box = colored_bbox_in_one_image(
-            log.fg, log.z_pres, log.z_scale, log.z_shift
+            log['fg'], log['z_pres'], log['z_scale'], log['z_shift']
         )
         # (B, 1, 3, H, W)
-        imgs = log.imgs[:, None]
-        fg = log.fg[:, None]
-        recon = log.y[:, None]
+        imgs = log['imgs'][:, None]
+        fg = log['fg'][:, None]
+        recon = log['y'][:, None]
         fg_box = fg_box[:, None]
-        bg = log.bg[:, None]
+        bg = log['bg'][:, None]
         # (B, K, 3, H, W)
-        comps = log.comps
+        comps = log['comps']
         # (B, K, 3, H, W)
-        masks = log.masks.expand_as(comps)
+        masks = log['masks'].expand_as(comps)
         masked_comps = comps * masks
-        alpha_map = log.alpha_map[:, None].expand_as(imgs)
+        alpha_map = log['alpha_map'][:, None].expand_as(imgs)
         grid = torch.cat([imgs, recon, fg, fg_box, bg, masked_comps, masks, comps, alpha_map], dim=1)
         plt.imshow(fg_box[0][0].permute(1, 2, 0))
         plt.show()
