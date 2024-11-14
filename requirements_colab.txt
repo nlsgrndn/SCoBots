@@ -1,0 +1,23 @@
+attrdict # only used in space_vis
+imageio # only used in space_vis
+matplotlib
+numpy
+Pillow #must be lower than 10.0.0 to still work with ANTIALIAS
+protobuf
+scikit-image # only used in motion_processing
+scipy
+tqdm
+yacs
+tensorboard
+rtpt
+argparse # Google colab: ignore potential 
+torch
+opencv-python
+torchvision # not used that much
+pandas
+scikit-learn
+termcolor # not used that much, but only used for printing in the terminal
+NicePrinter
+ocatari
+gymnasium[atari,accept-rom-license] # Google colab: gives warning that accept-rom-license is not found but seems to work anyway
+pyclustering
