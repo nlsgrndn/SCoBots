@@ -118,13 +118,13 @@ def create_dataset_using_ocatari():
     # take some steps to not start at the beginning of the game (might be unnecessary)
     for _ in range(100):
         obs, reward, done, truncated, info = take_action(agent)
-        print(agent.env.objects)
+        #print(agent.env.objects)
         if done or truncated:
             agent.env.reset()
 
     # compute the root image i.e. mode as the background
     if args.compute_root_images:
-        root_image_limit = 500 # was 1000 before
+        root_image_limit = 100 # was 1000 before
         imgs = []
         pbar = tqdm(total=root_image_limit)
         while len(imgs) < root_image_limit:
@@ -148,7 +148,7 @@ def create_dataset_using_ocatari():
     for _ in range(50):
         obs, reward, done, truncated, info = take_action(agent)
 
-    mode_path = f"{mode_base_folder}/{args.game}-v0/background/"
+    mode_path = f"{mode_base_folder}/{args.game}-v0/background"
     if not os.path.exists(f"{mode_path}/mode.png"):
         print("red", f"Couldn't find {mode_path}/mode.png, use --trail to use the trail instead")
         exit(1)
@@ -227,7 +227,8 @@ def create_dataset_using_ocatari():
 def make_deterministic(seed, mdp, states_dict=None):
     if states_dict is None:
         np.random.seed(seed)
-        mdp.seed(seed)
+        #mdp.env.env.np_random.set_state(seed)
+        #mdp.env.env.seed_game(seed)
         torch.manual_seed(seed)
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
