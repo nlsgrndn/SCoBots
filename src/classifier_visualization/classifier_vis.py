@@ -5,10 +5,8 @@ import os.path as osp
 import torch
 from sklearn.decomposition import PCA
 from PIL import Image
-from dataset.z_what import Atari_Z_What
-from torch.utils.data import DataLoader
 from dataset.atari_data_collector import AtariDataCollector
-from pyclustering.cluster import cluster_visualizer
+#from pyclustering.cluster import cluster_visualizer
 #from pyclustering.cluster.xmeans import xmeans, splitting_type
 #from pyclustering.cluster.center_initializer import kmeans_plusplus_initializer
 #from pyclustering.utils import read_sample

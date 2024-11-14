@@ -1,21 +1,14 @@
 import os
-import sys
 import torch
 import numpy as np
 from torch.utils.data import Dataset
 from PIL import Image
-import PIL
 import os.path as osp
-from .atari_labels import to_relevant, filter_relevant_boxes
 import pandas as pd
-import cv2 as cv
-from skimage.morphology import (disk, square)
-from skimage.morphology import (erosion, dilation, opening, closing, white_tophat, skeletonize)
 from torchvision import transforms
-from torchvision.utils import draw_bounding_boxes as draw_bb
 from space_and_moc_utils.bbox_matching import get_label_of_best_matching_gt_bbox
-from dataset.atari_labels import label_list_for, no_label_str, filter_relevant_boxes_masks, get_moving_indices
-from  space_models.space.postprocess_latent_variables import convert_to_boxes, retrieve_latent_repr_from_logs
+from dataset.atari_labels import label_list_for, no_label_str, filter_relevant_boxes_masks
+from  space_models.space.postprocess_latent_variables import convert_to_boxes
     
 class Atari_Z_What(Dataset):
     def __init__(self, cfg, dataset_mode, boxes_subset="all", return_keys=None, nr_consecutive_frames=4):

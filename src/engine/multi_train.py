@@ -2,7 +2,6 @@ import itertools
 from .train import train
 import numpy as np
 from rtpt import RTPT
-import ast
 
 def boolean_print(v):
     return f'{v + 0}'

@@ -5,7 +5,6 @@ from skimage.filters import rank
 import torch
 import torch.nn as nn
 from torchvision.utils import draw_bounding_boxes as draw_bb
-from torchvision.utils import save_image
 from PIL import Image
 import cv2 as cv
 from scipy import ndimage

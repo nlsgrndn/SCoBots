@@ -1,13 +1,10 @@
 from sklearn.metrics import confusion_matrix
 from dataset.atari_labels import label_list_for,  get_moving_indices
-from collections import Counter
 import numpy as np
-import matplotlib.pyplot as plt
 from typing import List, Union
 from eval.utils import plot_confusion_matrix
 from space_and_moc_utils.bbox_matching import match_bounding_boxes
 from dataset.z_what import Atari_Z_What
-from engine.utils import get_config_v2
 from torch.utils.data import DataLoader
 from engine.utils import load_classifier
 from sklearn.metrics import classification_report

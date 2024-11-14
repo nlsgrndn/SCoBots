@@ -1,15 +1,7 @@
-from  space_models.z_what_classifier.z_what_classification import ZWhatClassifierCreator
-import numpy as np
-from collections import Counter
-from  space_models import get_model
-from space_and_moc_utils.checkpointer import Checkpointer
-import os
-import os.path as osp
-import torch
 import pandas as pd
 from dataset.atari_data_collector import AtariDataCollector
 from engine.utils import load_classifier
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from sklearn.metrics import classification_report
 # import create_latent_dataset
 from create_latent_dataset import create_latent_dataset
 

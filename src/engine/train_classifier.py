@@ -1,22 +1,10 @@
 from  space_models.z_what_classifier.z_what_classification import ZWhatClassifierCreator
 import numpy as np
-from collections import Counter
-from  space_models import get_model
-from space_and_moc_utils.checkpointer import Checkpointer
-import os
-import os.path as osp
-from torch import nn
-import torch
-from eval.utils import flatten
-from sklearn.decomposition import PCA
 from dataset.atari_labels import label_list_for, get_moving_indices
 import pandas as pd
-import random
 from dataset.atari_data_collector import AtariDataCollector
-from classifier_visualization.classifier_vis import visualize_classifier, visualize_false_predictions
-from PIL import Image
+from classifier_visualization.classifier_vis import visualize_classifier
 from create_latent_dataset import create_latent_dataset
-from classifier_visualization.classifier_vis import create_cluster_folders, create_one_grid_image_for_each_cluster
 
 def train_classifier(cfg):
     data_subset_mode = cfg.classifier.data_subset_mode

@@ -4,12 +4,10 @@ import numpy as np
 import torch
 
 import matplotlib
-from  space_models.space.utils import spatial_transform
 from .utils import bbox_in_one, colored_bbox_in_one_image
 from attrdict import AttrDict
 from torchvision.utils import make_grid
 from torch.utils.data import Subset, DataLoader
-from collections import Counter
 from torchvision.utils import draw_bounding_boxes as draw_bb
 from PIL import Image
 import PIL

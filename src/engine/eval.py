@@ -1,9 +1,5 @@
-from  space_models import get_model
 from eval.space_eval import SpaceEval
-from space_and_moc_utils.checkpointer import Checkpointer
 import os
-import os.path as osp
-from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from engine.utils import print_info, load_model
 

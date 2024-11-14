@@ -1,5 +1,4 @@
 import subprocess
-import torch
 
 def run_ppo_train_script(game, folder, create_mode_images = False):
     # Define the command and parameters as a list

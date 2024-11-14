@@ -7,7 +7,6 @@ import matplotlib.colors as mcolors
 import re
 import numpy as np
 from mpl_toolkits.mplot3d.axes3d import Axes3D
-from mpl_toolkits.mplot3d import proj3d
 import argparse
 from termcolor import colored
 from post_evaluation.latex_strings import figure, object_table, qual_page, table_metric_tex, table_tex

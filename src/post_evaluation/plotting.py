@@ -1,8 +1,5 @@
 import pandas as pd
 import numpy as np
-import os
-import os.path as osp
-from collections import defaultdict
 import matplotlib.pyplot as plt
 from dataset.atari_labels import label_list_for, get_moving_indices
 

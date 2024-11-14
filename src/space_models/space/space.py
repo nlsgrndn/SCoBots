@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from attrdict import AttrDict
 from .arch import arch
 from .fg import SpaceFg
 from .bg import SpaceBg

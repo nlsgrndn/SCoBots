@@ -1,5 +1,3 @@
-import torch
-import pandas as pd
 import numpy as np
 from ocatari.ram.pong import MAX_NB_OBJECTS_HUD as MAX_NB_OBJECTS_ALL_PONG
 from ocatari.ram.pong import MAX_NB_OBJECTS as MAX_NB_OBJECTS_MOVING_PONG

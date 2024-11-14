@@ -117,7 +117,6 @@ class ZWhatClassifierEvaluator:
     def __init__(self, cfg):
         self.cfg = cfg
         os.makedirs(f'{self.cfg.logdir}/{self.cfg.exp_name}', exist_ok=True)
-        os.makedirs(f'classifiers', exist_ok=True)
 
     def evaluate_ridge_classifiers_few_shot_accuracy(self, test_x, test_y, classifiers):
         few_shot_accuracy = {}

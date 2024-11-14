@@ -1,6 +1,5 @@
 import torch
 from torch import nn
-from attrdict import AttrDict
 from torch.nn import functional as F
 from torch.distributions.normal import Normal
 from torch.distributions.kl import kl_divergence

@@ -1,18 +1,12 @@
 import os
 import torch
-import torch.nn.functional as F
-from sklearn.linear_model import LogisticRegression, LinearRegression, SGDClassifier, RidgeClassifier
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import RidgeClassifier
 from sklearn.cluster import KMeans
 from sklearn.neighbors import NearestNeighbors
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.mixture import GaussianMixture
 # import x-means from pyclustering
 from pyclustering.cluster.xmeans import xmeans
 from pyclustering.cluster.center_initializer import kmeans_plusplus_initializer
-from pyclustering.cluster import cluster_visualizer
-from sklearn.decomposition import PCA
-import numpy as np
 
 import joblib
 

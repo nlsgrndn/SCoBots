@@ -1,7 +1,5 @@
 import cv2 as cv
-import numpy as np
-import torch
-from .motion_processing import process_motion_to_latents, save_motion
+from .motion_processing import save_motion
 
 
 def last_four_pairs(trail):

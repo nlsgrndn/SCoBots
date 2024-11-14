@@ -1,5 +1,5 @@
 from eval.space_eval import SpaceEval
-from dataset import get_dataset, get_dataloader
+from dataset import get_dataloader
 from engine.utils import load_model
 from space_and_moc_utils.metric_logger import MetricLogger
 import os
@@ -10,10 +10,6 @@ import torch
 from torch.nn.utils import clip_grad_norm_
 from rtpt import RTPT
 from tqdm import tqdm
-import shutil
-from torch.utils.data import Subset, DataLoader
-import matplotlib.pyplot as plt
-import numpy as np
 from  space_models.space.time_consistency import MOCLoss
 from dataset.z_what import Atari_Z_What
 from engine.utils import print_info

@@ -33,7 +33,6 @@ def create_latent_dataset(cfg, dataset_mode = "test", model=None):
     z_wheres = []
     z_pres_probs = []
     z_whats = []
-    global_step=10000000
     B = dataloader.batch_size
     T = dataset.T
 

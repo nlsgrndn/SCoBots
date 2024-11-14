@@ -4,7 +4,6 @@ import numpy as np
 import os
 import os.path as osp
 from collections import defaultdict
-import matplotlib.pyplot as plt
 # read csv files of multiple seeds
 from post_evaluation.plotting import plot_recall_per_object_type, plot_ap, plot_prec_recall_data, bar_plot
 
