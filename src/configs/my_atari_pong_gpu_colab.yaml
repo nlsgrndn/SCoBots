@@ -1,0 +1,63 @@
+seed: 1
+model: 'space'
+exp_name: pong
+resume: false
+save_relevant_objects: false
+
+resume_ckpt: "../output/checkpoints/pong/model_000000101.pth"
+#"../scobots_spaceandmoc_detectors/pong/space_weights/model_000005001.pth"
+#'' #'../downloaded_models/pong/model_000005001.pth'
+parallel: false
+device_ids: [0]
+device: 'cuda:0'
+
+logdir: '../output/logs/'
+checkpointdir: '../output/checkpoints/'
+
+
+dataset: 'ATARI'
+dataset_style: ''
+dataset_roots:
+  OBJ3D_SMALL: '../data/OBJ3D_SMALL'
+  OBJ3D_LARGE: '../data/OBJ3D_LARGE'
+  ATARI: '../aiml_atari_data'
+
+train:
+  log: false
+  batch_size: 4
+  max_epochs: 10000
+  max_steps: 5000
+  print_every: 100
+  save_every: 100
+  num_workers: 8
+  clip_norm: 1.0
+  max_ckpt: 4
+  eval_on: false
+  eval_every: 500
+  solver:
+    fg:
+      optim: 'RMSprop'
+      lr: 3e-5
+    bg:
+      optim: 'Adam'
+      lr: 1e-3
+
+arch:
+  motion_input: false
+  motion: true
+  motion_kind: 'mode'
+  G: 16
+
+  fix_alpha_steps: -1
+  fix_alpha_value: 0.1
+
+  motion_underestimating: 1.5
+
+# For engine.eval
+eval:
+  checkpoint: 'last'
+  metric: ap_avg
+
+gamelist: [
+    'Pong-v0',
+    ]
